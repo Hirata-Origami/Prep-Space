@@ -1,0 +1,527 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+:root {
+  /* Color System - PrepSpace */
+  --bg-base: #080C14;
+  --bg-surface: #0E1421;
+  --bg-elevated: #131D2E;
+  --bg-card: #111827;
+  --accent-primary: #4DFFA0;
+  --accent-primary-dim: rgba(77, 255, 160, 0.15);
+  --accent-primary-glow: rgba(77, 255, 160, 0.4);
+  --accent-violet: #7B61FF;
+  --accent-violet-dim: rgba(123, 97, 255, 0.15);
+  --accent-amber: #FFB547;
+  --accent-amber-dim: rgba(255, 181, 71, 0.15);
+  --accent-red: #FF4D6A;
+  --accent-red-dim: rgba(255, 77, 106, 0.15);
+  --text-primary: #F0F4FF;
+  --text-secondary: #B8C4E0;
+  --text-muted: #6B7A99;
+  --border: rgba(255, 255, 255, 0.06);
+  --border-hover: rgba(255, 255, 255, 0.12);
+  
+  /* Typography */
+  --font-display: "DM Sans", system-ui, sans-serif;
+  --font-body: "DM Sans", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "Courier New", monospace;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  color-scheme: dark;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--text-primary);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-base);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(77, 255, 160, 0.3);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(77, 255, 160, 0.5);
+}
+
+/* Selection */
+::selection {
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+/* ============================================
+   TYPOGRAPHY UTILITIES
+   ============================================ */
+.font-display { font-family: var(--font-display); }
+.font-mono { font-family: var(--font-mono); }
+
+.text-gradient-mint {
+  background: linear-gradient(135deg, #4DFFA0 0%, #00D4FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-violet {
+  background: linear-gradient(135deg, #7B61FF 0%, #C961FF 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.text-gradient-amber {
+  background: linear-gradient(135deg, #FFB547 0%, #FF8C47 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ============================================
+   SURFACE UTILITIES
+   ============================================ */
+.surface {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.surface-elevated {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.glass {
+  background: rgba(14, 20, 33, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border);
+}
+
+/* ============================================
+   GLOW EFFECTS
+   ============================================ */
+.glow-mint {
+  box-shadow: 0 0 30px rgba(77, 255, 160, 0.15), 0 0 60px rgba(77, 255, 160, 0.05);
+}
+
+.glow-violet {
+  box-shadow: 0 0 30px rgba(123, 97, 255, 0.15), 0 0 60px rgba(123, 97, 255, 0.05);
+}
+
+.glow-amber {
+  box-shadow: 0 0 30px rgba(255, 181, 71, 0.15);
+}
+
+/* ============================================
+   BUTTON STYLES
+   ============================================ */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: var(--accent-primary);
+  color: #080C14;
+  font-weight: 700;
+  font-size: 15px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-primary:hover {
+  background: #62FFB0;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 30px rgba(77, 255, 160, 0.35);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 28px;
+  background: transparent;
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 15px;
+  border-radius: 8px;
+  border: 1px solid var(--border-hover);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.btn-secondary:hover {
+  border-color: var(--accent-primary);
+  color: var(--accent-primary);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   BADGE STYLES
+   ============================================ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.badge-mint { background: var(--accent-primary-dim); color: var(--accent-primary); border: 1px solid rgba(77,255,160,0.2); }
+.badge-violet { background: var(--accent-violet-dim); color: var(--accent-violet); border: 1px solid rgba(123,97,255,0.2); }
+.badge-amber { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(255,181,71,0.2); }
+.badge-red { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(255,77,106,0.2); }
+.badge-muted { background: rgba(107,122,153,0.15); color: var(--text-muted); border: 1px solid rgba(107,122,153,0.2); }
+
+/* ============================================
+   CARD STYLES
+   ============================================ */
+.card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 24px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.card:hover {
+  border-color: var(--border-hover);
+}
+
+.card-interactive {
+  cursor: pointer;
+}
+
+.card-interactive:hover {
+  border-color: rgba(77, 255, 160, 0.2);
+  box-shadow: 0 0 30px rgba(77, 255, 160, 0.05);
+  transform: translateY(-2px);
+  transition: all 0.2s ease;
+}
+
+/* ============================================
+   PROGRESS BAR
+   ============================================ */
+.progress-bar {
+  height: 6px;
+  background: var(--bg-elevated);
+  border-radius: 100px;
+  overflow: hidden;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-primary), #00D4FF);
+  border-radius: 100px;
+  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================================
+   FORM STYLES
+   ============================================ */
+.input {
+  width: 100%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  font-size: 15px;
+  color: var(--text-primary);
+  transition: border-color 0.2s;
+  outline: none;
+  font-family: var(--font-body);
+}
+
+.input:focus {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-primary-dim);
+}
+
+.input::placeholder {
+  color: var(--text-muted);
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse-mint {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(77, 255, 160, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(77, 255, 160, 0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% center; }
+  100% { background-position: 200% center; }
+}
+
+@keyframes spin-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-fade-in { animation: fade-in 0.5s ease forwards; }
+.animate-slide-right { animation: slide-in-right 0.4s ease forwards; }
+.animate-pulse-mint { animation: pulse-mint 2s ease infinite; }
+.animate-float { animation: float 4s ease-in-out infinite; }
+.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+
+.shimmer-text {
+  background: linear-gradient(
+    90deg,
+    var(--accent-primary) 0%,
+    #62FFB0 25%,
+    var(--accent-primary) 50%,
+    #00D4FF 75%,
+    var(--accent-primary) 100%
+  );
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* ============================================
+   LAYOUT UTILITIES
+   ============================================ */
+.container-xl {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.container-lg {
+  max-width: 1024px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+/* ============================================
+   MARQUEE (Social proof ticker)
+   ============================================ */
+@keyframes marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+
+.marquee-track {
+  display: flex;
+  animation: marquee 40s linear infinite;
+  width: max-content;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* ============================================
+   INTERVIEW UI
+   ============================================ */
+.waveform-container {
+  position: relative;
+  width: 100%;
+  height: 80px;
+  overflow: hidden;
+}
+
+.audio-marker {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  border-radius: 1px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.proctoring-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 100px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* ============================================
+   RADAR CHART CONTAINER
+   ============================================ */
+.radar-chart-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ============================================
+   SIDEBAR NAVIGATION
+   ============================================ */
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-muted);
+  transition: all 0.15s;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.sidebar-item:hover,
+.sidebar-item.active {
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
+}
+
+/* ============================================
+   MODULE CARD STATUS
+   ============================================ */
+.module-card-locked {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.module-card-complete {
+  border-color: rgba(77, 255, 160, 0.3) !important;
+}
+
+.module-card-in-progress {
+  border-color: rgba(123, 97, 255, 0.3) !important;
+}
+
+/* ============================================
+   THREE.JS CANVAS
+   ============================================ */
+#hero-canvas {
+  position: absolute !important;
+  top: 0;
+  left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  pointer-events: none;
+}
+
+/* ============================================
+   SCORE RING
+   ============================================ */
+.score-ring {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.score-ring svg {
+  transform: rotate(-90deg);
+}
+
+/* ============================================
+   KANBAN BOARD
+   ============================================ */
+.kanban-col {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  min-width: 280px;
+  padding: 16px;
+}
+
+.kanban-card {
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  margin-bottom: 10px;
+  cursor: grab;
+  transition: all 0.15s;
+}
+
+.kanban-card:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-1px);
+}
+
+/* ============================================
+   STREAK HEATMAP
+   ============================================ */
+.heatmap-cell {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  background: var(--bg-elevated);
+}
+
+.heatmap-cell[data-level="1"] { background: rgba(77, 255, 160, 0.2); }
+.heatmap-cell[data-level="2"] { background: rgba(77, 255, 160, 0.4); }
+.heatmap-cell[data-level="3"] { background: rgba(77, 255, 160, 0.6); }
+.heatmap-cell[data-level="4"] { background: rgba(77, 255, 160, 0.9); }
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .container-xl, .container-lg {
+    padding: 0 16px;
+  }
+  
+  .kanban-col {
+    min-width: 240px;
+  }
+}
