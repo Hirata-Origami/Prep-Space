@@ -1,8 +1,8 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@400;500;600&display=swap');
 
 :root {
   /* Color System - PrepSpace */
@@ -24,7 +24,7 @@
   --text-muted: #6B7A99;
   --border: rgba(255, 255, 255, 0.06);
   --border-hover: rgba(255, 255, 255, 0.12);
-  
+
   /* Typography */
   --font-display: "DM Sans", system-ui, sans-serif;
   --font-body: "DM Sans", system-ui, sans-serif;
@@ -58,13 +58,16 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--bg-base);
 }
+
 ::-webkit-scrollbar-thumb {
   background: rgba(77, 255, 160, 0.3);
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(77, 255, 160, 0.5);
 }
@@ -84,8 +87,13 @@ body {
 /* ============================================
    TYPOGRAPHY UTILITIES
    ============================================ */
-.font-display { font-family: var(--font-display); }
-.font-mono { font-family: var(--font-mono); }
+.font-display {
+  font-family: var(--font-display);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
 
 .text-gradient-mint {
   background: linear-gradient(135deg, #4DFFA0 0%, #00D4FF 100%);
@@ -206,11 +214,35 @@ body {
   letter-spacing: 0.02em;
 }
 
-.badge-mint { background: var(--accent-primary-dim); color: var(--accent-primary); border: 1px solid rgba(77,255,160,0.2); }
-.badge-violet { background: var(--accent-violet-dim); color: var(--accent-violet); border: 1px solid rgba(123,97,255,0.2); }
-.badge-amber { background: var(--accent-amber-dim); color: var(--accent-amber); border: 1px solid rgba(255,181,71,0.2); }
-.badge-red { background: var(--accent-red-dim); color: var(--accent-red); border: 1px solid rgba(255,77,106,0.2); }
-.badge-muted { background: rgba(107,122,153,0.15); color: var(--text-muted); border: 1px solid rgba(107,122,153,0.2); }
+.badge-mint {
+  background: var(--accent-primary-dim);
+  color: var(--accent-primary);
+  border: 1px solid rgba(77, 255, 160, 0.2);
+}
+
+.badge-violet {
+  background: var(--accent-violet-dim);
+  color: var(--accent-violet);
+  border: 1px solid rgba(123, 97, 255, 0.2);
+}
+
+.badge-amber {
+  background: var(--accent-amber-dim);
+  color: var(--accent-amber);
+  border: 1px solid rgba(255, 181, 71, 0.2);
+}
+
+.badge-red {
+  background: var(--accent-red-dim);
+  color: var(--accent-red);
+  border: 1px solid rgba(255, 77, 106, 0.2);
+}
+
+.badge-muted {
+  background: rgba(107, 122, 153, 0.15);
+  color: var(--text-muted);
+  border: 1px solid rgba(107, 122, 153, 0.2);
+}
 
 /* ============================================
    CARD STYLES
@@ -284,50 +316,100 @@ body {
    ANIMATIONS
    ============================================ */
 @keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes slide-in-right {
-  from { opacity: 0; transform: translateX(20px); }
-  to { opacity: 1; transform: translateX(0); }
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
 }
 
 @keyframes pulse-mint {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(77, 255, 160, 0.4); }
-  50% { box-shadow: 0 0 0 8px rgba(77, 255, 160, 0); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(77, 255, 160, 0.4);
+  }
+
+  50% {
+    box-shadow: 0 0 0 8px rgba(77, 255, 160, 0);
+  }
 }
 
 @keyframes shimmer {
-  0% { background-position: -200% center; }
-  100% { background-position: 200% center; }
+  0% {
+    background-position: -200% center;
+  }
+
+  100% {
+    background-position: 200% center;
+  }
 }
 
 @keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-8px);
+  }
 }
 
-.animate-fade-in { animation: fade-in 0.5s ease forwards; }
-.animate-slide-right { animation: slide-in-right 0.4s ease forwards; }
-.animate-pulse-mint { animation: pulse-mint 2s ease infinite; }
-.animate-float { animation: float 4s ease-in-out infinite; }
-.animate-spin-slow { animation: spin-slow 8s linear infinite; }
+.animate-fade-in {
+  animation: fade-in 0.5s ease forwards;
+}
+
+.animate-slide-right {
+  animation: slide-in-right 0.4s ease forwards;
+}
+
+.animate-pulse-mint {
+  animation: pulse-mint 2s ease infinite;
+}
+
+.animate-float {
+  animation: float 4s ease-in-out infinite;
+}
+
+.animate-spin-slow {
+  animation: spin-slow 8s linear infinite;
+}
 
 .shimmer-text {
-  background: linear-gradient(
-    90deg,
-    var(--accent-primary) 0%,
-    #62FFB0 25%,
-    var(--accent-primary) 50%,
-    #00D4FF 75%,
-    var(--accent-primary) 100%
-  );
+  background: linear-gradient(90deg,
+      var(--accent-primary) 0%,
+      #62FFB0 25%,
+      var(--accent-primary) 50%,
+      #00D4FF 75%,
+      var(--accent-primary) 100%);
   background-size: 200% auto;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -354,8 +436,13 @@ body {
    MARQUEE (Social proof ticker)
    ============================================ */
 @keyframes marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-50%);
+  }
 }
 
 .marquee-track {
@@ -508,19 +595,32 @@ body {
   background: var(--bg-elevated);
 }
 
-.heatmap-cell[data-level="1"] { background: rgba(77, 255, 160, 0.2); }
-.heatmap-cell[data-level="2"] { background: rgba(77, 255, 160, 0.4); }
-.heatmap-cell[data-level="3"] { background: rgba(77, 255, 160, 0.6); }
-.heatmap-cell[data-level="4"] { background: rgba(77, 255, 160, 0.9); }
+.heatmap-cell[data-level="1"] {
+  background: rgba(77, 255, 160, 0.2);
+}
+
+.heatmap-cell[data-level="2"] {
+  background: rgba(77, 255, 160, 0.4);
+}
+
+.heatmap-cell[data-level="3"] {
+  background: rgba(77, 255, 160, 0.6);
+}
+
+.heatmap-cell[data-level="4"] {
+  background: rgba(77, 255, 160, 0.9);
+}
 
 /* ============================================
    RESPONSIVE
    ============================================ */
 @media (max-width: 768px) {
-  .container-xl, .container-lg {
+
+  .container-xl,
+  .container-lg {
     padding: 0 16px;
   }
-  
+
   .kanban-col {
     min-width: 240px;
   }

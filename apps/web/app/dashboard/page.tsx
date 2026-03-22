@@ -1,9 +1,4 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Dashboard — PrepSpace',
-  description: 'Your AI interview preparation dashboard',
-};
+'use client';
 
 export default function DashboardPage() {
   return (

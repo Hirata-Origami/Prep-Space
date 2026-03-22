@@ -73,8 +73,8 @@ const FEATURES = [
     visual: (
       <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {[{ name: 'Google', rounds: ['DSA Round', 'System Design', 'Behavioral'], pass: 71 },
-          { name: 'Meta', rounds: ['Coding (x2)', 'System Design', 'Leadership'], pass: 64 },
-          { name: 'Stripe', rounds: ['Bug Fix', 'System Design', 'Architecture'], pass: 58 }].map(({ name, rounds, pass }) => (
+        { name: 'Meta', rounds: ['Coding (x2)', 'System Design', 'Leadership'], pass: 64 },
+        { name: 'Stripe', rounds: ['Bug Fix', 'System Design', 'Architecture'], pass: 58 }].map(({ name, rounds, pass }) => (
           <div key={name} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
               <span style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)' }}>{name}</span>
@@ -175,51 +175,54 @@ const FEATURES = [
   },
 ];
 
+function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const isInView = useInView(ref, { once: true, margin: '-60px' });
+  const isEven = index % 2 === 0;
+
+  return (
+    <div key={feature.title} ref={ref} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center' }}>
+      {/* Text */}
+      <motion.div
+        initial={{ opacity: 0, x: isEven ? -30 : 30 }}
+        animate={isInView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 0.7 }}
+        style={{ order: isEven ? 0 : 1 }}
+      >
+        <span className={`badge ${feature.tagColor}`} style={{ marginBottom: '16px', display: 'inline-flex' }}>{feature.tag}</span>
+        <h3 style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '16px' }}>{feature.title}</h3>
+        <p style={{ fontSize: '16px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '24px' }}>{feature.description}</p>
+        <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          {feature.bullets.map(b => (
+            <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+              <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
+              {b}
+            </li>
+          ))}
+        </ul>
+      </motion.div>
+
+      {/* Visual */}
+      <motion.div
+        initial={{ opacity: 0, x: isEven ? 30 : -30 }}
+        animate={isInView ? { opacity: 1, x: 0 } : {}}
+        transition={{ duration: 0.7, delay: 0.15 }}
+        style={{ order: isEven ? 1 : 0, padding: 0, overflow: 'hidden', minHeight: '320px', background: 'var(--bg-surface)' }}
+        className="card"
+      >
+        {feature.visual}
+      </motion.div>
+    </div>
+  );
+}
+
 export function FeatureBlocks() {
   return (
     <section style={{ padding: '80px 24px', background: 'var(--bg-base)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '80px' }}>
-        {FEATURES.map((feature, i) => {
-          const ref = useRef<HTMLDivElement>(null);
-          const isInView = useInView(ref, { once: true, margin: '-60px' });
-          const isEven = i % 2 === 0;
-
-          return (
-            <div key={feature.title} ref={ref} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center' }}>
-              {/* Text */}
-              <motion.div
-                initial={{ opacity: 0, x: isEven ? -30 : 30 }}
-                animate={isInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.7 }}
-                style={{ order: isEven ? 0 : 1 }}
-              >
-                <span className={`badge ${feature.tagColor}`} style={{ marginBottom: '16px', display: 'inline-flex' }}>{feature.tag}</span>
-                <h3 style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '16px' }}>{feature.title}</h3>
-                <p style={{ fontSize: '16px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '24px' }}>{feature.description}</p>
-                <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  {feature.bullets.map(b => (
-                    <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-                      <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
-                      {b}
-                    </li>
-                  ))}
-                </ul>
-              </motion.div>
-
-              {/* Visual */}
-              <motion.div
-                initial={{ opacity: 0, x: isEven ? 30 : -30 }}
-                animate={isInView ? { opacity: 1, x: 0 } : {}}
-                transition={{ duration: 0.7, delay: 0.15 }}
-                style={{ order: isEven ? 1 : 0 }}
-                className="card"
-                style={{ padding: 0, overflow: 'hidden', minHeight: '320px', background: 'var(--bg-surface)' }}
-              >
-                {feature.visual}
-              </motion.div>
-            </div>
-          );
-        })}
+        {FEATURES.map((feature, i) => (
+          <FeatureBlock key={feature.title} feature={feature} index={i} />
+        ))}
       </div>
     </section>
   );
