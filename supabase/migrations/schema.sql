@@ -314,9 +314,7 @@ CREATE TABLE IF NOT EXISTS gemini_quota_tracker (
 );
 
 INSERT INTO gemini_quota_tracker (model, requests_today, daily_limit) VALUES
-  ('gemini-2.5-flash',       0, 250),
-  ('gemini-2.5-flash-lite',  0, 1000),
-  ('gemini-2.5-pro',         0, 100)
+  ('gemini-3.1-flash-lite-preview',       0, 250)
 ON CONFLICT (model) DO NOTHING;
 
 -- pg_cron: Reset Gemini quotas at midnight Pacific (8:00 UTC)

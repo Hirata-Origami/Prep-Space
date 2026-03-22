@@ -169,17 +169,17 @@ Live Interview:   gemini-2.5-flash-preview-native-audio (Gemini 2.5 Flash Live A
                   — Native audio output (no separate TTS needed — zero fallback)
                   — Model string: gemini-live-2.5-flash-preview
 
-Analysis Engine:  gemini-2.5-flash (post-interview deep analysis)
+Analysis Engine:  gemini-3.1-flash-lite-preview (post-interview deep analysis)
                   — Full transcript evaluation via function calling
                   — Competency scoring with structured JSON output
                   — Generates audio annotations and improvement recommendations
                   — Rate limit: 10 RPM / 250 RPD (free) → 300 RPM (Tier 1)
 
-JD Parsing:       gemini-2.5-flash-lite (fast, cost-efficient JD extraction)
+JD Parsing:       gemini-3.1-flash-lite-preview (fast, cost-efficient JD extraction)
                   — Rate limit: 15 RPM / 1,000 RPD (free) — highest throughput
                   — Used for all lightweight tasks: classification, routing, parsing
 
-Resume Gen:       gemini-2.5-flash (structured resume generation)
+Resume Gen:       gemini-3.1-flash-lite-preview (structured resume generation)
                   — Function calling for structured output (no parse fragility)
 
 Embeddings:       gemini-embedding-2 (Google's latest multimodal embedding model)
@@ -248,8 +248,8 @@ Error Tracking:   Sentry (5K errors/month free)
 | Model | Use Case | RPM | RPD | TPM | Notes |
 |---|---|---|---|---|---|
 | `gemini-live-2.5-flash-preview` | Live interview sessions | ~3 concurrent sessions | ~50 sessions/day | 250K TPM | Live API = concurrent sessions not RPM |
-| `gemini-2.5-flash` | Post-session analysis, resume gen | 10 RPM | 250 RPD | 250K TPM | Primary workhorse model |
-| `gemini-2.5-flash-lite` | JD parsing, classification, routing | 15 RPM | 1,000 RPD | 250K TPM | Highest free throughput |
+| `gemini-3.1-flash-lite-preview` | Post-session analysis, resume gen | 10 RPM | 250 RPD | 250K TPM | Primary workhorse model |
+| `gemini-3.1-flash-lite-preview` | JD parsing, classification, routing | 15 RPM | 1,000 RPD | 250K TPM | Highest free throughput |
 | `gemini-2.5-pro` | Complex reasoning (used sparingly) | 5 RPM | 100 RPD | 250K TPM | Reserved for hardest tasks only |
 | `gemini-embedding-2-preview` | Skill graph embeddings | N/A | N/A | 10M TPM | Extremely generous — not a bottleneck |
 
@@ -270,7 +270,7 @@ Free tier capacity (per day):
 When RPD limit is hit:
   Live API:   → Queue session request; show user estimated wait time
   Analysis:   → pg_cron retries every 30 min until quota resets at midnight PT
-  JD Parsing: → Immediate fallback to gemini-2.5-flash (250 RPD backup pool)
+  JD Parsing: → Immediate fallback to gemini-3.1-flash-lite-preview (250 RPD backup pool)
 ```
 
 ### AWS Lambda — Free Tier (Always Free, No Expiry)
@@ -1692,10 +1692,10 @@ async function checkGeminiQuota(model: GeminiModel): Promise<boolean> {
 // Model routing by task to maximize free tier efficiency
 const MODEL_ROUTING = {
   'live_interview':  'gemini-live-2.5-flash-preview',    // No RPM limit tracked traditionally
-  'deep_analysis':   'gemini-2.5-flash',                 // 250 RPD — protected pool
-  'jd_parsing':      'gemini-2.5-flash-lite',            // 1000 RPD — use liberally
-  'classification':  'gemini-2.5-flash-lite',            // 1000 RPD
-  'resume_gen':      'gemini-2.5-flash',                 // 250 RPD
+  'deep_analysis':   'gemini-3.1-flash-lite-preview',                 // 250 RPD — protected pool
+  'jd_parsing':      'gemini-3.1-flash-lite-preview',            // 1000 RPD — use liberally
+  'classification':  'gemini-3.1-flash-lite-preview',            // 1000 RPD
+  'resume_gen':      'gemini-3.1-flash-lite-preview',                 // 250 RPD
   'embeddings':      'gemini-embedding-2-preview',       // ~unlimited (10M TPM)
 };
 ```
@@ -2035,9 +2035,7 @@ CREATE TABLE gemini_quota_tracker (
   last_reset_at       TIMESTAMPTZ DEFAULT now()
 );
 INSERT INTO gemini_quota_tracker VALUES
-  ('gemini-2.5-flash',       0, 250,  now()),
-  ('gemini-2.5-flash-lite',  0, 1000, now()),
-  ('gemini-2.5-pro',         0, 100,  now());
+  ('gemini-3.1-flash-lite-preview',       0, 250,  now());
 -- Reset via pg_cron: '0 8 * * * UPDATE gemini_quota_tracker SET requests_today = 0, last_reset_at = now()'
 -- (8:00 UTC = midnight Pacific Time)
 
@@ -2252,8 +2250,8 @@ JWT_ISSUER=https://your-project-ref.supabase.co/auth/v1
 **Key Technical Decisions Summary:**
 - Live interviews: `gemini-live-2.5-flash-preview` — direct browser WebSocket via ephemeral token
 - Embeddings: `gemini-embedding-2-preview` — 768-dim stored in pgvector (Supabase)
-- Analysis: `gemini-2.5-flash` — 250 RPD free; protected via quota tracker
-- Parsing/routing: `gemini-2.5-flash-lite` — 1,000 RPD free; use liberally
+- Analysis: `gemini-3.1-flash-lite-preview` — 250 RPD free; protected via quota tracker
+- Parsing/routing: `gemini-3.1-flash-lite-preview` — 1,000 RPD free; use liberally
 - No TTS, no fallback voice — Live API handles audio natively end-to-end
 - Auth: Supabase Auth (50K MAU free); Clerk upgrade path documented
 - Database: Supabase PostgreSQL with RLS (tenant isolation at DB level)

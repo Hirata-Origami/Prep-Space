@@ -54,7 +54,7 @@ const DEMO_PANELS = [
         {/* AI waveform */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '16px', display: 'flex', gap: '3px', alignItems: 'center', height: '60px' }}>
           {Array.from({ length: 40 }).map((_, i) => (
-            <div key={i} style={{ flex: 1, background: 'var(--accent-primary)', borderRadius: '2px', height: `${10 + Math.sin(i * 0.8) * 18 + Math.random() * 12}px`, opacity: 0.7 + Math.sin(i) * 0.3 }} />
+            <div key={i} style={{ flex: 1, background: 'var(--accent-primary)', borderRadius: '2px', height: `${Math.max(4, 10 + Math.sin(i * 0.8) * 18 + Math.cos(i * 1.3) * 9).toFixed(1)}px`, opacity: Number((0.4 + Math.abs(Math.sin(i * 0.7)) * 0.6).toFixed(2)) }} />
           ))}
         </div>
         {/* Transcript */}
@@ -114,7 +114,7 @@ const DEMO_PANELS = [
         {/* Audio waveform mini */}
         <div style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '10px', display: 'flex', gap: '2px', alignItems: 'center', height: '44px', position: 'relative' }}>
           {Array.from({ length: 60 }).map((_, i) => (
-            <div key={i} style={{ flex: 1, background: i > 15 && i < 25 ? '#4DFFA0' : i > 36 && i < 44 ? '#FF4D6A' : 'rgba(255,255,255,0.15)', borderRadius: '1px', height: `${8 + Math.abs(Math.sin(i * 0.5)) * 18}px` }} />
+            <div key={i} style={{ flex: 1, background: i > 15 && i < 25 ? '#4DFFA0' : i > 36 && i < 44 ? '#FF4D6A' : 'rgba(255,255,255,0.15)', borderRadius: '1px', height: `${(8 + Math.abs(Math.sin(i * 0.5)) * 18).toFixed(1)}px` }} />
           ))}
         </div>
       </div>

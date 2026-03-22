@@ -54,29 +54,6 @@ This guide walks you through setting up every external service the platform need
 
 ---
 
-## 2. Google AI — Gemini API Key
-
-**Website:** https://aistudio.google.com
-
-1. Go to **Get API Key**
-2. Click **Create API Key in New Project**
-3. Select your Google Cloud project (or create new one)
-4. Copy the API key → `GOOGLE_GENERATIVE_AI_API_KEY` in `.env.local`
-
-> **Note:** Gemini 2.5 Flash Live API (WebSocket) requires billing enabled on your Google Cloud project.
-
-### Enable the Generative Language API
-1. Go to [Google Cloud Console](https://console.cloud.google.com)
-2. Search: "Generative Language API"
-3. Click **Enable**
-
-### Set up a billing account
-1. Go to **Billing** in Google Cloud Console
-2. Create a billing account and link it to your project
-3. Gemini 2.5 Flash has a free tier (~1500 RPD) — you won't hit billing initially
-
----
-
 ## 3. AWS (S3 for audio/transcript storage)
 
 **Website:** https://aws.amazon.com → Sign in to Console
@@ -127,7 +104,6 @@ In Vercel Project Settings → **Environment Variables**, add all keys from `.en
 | `NEXT_PUBLIC_SUPABASE_URL` | From Supabase Settings → API |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | From Supabase Settings → API |
 | `SUPABASE_SERVICE_ROLE_KEY` | From Supabase Settings → API |
-| `GOOGLE_GENERATIVE_AI_API_KEY` | From Google AI Studio |
 | `AWS_ACCESS_KEY_ID` | From AWS IAM |
 | `AWS_SECRET_ACCESS_KEY` | From AWS IAM |
 | `AWS_REGION` | e.g. `us-east-1` |

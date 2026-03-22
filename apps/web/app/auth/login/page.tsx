@@ -7,18 +7,8 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toast } from 'sonner';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const supabase = getSupabaseClient();
-
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) { toast.error(error.message); setLoading(false); return; }
-    window.location.href = '/dashboard';
-  };
 
   const handleGoogle = async () => {
     await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo: `${window.location.origin}/auth/callback` } });
@@ -52,28 +42,11 @@ export default function LoginPage() {
             Continue with Google
           </button>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '24px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>or email</span>
-            <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+              By continuing, you confirm you have read our <a href="#" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Privacy Policy</a>
+            </p>
           </div>
-
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Email</label>
-              <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@email.com" required className="input" />
-            </div>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Password</label>
-              <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" required className="input" />
-            </div>
-            <div style={{ textAlign: 'right' }}>
-              <a href="#" style={{ fontSize: '13px', color: 'var(--accent-primary)', textDecoration: 'none' }}>Forgot password?</a>
-            </div>
-            <button type="submit" disabled={loading} className="btn-primary" style={{ width: '100%', justifyContent: 'center', opacity: loading ? 0.7 : 1, cursor: loading ? 'not-allowed' : 'pointer' }}>
-              {loading ? 'Signing in…' : 'Sign In'}
-            </button>
-          </form>
         </div>
 
         <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: 'var(--text-muted)' }}>
