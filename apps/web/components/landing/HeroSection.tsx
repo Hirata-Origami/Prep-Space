@@ -163,7 +163,7 @@ export function HeroSection() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(77,255,160,0.08)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '100px', marginBottom: '32px' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block', animation: 'pulse-mint 2s infinite' }} />
-            <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>Powered by Gemini 2.5 Flash Live</span>
+            <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>AI-Native Engineering Interviews</span>
           </div>
         </motion.div>
 
@@ -232,7 +232,7 @@ export function HeroSection() {
             boxShadow: '0 0 32px rgba(77,255,160,0.3)',
             transition: 'all 0.2s',
           }}>
-            Start for Free →
+            Start Now →
           </Link>
           <a href="#demo" style={{
             display: 'inline-flex',

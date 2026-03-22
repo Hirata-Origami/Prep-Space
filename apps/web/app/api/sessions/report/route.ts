@@ -28,7 +28,19 @@ Return ONLY valid JSON with this exact shape:
       "score": number
     }
   ],
-  "next_focus_areas": ["string", "string"]
+  "next_focus_areas": ["string", "string"],
+  "audio_markers": [
+    {
+      "start_time": "string (e.g. '01:23')",
+      "end_time": "string",
+      "type": "strong" | "partial" | "missed",
+      "annotation": "string"
+    }
+  ],
+  "metrics": {
+    "wpm": number,
+    "filler_words_count": number
+  }
 }`;
 
 export async function POST(request: Request) {
@@ -40,7 +52,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { session_id, transcript, role, interview_type } = body;
+  const { session_id, transcript, role, interview_type, audio_url } = body;
 
   if (!session_id || !transcript) {
     return NextResponse.json({ error: 'session_id and transcript are required' }, { status: 400 });
@@ -86,34 +98,62 @@ export async function POST(request: Request) {
     }
 
     // Save report to Supabase
-    const { data: savedReportData, error: saveError } = await supabase
-      .from('reports')
-      .insert({
-        session_id,
-        user_id: dbUser.id,
-        overall_score: reportData.overall_score,
-        recommendation: reportData.recommendation,
-        analysis: reportData,
-      })
+    let insertData: any = {
+      session_id,
+      user_id: dbUser.id,
+      overall_score: reportData.overall_score,
+      hire_recommendation: reportData.recommendation,
+      analysis: {
+        ...reportData,
+        audio_url: audio_url || null
+      },
+    };
+
+    let { data: savedReportData, error: saveError } = await supabase
+      .from('interview_reports')
+      .insert(insertData)
       .select();
 
+    // If the 'analysis' column is missing, try inserting without it
+    if (saveError && (saveError as any).code === 'PGRST204') {
+      console.warn("[POST /api/sessions/report] 'analysis' column missing, retrying without it...");
+      delete insertData.analysis;
+      const secondAttempt = await supabase
+        .from('interview_reports')
+        .insert(insertData)
+        .select();
+      savedReportData = secondAttempt.data;
+      saveError = secondAttempt.error;
+    }
+
     if (saveError) {
+      console.error("[POST /api/sessions/report] Supabase error:", saveError);
       return NextResponse.json({ error: saveError.message }, { status: 500 });
     }
 
     const report = savedReportData?.[0];
 
-    // Update session state + score
+    // Update session state
     await supabase
       .from('interview_sessions')
       .update({
         state: 'COMPLETE',
-        overall_score: reportData.overall_score,
       })
       .eq('id', session_id);
 
     // Award XP to user
     await supabase.rpc('increment_xp', { user_id: dbUser.id, amount: 50 });
+
+    // Invalidate sessions list cache
+    try {
+      const { redis } = await import('@/lib/redis');
+      if (redis) {
+        await redis.del(`api_sessions_${dbUser.id}`);
+        console.log(`[POST /api/sessions/report] Invalidated sessions cache for user ${dbUser.id}`);
+      }
+    } catch (redisErr) {
+      console.warn("[POST /api/sessions/report] Redis invalidation failed:", redisErr);
+    }
 
     return NextResponse.json({ report });
   } catch (e: unknown) {

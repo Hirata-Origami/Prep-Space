@@ -13,6 +13,7 @@ export default function NewRoadmapPage() {
   const [mode, setMode] = useState<Mode>('generate');
   const [role, setRole] = useState('');
   const [jd, setJd] = useState('');
+  const [parsing, setParsing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [generatedRoadmap, setGeneratedRoadmap] = useState<any>(null);
 
@@ -40,6 +41,30 @@ export default function NewRoadmapPage() {
       toast.error(e.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setParsing(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/roadmaps/parse', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Parsing failed');
+      setJd(data.text);
+      toast.success('JD extracted successfully!');
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setParsing(false);
     }
   };
 
@@ -117,7 +142,7 @@ export default function NewRoadmapPage() {
     <div style={{ padding: '32px', maxWidth: '720px' }}>
       <div style={{ marginBottom: '32px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Create a Roadmap</h1>
-        <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Let Gemini AI build a personalized prep plan for your target role</p>
+        <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Let AI build a personalized prep plan for your target role</p>
       </div>
 
       {/* Mode selector */}
@@ -152,8 +177,35 @@ export default function NewRoadmapPage() {
 
         {mode === 'jd' && (
           <div>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Paste Job Description</label>
-            <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full job description here…" rows={8}
+            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Job Description</label>
+            
+            {/* File Upload Area */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                padding: '24px', 
+                background: 'rgba(77,255,160,0.03)', 
+                border: '1px dashed rgba(77,255,160,0.3)', 
+                borderRadius: '12px', 
+                cursor: 'pointer',
+                transition: 'all 0.15s',
+                opacity: parsing ? 0.6 : 1
+              }}>
+                <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsing} />
+                <span style={{ fontSize: '24px', marginBottom: '8px' }}>{parsing ? '⌛' : '📄'}</span>
+                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
+                  {parsing ? 'Parsing File...' : 'Upload JD (PDF, DOCX, TXT)'}
+                </span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                  or type/paste below
+                </span>
+              </label>
+            </div>
+
+            <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the job description or upload a file above…" rows={8}
               style={{ width: '100%', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'vertical', outline: 'none', marginBottom: '16px', boxSizing: 'border-box' }} />
           </div>
         )}
@@ -171,7 +223,7 @@ export default function NewRoadmapPage() {
             {loading ? (
               <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
                 <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', display: 'inline-block', animation: 'spin-slow 1s linear infinite' }} />
-                Generating with Gemini…
+                Generating…
               </span>
             ) : '✨ Generate Roadmap with AI'}
           </button>
@@ -181,7 +233,7 @@ export default function NewRoadmapPage() {
       {!user?.has_gemini_key && (
         <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(255,181,71,0.06)', border: '1px solid rgba(255,181,71,0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span>⚠️</span>
-          <span>You need a Gemini API key to generate roadmaps. <a href="/settings" style={{ color: '#FFB547', fontWeight: 600 }}>Add one in Settings →</a></span>
+          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: '#FFB547', fontWeight: 600 }}>Add one in Settings →</a></span>
         </div>
       )}
     </div>

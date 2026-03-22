@@ -13,7 +13,7 @@ export async function GET() {
 
   const { data: profileData, error } = await supabase
     .from('users')
-    .select('id, supabase_uid, full_name, email, gemini_api_key, avatar_url, xp, streak_days, target_role, target_company')
+    .select('id, supabase_uid, full_name, email, gemini_api_key, avatar_url, xp, streak_days, target_role, target_company, level')
     .eq('supabase_uid', user.id);
 
   let profile = profileData?.[0];

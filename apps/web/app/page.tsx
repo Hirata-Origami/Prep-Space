@@ -4,7 +4,6 @@ import { DemoTeaser } from '@/components/landing/DemoTeaser';
 import { FeatureBlocks } from '@/components/landing/FeatureBlocks';
 import { CompetitorTable } from '@/components/landing/CompetitorTable';
 import { Testimonials } from '@/components/landing/Testimonials';
-import { PricingSection } from '@/components/landing/PricingSection';
 import { FooterSection } from '@/components/landing/FooterSection';
 import { Navbar } from '@/components/landing/Navbar';
 
@@ -18,7 +17,6 @@ export default function LandingPage() {
       <FeatureBlocks />
       <CompetitorTable />
       <Testimonials />
-      <PricingSection />
       <FooterSection />
     </main>
   );

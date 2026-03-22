@@ -17,7 +17,7 @@ export interface UserProfile {
   has_gemini_key: boolean;
   xp: number;
   streak_days: number;
-  plan: string;
+  level: string;
 }
 
 export function useUser() {

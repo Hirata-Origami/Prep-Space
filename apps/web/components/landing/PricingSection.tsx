@@ -19,7 +19,7 @@ const PLANS = [
     description: 'Serious prep for serious candidates',
     cta: 'Start Pro — 14-day free trial',
     ctaStyle: 'primary',
-    features: ['Unlimited AI interviews', 'All 10 modules + Mock Companies', 'Full audio reports with waveform', 'Gemini Live voice interviews', 'Resume builder + ATS scoring', 'Groups + leaderboards', 'Priority AI processing'],
+    features: ['Unlimited AI interviews', 'All 10 modules + Mock Companies', 'Full audio reports with waveform', 'AI Live voice interviews', 'Resume builder + ATS scoring', 'Groups + leaderboards', 'Priority AI processing'],
     badge: '🔥 Most Popular',
   },
   {

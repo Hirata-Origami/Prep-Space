@@ -4,6 +4,8 @@ import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
 
 export const metadata: Metadata = { title: 'Roadmaps — PrepSpace' };
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 
 export default async function RoadmapPage() {
   const supabase = await createClient();

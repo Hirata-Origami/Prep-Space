@@ -71,7 +71,7 @@ export function FooterSection() {
             © 2026 PrepSpace. All rights reserved.
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
-            <span className="badge badge-mint" style={{ fontSize: '11px' }}>$0 to start</span>
+            <span className="badge badge-mint" style={{ fontSize: '11px' }}>Free for Beta</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>GDPR Compliant</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>SOC2 (In Progress)</span>
           </div>

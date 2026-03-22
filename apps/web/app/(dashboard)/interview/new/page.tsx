@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { GoogleGenAI, Modality, StartSensitivity, EndSensitivity, MediaResolution } from '@google/genai';
+import { GoogleGenAI, Modality, StartSensitivity, EndSensitivity } from '@google/genai';
+import { useSearchParams } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 type InterviewType = 'conceptual' | 'behavioral' | 'system_design' | 'coding_walkthrough';
 type SessionState = 'setup' | 'connecting' | 'live' | 'complete';
@@ -26,7 +28,7 @@ const MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 const SAMPLE_RATE = 16000;
 const VIDEO_FPS = 1; // 1 frame/sec for video analysis
 
-function buildSystemInstruction(type: InterviewType, role: string): string {
+function buildSystemInstruction(type: InterviewType, role: string, company?: string, round?: string, customTopic?: string): string {
   const typeGuide: Record<InterviewType, string> = {
     conceptual: 'Ask deep conceptual questions. Probe understanding, not just definitions. Ask 8-10 questions, progressively harder.',
     behavioral: 'Use the STAR method. Ask about specific past experiences. Probe for depth on impact and lessons learned.',
@@ -34,7 +36,11 @@ function buildSystemInstruction(type: InterviewType, role: string): string {
     coding_walkthrough: 'Ask the candidate to walk through their approach to coding problems. Probe for complexity analysis and edge cases.',
   };
 
-  return `You are Alex, an expert technical interviewer at a top tech company. You are conducting a ${type.replace('_', ' ')} interview for the role: ${role}.
+  const companyContext = company ? `You are an elite interviewer at ${company}. This is the ${round || 'technical'} round.` : `You are Alex, an expert technical interviewer at a top tech company. This is a ${type.replace('_', ' ')} interview.`;
+  const topicContext = customTopic ? `The specific topic or focus area for this interview is: ${customTopic}. Ensure your questions revolve around this topic.` : '';
+
+  return `Your name is Alex. ${companyContext} You are interviewing for the role: ${role}.
+${topicContext}
 
 BEHAVIOR:
 - Be professional yet personable. Speak concisely — your spoken responses should be 1-3 sentences max.
@@ -45,43 +51,42 @@ BEHAVIOR:
 - You can see and hear the candidate via video/audio. React naturally if you notice they seem confused or confident.
 - After 8-10 questions, wrap up the session warmly.
 
-TRANSCRIPT:
-- You will automatically receive real-time audio and video input from the candidate.
-- Your responses will be transcribed and shown to the candidate.
-
-START: Greet the candidate warmly, mention the interview type and role, and ask your first question immediately.`;
+START: Greet the candidate warmly, mention the interview stage${company ? ` at ${company}` : ''}, and ask your first question immediately.`;
 }
 
-export default function LiveInterviewPage() {
+function LiveInterviewPage() {
   const [interviewType, setInterviewType] = useState<InterviewType>('conceptual');
+  const [customTopic, setCustomTopic] = useState('');
   const [targetRole, setTargetRole] = useState('Frontend Engineer');
   const [sessionState, setSessionState] = useState<SessionState>('setup');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
   const [sessionTime, setSessionTime] = useState(0);
-  const [questionCount, setQuestionCount] = useState(0);
   const [alexStatus, setAlexStatus] = useState<'thinking' | 'speaking' | 'listening'>('listening');
+  const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [waveData, setWaveData] = useState<number[]>(Array(40).fill(4));
   const [userWaveData, setUserWaveData] = useState<number[]>(Array(40).fill(4));
   const [sessionId, setSessionId] = useState<string | null>(null);
+  const searchParams = useSearchParams();
+
+  const [sessionStartTime, setSessionStartTime] = useState<number>(0);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
 
   // Refs for media / WebSocket
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
   const userAnalyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const sessionRef = useRef<any>(null);
-  const workletNodeRef = useRef<AudioWorkletNode | null>(null);
   const videoIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
-  const aiBufferRef = useRef<string>('');
-  const userBufferRef = useRef<string>('');
+  const analyserRef = useRef<AnalyserNode | null>(null);
   const audioOutputRef = useRef<AudioContext | null>(null);
-  const apiKeyRef = useRef<string | null>(null);
+  const mixDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
   // Auto-scroll transcript
   useEffect(() => {
@@ -130,6 +135,11 @@ export default function LiveInterviewPage() {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
+    
+    // Connect to the mix destination for recording if it exists
+    if (mixDestinationRef.current) {
+      source.connect(mixDestinationRef.current);
+    }
 
     // Track active sources for stopping
     activeSourcesRef.current.push(source);
@@ -170,24 +180,31 @@ export default function LiveInterviewPage() {
       } else {
         setWaveData(Array(40).fill(4));
       }
-
-      // User real wave (we CAN tap into the local stream)
-      if (userAnalyserRef.current) {
-        const data = new Uint8Array(20);
-        userAnalyserRef.current.getByteFrequencyData(data);
-        const processed = Array.from(data).map(v => Math.max(4, (v / 255) * 60));
-        // Interpolate to 40 bars
-        const interpolated = [];
-        for (let i = 0; i < 40; i++) interpolated.push(processed[Math.floor(i / 2)] || 4);
-        setUserWaveData(interpolated);
-      }
     }, 50);
 
     return () => clearInterval(interval);
   }, [alexStatus]);
 
+  // Waveform visualization for user audio
+  useEffect(() => {
+    if (sessionState !== 'live') return;
+    const interval = setInterval(() => {
+      if (analyserRef.current && !isMuted) {
+        const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+        analyserRef.current.getByteFrequencyData(dataArray);
+
+        // Generate 40 bars for the wave
+        const processed = Array.from(dataArray.slice(0, 40)).map(v => Math.max(4, (v / 255) * 60));
+        setUserWaveData(processed);
+      } else {
+        setUserWaveData(Array(40).fill(4));
+      }
+    }, 50);
+    return () => clearInterval(interval);
+  }, [sessionState, isMuted]);
+
   // === CONNECT TO GEMINI LIVE ===
-  const connectToGemini = useCallback(async (apiKey: string) => {
+  const connectToGemini = useCallback(async (apiKey: string, systemInstructionText: string) => {
     const ai = new GoogleGenAI({
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }
@@ -195,15 +212,13 @@ export default function LiveInterviewPage() {
     const session = await (ai.live as any).connect({
       model: MODEL,
       config: {
-        systemInstruction: { parts: [{ text: buildSystemInstruction(interviewType, targetRole) }] },
+        systemInstruction: { parts: [{ text: systemInstructionText }] },
         responseModalities: [Modality.AUDIO],
         speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
-        realtimeInputConfig: {
-          automaticActivityDetection: {
-            disabled: false,
-            startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_LOW,
-            endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_LOW,
-          }
+        automaticActivityDetection: {
+          startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
+          endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
+          silenceDurationMs: 600,
         },
         proactiveAudio: true,
         thinkingConfig: {
@@ -225,8 +240,8 @@ export default function LiveInterviewPage() {
             const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
             audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
           }
-          if (!analyserRef.current && audioCtxRef.current) {
-            analyserRef.current = audioCtxRef.current.createAnalyser();
+          if (audioCtxRef.current) {
+            // Setup for user audio analyser if needed here
           }
         },
         onmessage: (data: any) => {
@@ -300,14 +315,14 @@ export default function LiveInterviewPage() {
 
             const inputTranscription = response.inputTranscription;
             if (inputTranscription?.text) {
-              const chunk = inputTranscription.text;
+              const text = inputTranscription.text;
               setAlexStatus('listening');
               setTranscript(prev => {
                 const last = prev[prev.length - 1];
                 if (last?.role === 'user') {
-                  return [...prev.slice(0, -1), { ...last, text: last.text + chunk }];
+                  return [...prev.slice(0, -1), { ...last, text: last.text + text }];
                 }
-                return [...prev, { role: 'user', text: chunk, ts: Date.now() }];
+                return [...prev, { role: 'user', text, ts: Date.now() }];
               });
             }
 
@@ -400,13 +415,17 @@ export default function LiveInterviewPage() {
         return;
       }
       const { apiKey } = await keyRes.json();
-      apiKeyRef.current = apiKey;
 
       // 2. Create session record
+      const topicType = searchParams.get('topic') as InterviewType || interviewType;
+      const role = searchParams.get('role') || targetRole;
+      const company = searchParams.get('company') || undefined;
+      const round = searchParams.get('round') || undefined;
+
       const sessionRes = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ interview_type: interviewType, role: targetRole }),
+        body: JSON.stringify({ interview_type: topicType, role, company, round }),
       });
       if (!sessionRes.ok) {
         throw new Error('Failed to create session on server');
@@ -422,60 +441,63 @@ export default function LiveInterviewPage() {
       streamRef.current = stream;
 
       // 4. Set up AudioWorklet to capture PCM
-      const ctx = new AudioContext({ sampleRate: SAMPLE_RATE });
-      audioCtxRef.current = ctx;
+      const audioContext = new AudioContext({ sampleRate: SAMPLE_RATE });
+      audioCtxRef.current = audioContext;
 
       // Setup user audio analyser for the glowing card
-      if (!userAnalyserRef.current) {
-        userAnalyserRef.current = ctx.createAnalyser();
-        const source = ctx.createMediaStreamSource(stream);
-        source.connect(userAnalyserRef.current);
-        animateWave(true);
-      }
+      const source = audioContext.createMediaStreamSource(stream);
 
-      // Inline worklet processor with buffering to avoid overwhelming the server
-      const workletCode = `
-        class PCMProcessor extends AudioWorkletProcessor {
-          constructor() {
-            super();
-            this.buffer = new Int16Array(1600); // 100ms at 16kHz
-            this.offset = 0;
-          }
-          process(inputs) {
-            const input = inputs[0];
-            if (input && input[0]) {
-              const float32 = input[0];
-              for (let i = 0; i < float32.length; i++) {
-                this.buffer[this.offset++] = Math.max(-32768, Math.min(32767, float32[i] * 32768));
-                if (this.offset >= this.buffer.length) {
-                  const data = this.buffer.buffer.slice(0);
-                  this.port.postMessage(data, [data]);
-                  this.offset = 0;
-                }
-              }
-            }
-            return true;
-          }
-        }
-        registerProcessor('pcm-processor', PCMProcessor);
-      `;
-      const blob = new Blob([workletCode], { type: 'application/javascript' });
-      const url = URL.createObjectURL(blob);
-      await ctx.audioWorklet.addModule(url);
-      URL.revokeObjectURL(url);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
+      analyserRef.current = analyser;
 
-      const source = ctx.createMediaStreamSource(stream);
-      const workletNode = new AudioWorkletNode(ctx, 'pcm-processor');
+      await audioContext.audioWorklet.addModule('/pcm-processor.js');
+      const workletNode = new AudioWorkletNode(audioContext, 'pcm-processor');
       workletNode.port.onmessage = (e) => sendAudioChunk(new Int16Array(e.data));
       source.connect(workletNode);
       // Removed connection to destination as this is capture only
-      workletNodeRef.current = workletNode;
 
       // Crucial: Resume AudioContext after user gesture
-      if (ctx.state === 'suspended') await ctx.resume();
+      if (audioContext.state === 'suspended') await audioContext.resume();
 
       // 5. Connect WebSocket to Gemini Live
-      await connectToGemini(apiKey);
+      await connectToGemini(apiKey, buildSystemInstruction(topicType, role, company, round, customTopic));
+
+      // 5b. Start internal audio recorder for the report
+      try {
+        if (!audioOutputRef.current) {
+          audioOutputRef.current = new AudioContext({ sampleRate: 24000 });
+        }
+        
+        // Ensure context is running
+        if (audioOutputRef.current.state === 'suspended') {
+          await audioOutputRef.current.resume();
+        }
+
+        const mixDest = audioOutputRef.current.createMediaStreamDestination();
+        mixDestinationRef.current = mixDest;
+
+        // Connect user's mic to the mix destination (but NOT to ctx.destination to avoid echo)
+        const micSourceForMix = audioOutputRef.current.createMediaStreamSource(stream);
+        micSourceForMix.connect(mixDest);
+        
+        // Start recording the mixed stream
+        const mediaRecorder = new MediaRecorder(mixDest.stream);
+        mediaRecorderRef.current = mediaRecorder;
+        audioChunksRef.current = [];
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) {
+            audioChunksRef.current.push(e.data);
+          }
+        };
+        mediaRecorder.start(1000); // chunk every 1s
+      } catch (err) {
+        console.warn('Failed to start MediaRecorder for session audio', err);
+      }
+
+      setSessionStartTime(Date.now());
 
       // 6. Start sending video frames
       videoIntervalRef.current = setInterval(sendVideoFrame, 1000 / VIDEO_FPS);
@@ -489,23 +511,82 @@ export default function LiveInterviewPage() {
     }
   };
 
+  const directStartedRef = useRef(false);
+
+  // Direct start handling
+  useEffect(() => {
+    const direct = searchParams.get('direct');
+    const topic = searchParams.get('topic');
+    const role = searchParams.get('role');
+    
+    if (topic && !directStartedRef.current) setInterviewType(topic as InterviewType);
+    if (role && !directStartedRef.current) setTargetRole(role);
+    
+    if (direct === 'true' && sessionState === 'setup' && !directStartedRef.current) {
+      directStartedRef.current = true;
+      startSession();
+    }
+  }, [searchParams, sessionState]);
+
   // === END SESSION ===
   const endSession = useCallback(async () => {
     // Close WebSocket
     sessionRef.current?.close();
+    
+    let audioUrl = null;
+    // Stop recording and upload
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
+      mediaRecorderRef.current.stop();
+      // Wait for the final chunk
+      await new Promise<void>(resolve => {
+        if (mediaRecorderRef.current) {
+          mediaRecorderRef.current.onstop = () => resolve();
+        } else resolve();
+      });
+
+      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      try {
+        const supabase = createClient();
+        const fileName = `session_${sessionId}_${Date.now()}.webm`;
+        const { error } = await supabase.storage.from('interview_audio').upload(fileName, audioBlob, { contentType: 'audio/webm' });
+        
+        if (!error) {
+          const { data } = supabase.storage.from('interview_audio').getPublicUrl(fileName);
+          audioUrl = data.publicUrl;
+        } else {
+          console.error('Audio upload error:', error);
+        }
+      } catch (err) {
+        console.error('Failed to upload audio:', err);
+      }
+    }
+
     // Stop media
     streamRef.current?.getTracks().forEach(t => t.stop());
     clearInterval(videoIntervalRef.current);
     clearInterval(timerRef.current);
-    audioCtxRef.current?.close();
-    audioOutputRef.current?.close();
+
+    if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+      audioCtxRef.current.close().catch(() => { });
+    }
+    if (audioOutputRef.current && audioOutputRef.current.state !== 'closed') {
+      audioOutputRef.current.close().catch(() => { });
+    }
+
     setSessionState('complete');
 
     // Generate report if we have a session and enough transcript
     if (sessionId && transcript.length > 2) {
-      const fullTranscript = transcript.map(t => `${t.role === 'ai' ? 'Alex' : 'You'}: ${t.text}`).join('\n\n');
+      setIsGeneratingReport(true);
+      const fullTranscript = transcript.map(t => {
+        const relMs = Math.max(0, t.ts - sessionStartTime);
+        const m = Math.floor(relMs / 60000).toString().padStart(2, '0');
+        const s = Math.floor((relMs % 60000) / 1000).toString().padStart(2, '0');
+        return `[${m}:${s}] ${t.role === 'ai' ? 'Alex' : 'You'}: ${t.text}`;
+      }).join('\n\n');
+      
       try {
-        await fetch('/api/sessions/report', {
+        const res = await fetch('/api/sessions/report', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -513,11 +594,27 @@ export default function LiveInterviewPage() {
             transcript: fullTranscript,
             role: targetRole,
             interview_type: interviewType,
+            audio_url: audioUrl,
           }),
         });
-      } catch { /* non-blocking */ }
+
+        if (res.ok) {
+          const { report } = await res.json();
+          // If successful, we can redirect or show the link
+          toast.success("Report generated successfully!");
+          // Optional: automatic redirect after 2s
+          setTimeout(() => {
+            window.location.href = `/reports/${report.id}`;
+          }, 1500);
+        }
+      } catch (err) {
+        console.error("Report error:", err);
+        toast.error("Failed to generate report, but your session was saved.");
+      } finally {
+        setIsGeneratingReport(false);
+      }
     }
-  }, [sessionId, transcript, targetRole, interviewType]);
+  }, [sessionId, transcript, targetRole, interviewType, sessionStartTime]);
 
   // === TOGGLE MIC ===
   const toggleMic = useCallback(() => {
@@ -551,8 +648,12 @@ export default function LiveInterviewPage() {
       streamRef.current?.getTracks().forEach(t => t.stop());
       clearInterval(videoIntervalRef.current);
       clearInterval(timerRef.current);
-      audioCtxRef.current?.close();
-      audioOutputRef.current?.close();
+      if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
+        audioCtxRef.current.close().catch(() => {});
+      }
+      if (audioOutputRef.current && audioOutputRef.current.state !== 'closed') {
+        audioOutputRef.current.close().catch(() => {});
+      }
     };
   }, []);
 
@@ -567,22 +668,7 @@ export default function LiveInterviewPage() {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
             <div style={{ maxWidth: '700px', width: '100%' }}>
-              <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-                <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(77,255,160,0.08)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '100px', marginBottom: '20px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block', animation: 'pulse-mint 2s infinite' }} />
-                  <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>Gemini 2.5 Flash Lite · Live API</span>
-                </div>
-                <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px' }}>AI Interview Room</h1>
-                <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Live voice + video interview with Alex, your AI interviewer. Real-time transcription included.</p>
-              </div>
-
-              {/* Target role */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>Target Role</label>
-                <input className="input" value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder="e.g. Senior Frontend Engineer at Google" style={{ width: '100%' }} />
-              </div>
-
-              {/* Interview type */}
+              {/* Interview type selection grid */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', marginBottom: '24px' }}>
                 {INTERVIEW_TYPES.map(t => (
                   <div key={t.id} onClick={() => setInterviewType(t.id)}
@@ -596,6 +682,12 @@ export default function LiveInterviewPage() {
                 ))}
               </div>
 
+              {/* Specific Topic Input */}
+              <div style={{ marginBottom: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Specific Topic / Focus Area</label>
+                <input className="input" placeholder="e.g., React context performance, System design for Twitter, handling conflicts" value={customTopic} onChange={(e) => setCustomTopic(e.target.value)} style={{ width: '100%', padding: '12px' }} />
+              </div>
+
               {/* Device check */}
               <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <span style={{ fontSize: '20px' }}>📹</span>
@@ -603,11 +695,8 @@ export default function LiveInterviewPage() {
               </div>
 
               <button onClick={startSession} className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '16px', padding: '15px' }}>
-                🎙 Start Live Interview with Alex
+                🎙 Start Interview
               </button>
-              <div style={{ textAlign: 'center', marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                ~25 min · Powered by Gemini 2.5 Flash Lite Live · Transcript auto-generated
-              </div>
             </div>
           </motion.div>
         )}
@@ -620,7 +709,7 @@ export default function LiveInterviewPage() {
             style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <div style={{ textAlign: 'center' }}>
               <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', margin: '0 auto 24px', animation: 'spin-slow 1s linear infinite' }} />
-              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Connecting to Gemini Live…</div>
+              <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Connecting to AI Interviewer…</div>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Setting up audio/video and WebSocket session</div>
             </div>
           </motion.div>
@@ -631,21 +720,17 @@ export default function LiveInterviewPage() {
       {sessionState === 'live' && (
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
-          <div style={{ height: '52px', background: 'rgba(14,20,33,0.95)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 20px', backdropFilter: 'blur(12px)', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF4D6A', animation: 'pulse-mint 1.5s infinite' }} />
-                <span style={{ fontSize: '12px', fontWeight: 700, color: '#FF4D6A', letterSpacing: '0.08em' }}>REC LIVE</span>
-              </div>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Q {questionCount} · {formatTime(sessionTime)}</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)', padding: '2px 10px', background: 'var(--bg-elevated)', borderRadius: '100px' }}>{targetRole}</span>
-            </div>
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <span style={{ fontSize: '11px', padding: '3px 9px', borderRadius: '100px', background: 'rgba(77,255,160,0.1)', color: 'var(--accent-primary)', fontWeight: 700 }}>Gemini 2.5 Flash Lite</span>
-              <button onClick={endSession} style={{ padding: '6px 14px', background: 'rgba(255,77,106,0.12)', border: '1px solid rgba(255,77,106,0.3)', borderRadius: '6px', color: '#FF4D6A', fontSize: '12px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                End Session
-              </button>
-            </div>
+          <div style={{ height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', flexShrink: 0 }}>
+            <button onClick={endSession} className="btn-primary" style={{ 
+              background: 'rgba(255,77,106,0.1)', 
+              color: '#FF4D6A', 
+              border: '1px solid rgba(255,77,106,0.2)', 
+              padding: '6px 20px', 
+              fontSize: '13px', 
+              fontWeight: 800 
+            }}>
+              End Interview
+            </button>
           </div>
 
           {/* Main layout: stacked */}
@@ -708,21 +793,6 @@ export default function LiveInterviewPage() {
               </div>
             </div>
 
-            {/* Controls */}
-            <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', alignItems: 'center' }}>
-              <button onClick={toggleMic}
-                style={{ width: '56px', height: '56px', borderRadius: '50%', border: '1px solid', background: isMuted ? 'rgba(255,77,106,0.15)' : 'var(--bg-elevated)', borderColor: isMuted ? 'rgba(255,77,106,0.4)' : 'var(--border)', fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                {isMuted ? '🔇' : '🎙'}
-              </button>
-              <button onClick={toggleCamera}
-                style={{ width: '56px', height: '56px', borderRadius: '50%', border: '1px solid', background: isCameraOff ? 'rgba(255,77,106,0.15)' : 'var(--bg-elevated)', borderColor: isCameraOff ? 'rgba(255,77,106,0.4)' : 'var(--border)', fontSize: '24px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                {isCameraOff ? '📷' : '📹'}
-              </button>
-              <button onClick={endSession}
-                style={{ padding: '0 36px', height: '56px', borderRadius: '100px', background: '#FF4D6A', border: 'none', color: '#fff', fontSize: '15px', fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-body)' }}>
-                ⏹ End Interview
-              </button>
-            </div>
 
             {/* Bottom: Transcript block */}
             <div style={{ flex: 1, background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -767,8 +837,13 @@ export default function LiveInterviewPage() {
             <div style={{ fontSize: '72px', marginBottom: '24px' }}>✅</div>
             <h2 style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '12px' }}>Interview Complete!</h2>
             <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '32px' }}>
-              Great job! Your interview lasted {formatTime(sessionTime)} and covered {questionCount} questions.
-              {sessionId ? ' Your AI report is being generated and will appear in Reports shortly.' : ''}
+              Great job! Your interview lasted {formatTime(sessionTime)}.
+              {isGeneratingReport ? (
+                <span style={{ display: 'block', marginTop: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>
+                  <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '8px' }} />
+                  Alex is analyzing your performance and generating a detailed report...
+                </span>
+              ) : sessionId ? ' Your AI report has been generated and you are being redirected.' : ''}
             </p>
             <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
               <Link href="/reports" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>View Reports →</Link>
@@ -778,5 +853,13 @@ export default function LiveInterviewPage() {
         </motion.div>
       )}
     </div>
+  );
+}
+
+export default function Page() {
+  return (
+    <Suspense fallback={<div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading AI Studio...</div>}>
+      <LiveInterviewPage />
+    </Suspense>
   );
 }

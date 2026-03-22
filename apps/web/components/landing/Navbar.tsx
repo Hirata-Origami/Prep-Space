@@ -52,7 +52,7 @@ export function Navbar() {
 
       {/* Nav links */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-        {['Features', 'Mock Interviews', 'Pricing', 'Blog'].map((item) => (
+        {['Features', 'Mock Interviews', 'Roadmaps', 'Blog'].map((item) => (
           <a key={item} href="#" style={{
             fontSize: '14px', fontWeight: 500,
             color: 'var(--text-muted)',
@@ -71,7 +71,7 @@ export function Navbar() {
           Sign in
         </Link>
         <Link href="/auth/signup" className="btn-primary" style={{ padding: '8px 20px', fontSize: '14px' }}>
-          Start Free
+          Start Now
         </Link>
       </div>
     </motion.nav>

@@ -1,14 +1,85 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
+import Link from 'next/link';
 
 const TABS = ['My Groups', 'Discover', 'Create'];
 
 export default function GroupsPage() {
   const [tab, setTab] = useState('My Groups');
   const [groupName, setGroupName] = useState('');
+  const [description, setDescription] = useState('');
   const [accessType, setAccessType] = useState<'private' | 'shared' | 'public'>('shared');
+  const [groups, setGroups] = useState<any[]>([]);
+  const [discoverGroups, setDiscoverGroups] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+
+  const fetchGroups = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/groups?type=${tab === 'Discover' ? 'discover' : 'my'}`);
+      if (res.ok) {
+        const data = await res.json();
+        if (tab === 'Discover') setDiscoverGroups(data.groups || []);
+        else setGroups(data.groups || []);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (tab !== 'Create') fetchGroups();
+  }, [tab]);
+
+  const handleCreate = async () => {
+    if (!groupName) return toast.error('Group name is required');
+    setSubmitting(true);
+    try {
+      const res = await fetch('/api/groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: groupName, description, access_type: accessType }),
+      });
+      if (res.ok) {
+        toast.success('Group created!');
+        setTab('My Groups');
+        setGroupName('');
+        setDescription('');
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to create group');
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleJoin = async (groupId: string) => {
+    try {
+      const res = await fetch('/api/groups/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ group_id: groupId }),
+      });
+      if (res.ok) {
+        toast.success('Joined group!');
+        fetchGroups();
+      } else {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to join');
+      }
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
 
   return (
     <div style={{ padding: '32px' }}>
@@ -30,42 +101,59 @@ export default function GroupsPage() {
       </div>
 
       {tab === 'My Groups' && (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: '56px', marginBottom: '16px' }}>👥</div>
-          <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>No groups yet</h2>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '380px', lineHeight: 1.7, marginBottom: '20px' }}>Join or create a study group to prep together, share roadmaps, and compete on leaderboards.</p>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button onClick={() => setTab('Create')} className="btn-primary" style={{ fontSize: '14px', padding: '10px 22px' }}>Create Group</button>
-            <button onClick={() => setTab('Discover')} className="btn-secondary" style={{ fontSize: '14px', padding: '10px 22px' }}>Browse Groups</button>
+        loading ? (
+          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading groups…</div>
+        ) : groups.length === 0 ? (
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
+            <div style={{ fontSize: '56px', marginBottom: '16px' }}>👥</div>
+            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>No groups yet</h2>
+            <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '380px', lineHeight: 1.7, marginBottom: '20px' }}>Join or create a study group to prep together, share roadmaps, and compete on leaderboards.</p>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button onClick={() => setTab('Create')} className="btn-primary" style={{ fontSize: '14px', padding: '10px 22px' }}>Create Group</button>
+              <button onClick={() => setTab('Discover')} className="btn-secondary" style={{ fontSize: '14px', padding: '10px 22px' }}>Browse Groups</button>
+            </div>
           </div>
-        </div>
-      )}
-
-      {tab === 'Discover' && (
-        <div>
-          <div style={{ marginBottom: '20px' }}> 
-            <input type="text" placeholder="Search public groups by name or role…" className="input" style={{ maxWidth: '460px' }} />
-          </div>
+        ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
-            {[
-              { name: 'FAANG SWE 2026', members: 48, role: 'Software Engineer', type: '🌐 Public' },
-              { name: 'ML Interview Prep', members: 22, role: 'ML Engineer', type: '🤝 Shared' },
-              { name: 'System Design Study Group', members: 35, role: 'Full Stack', type: '🌐 Public' },
-              { name: 'PM Interview Circle', members: 19, role: 'Product Manager', type: '🤝 Shared' },
-              { name: 'Bootcamp Cohort Spring 2026', members: 80, role: 'Full Stack', type: '🎓 Cohort' },
-              { name: 'Backend Engineers Network', members: 61, role: 'Backend', type: '🌐 Public' },
-            ].map(g => (
-              <div key={g.name} className="card card-interactive" style={{ padding: '18px' }}>
+            {groups.map(g => (
+              <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
-                  <span className="badge badge-muted" style={{ fontSize: '10px' }}>{g.type}</span>
+                  <span className="badge badge-mint" style={{ fontSize: '10px' }}>{g.access_type}</span>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>{g.role} · {g.members} members</div>
-                <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px' }}>Join Group</button>
+                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>{g.description || 'Collaborative study space.'}</div>
+                <Link href={`/groups/${g.id}`} className="btn-primary" style={{ display: 'flex', width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px', textDecoration: 'none' }}>Open Dashboard</Link>
               </div>
             ))}
           </div>
-        </div>
+        )
+      )}
+
+      {tab === 'Discover' && (
+        loading ? (
+          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Discovering groups…</div>
+        ) : (
+          <div>
+            <div style={{ marginBottom: '20px' }}> 
+              <input type="text" placeholder="Search public groups by name or role…" className="input" style={{ maxWidth: '460px' }} />
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+              {discoverGroups.map(g => (
+                <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
+                    <span className="badge badge-muted" style={{ fontSize: '10px' }}>{g.access_type}</span>
+                  </div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>{g.description || 'Public study group.'}</div>
+                  <button onClick={() => handleJoin(g.id)} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px' }}>Join Group</button>
+                </div>
+              ))}
+              {discoverGroups.length === 0 && (
+                <div style={{ gridColumn: 'span 3', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No other public groups found yet. Create one!</div>
+              )}
+            </div>
+          </div>
+        )
       )}
 
       {tab === 'Create' && (
@@ -95,11 +183,11 @@ export default function GroupsPage() {
               </div>
             </div>
             <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Target Role (optional)</label>
-              <input className="input" placeholder="e.g. Frontend Engineer" />
+              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Description (optional)</label>
+              <textarea className="input" placeholder="What is this group about?" value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'none' }} />
             </div>
-            <button className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
-              🚀 Create Group
+            <button onClick={handleCreate} disabled={submitting} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', opacity: submitting ? 0.7 : 1 }}>
+              {submitting ? 'Creating…' : '🚀 Create Group'}
             </button>
           </div>
         </motion.div>

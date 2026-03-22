@@ -83,6 +83,18 @@ export async function POST(request: Request) {
     await supabase.from('modules').insert(moduleRows);
   }
 
+  // Invalidate Redis cache for roadmaps
+  try {
+    const { redis } = await import('@/lib/redis');
+    if (redis) {
+      await redis.del(`api_roadmaps_${dbUser.id}`);
+      await redis.del(`roadmaps_${dbUser.id}`);
+      console.log(`[POST /api/roadmaps] Invalidated cache for user ${dbUser.id}`);
+    }
+  } catch (redisErr) {
+    console.warn("[POST /api/roadmaps] Redis invalidation failed:", redisErr);
+  }
+
   return NextResponse.json({ roadmap }, { status: 201 });
 }
 

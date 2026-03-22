@@ -4,7 +4,7 @@ import { Providers } from './providers';
 
 export const metadata: Metadata = {
   title: 'PrepSpace — Train Like It\'s Real. Land What You Deserve.',
-  description: 'The AI-native interview prep platform that knows exactly where you are and trains you precisely for where you need to be. Powered by Gemini 2.5 Flash Live.',
+  description: 'The AI-native interview prep platform that knows exactly where you are and trains you precisely for where you need to be.',
   keywords: ['interview prep', 'AI interview', 'coding interview', 'system design', 'career readiness'],
   openGraph: {
     title: 'PrepSpace — AI Interview & Career Readiness Platform',

@@ -15,6 +15,9 @@ export async function GET(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
   const { data: roadmap, error } = await supabase
     .from('roadmaps')
     .select(`
@@ -22,10 +25,11 @@ export async function GET(
       modules(*)
     `)
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq('user_id', dbUser.id)
     .single();
 
   if (error) {
+    console.error(`[GET /api/roadmaps/${id}] Error:`, error);
     return NextResponse.json({ error: 'Roadmap not found' }, { status: 404 });
   }
 
@@ -44,11 +48,14 @@ export async function DELETE(
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
   const { error } = await supabase
     .from('roadmaps')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq('user_id', dbUser.id);
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });

@@ -5,7 +5,7 @@ import { toast } from 'sonner';
 import { useUser } from '@/lib/hooks/useUser';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
-const TABS = ['Profile', 'Gemini Key', 'Notifications', 'Appearance', 'Privacy'];
+const TABS = ['Profile', 'AI API Key', 'Notifications', 'Appearance', 'Privacy'];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('Profile');
@@ -35,7 +35,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const payload: Record<string, string> = { ...formData };
-      if (activeTab === 'Gemini Key' && geminiKey) {
+      if (activeTab === 'AI API Key' && geminiKey) {
         payload.gemini_api_key = geminiKey;
       }
 
@@ -48,7 +48,7 @@ export default function SettingsPage() {
       if (!res.ok) throw new Error('Failed to save');
       await mutate();
       toast.success('Settings saved!');
-      if (activeTab === 'Gemini Key') setGeminiKey('');
+      if (activeTab === 'AI API Key') setGeminiKey('');
     } catch {
       toast.error('Failed to save settings');
     } finally {
@@ -75,8 +75,8 @@ export default function SettingsPage() {
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.15s', background: activeTab === tab ? 'var(--accent-primary-dim)' : 'transparent', color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
-              {tab === 'Gemini Key' && '🤖 '}{tab}
-              {tab === 'Gemini Key' && !user?.has_gemini_key && (
+              {tab === 'AI API Key' && '🤖 '}{tab}
+              {tab === 'AI API Key' && !user?.has_gemini_key && (
                 <span style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#FFB547', flexShrink: 0 }} />
               )}
             </button>
@@ -113,34 +113,31 @@ export default function SettingsPage() {
               </div>
             </div>
           )}
-
-          {activeTab === 'Gemini Key' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Your Gemini API Key</h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>PrepSpace uses your personal key so your usage stays private and you control your own quota.</p>
+          {activeTab === 'AI API Key' && (
+            <div className="card" style={{ padding: '32px', animation: 'fadeIn 0.3s ease-in' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Your AI API Key</h2>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Required for generating roadmaps and live interviews. Currently using Gemini.</p>
               </div>
 
               <div style={{ padding: '16px', background: user?.has_gemini_key ? 'rgba(77,255,160,0.06)' : 'rgba(255,181,71,0.06)', border: `1px solid ${user?.has_gemini_key ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)'}`, borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span style={{ fontSize: '24px' }}>{user?.has_gemini_key ? '✅' : '⚠️'}</span>
                 <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-                    {user?.has_gemini_key ? 'Gemini API key is configured' : 'No Gemini API key set'}
+                  <div style={{ fontSize: '14px', fontWeight: 700, color: user?.has_gemini_key ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>
+                    {user?.has_gemini_key ? 'AI API key is configured' : 'No AI API key set'}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
                     {user?.has_gemini_key ? 'AI features are active. Update below to change your key.' : 'Add a key to enable roadmap generation, AI interviews, and report analysis.'}
                   </div>
                 </div>
               </div>
 
-              <div>
-                <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>
-                  {user?.has_gemini_key ? 'Update Gemini API Key' : 'Enter Gemini API Key'}
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <input className="input" type={showKey ? 'text' : 'password'} value={geminiKey} onChange={e => setGeminiKey(e.target.value)} placeholder="AIza..." style={{ paddingRight: '50px', fontFamily: 'var(--font-mono)', fontSize: '13px' }} />
-                  <button onClick={() => setShowKey(!showKey)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '16px' }}>
-                    {showKey ? '🙈' : '👁'}
+              <div style={{ marginTop: '24px' }}>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Update API Key</label>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <input className="input" type="password" placeholder={user?.has_gemini_key ? "••••••••••••••••" : "Paste your API key"} value={geminiKey} onChange={e => setGeminiKey(e.target.value)} style={{ flex: 1 }} />
+                  <button onClick={handleSave} disabled={saving || !geminiKey} className="btn-primary" style={{ padding: '10px 24px' }}>
+                    {saving ? 'Saving...' : 'Save Key'}
                   </button>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
@@ -222,11 +219,11 @@ export default function SettingsPage() {
 
           {/* Save button */}
           <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            {activeTab === 'Gemini Key' && geminiKey && (
+            {activeTab === 'AI API Key' && geminiKey && (
               <button onClick={() => setGeminiKey('')} className="btn-secondary" style={{ fontSize: '14px', padding: '10px 20px' }}>Cancel</button>
             )}
-            <button onClick={handleSave} disabled={saving || (activeTab === 'Gemini Key' && !geminiKey && !user?.has_gemini_key)} className="btn-primary" style={{ fontSize: '14px', padding: '10px 24px', opacity: saving ? 0.7 : 1 }}>
-              {saving ? 'Saving…' : activeTab === 'Gemini Key' && geminiKey ? 'Save API Key' : 'Save Changes'}
+            <button onClick={handleSave} disabled={saving || (activeTab === 'AI API Key' && !geminiKey && !user?.has_gemini_key)} className="btn-primary" style={{ fontSize: '14px', padding: '10px 24px', opacity: saving ? 0.7 : 1 }}>
+              {saving ? 'Saving…' : activeTab === 'AI API Key' && geminiKey ? 'Save API Key' : 'Save Changes'}
             </button>
           </div>
         </div>

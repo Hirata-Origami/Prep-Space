@@ -12,12 +12,45 @@ const RESUME_TEMPLATES = [
 ];
 
 export default function ResumeBuilderPage() {
-  const [tab, setTab] = useState<'profile' | 'experience' | 'skills' | 'preview'>('profile');
+  const [tab, setTab] = useState<'profile' | 'experience' | 'skills' | 'latex'>('profile');
   const [generating, setGenerating] = useState(false);
   const [targetRole, setTargetRole] = useState('');
   const [targetCompany, setTargetCompany] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState('engineer');
+  const [latexCode, setLatexCode] = useState<string>('');
   const [resumeData, setResumeData] = useState<{ summary?: string; skills?: string[]; experience_bullets?: string[] } | null>(null);
+
+  const IMPORT_TEMPLATE = `\\documentclass[letterpaper,11pt]{article}
+\\usepackage{latexsym}
+\\usepackage[empty]{fullpage}
+\\usepackage{titlesec}
+\\usepackage{marvosym}
+\\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue]{hyperref}
+\\usepackage{tabularx}
+\\begin{document}
+\\begin{center}
+    \\textbf{\\Huge \\scshape Jane Doe} \\\\ \\vspace{1pt}
+    123-456-7890 $|$ \\href{mailto:email@example.com}{email@example.com} $|$ 
+    \\href{https://linkedin.com/in/jane}{linkedin.com/in/jane} $|$
+    \\href{https://github.com/jane}{github.com/jane}
+\\end{center}
+\\section{Experience}
+  \\textbf{Software Engineer} $|$ Tech Corp \\hfill Jan 2022 -- Present
+  \\begin{itemize}
+    \\item Built scalable microservices...
+  \\end{itemize}
+\\end{document}`;
+
+  const handleDownload = () => {
+    if (!latexCode) { toast.error('No LaTeX code to download!'); return; }
+    const blob = new Blob([latexCode], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'resume.tex';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   const handleGenerate = async () => {
     if (!targetRole) { toast.error('Please enter a target role'); return; }
@@ -34,8 +67,8 @@ export default function ResumeBuilderPage() {
       if (!res.ok) throw new Error(data.error || 'Failed to generate');
       
       setResumeData(data.resume);
-      toast.success('Resume generated! Switching to preview.');
-      setTab('preview');
+      toast.success('Resume generated! Check the LaTeX Editor.');
+      setTab('latex');
     } catch (e: any) {
       toast.error(e.message);
     } finally {
@@ -45,7 +78,30 @@ export default function ResumeBuilderPage() {
 
   return (
     <div style={{ padding: '32px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
+      <style>{`
+        @media print {
+          /* Hide elements not relevant for printing */
+          .no-print { display: none !important; }
+          /* Adjust LaTeX editor for print */
+          .latex-editor-container {
+            height: auto !important;
+            min-height: auto !important;
+            border: none !important;
+            padding: 0 !important;
+          }
+          .latex-editor-container textarea {
+            border: none !important;
+            background: none !important;
+            color: black !important; /* Ensure text is black on print */
+            font-size: 10pt !important; /* Smaller font for print */
+            line-height: 1.2 !important;
+            padding: 0 !important;
+            resize: none !important;
+            overflow: visible !important;
+          }
+        }
+      `}</style>
+      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Resume Builder</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>AI generates your resume from your profile + interview performance data</p>
@@ -73,10 +129,10 @@ export default function ResumeBuilderPage() {
         <div>
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '24px' }}>
-            {(['profile', 'experience', 'skills', 'preview'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
+            {(['profile', 'experience', 'skills', 'latex'] as const).map(t => (
+              <button key={t} onClick={() => setTab(t as any)}
                 style={{ padding: '10px 20px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)', color: tab === t ? 'var(--accent-primary)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t ? 'var(--accent-primary)' : 'transparent'}`, transition: 'all 0.2s', textTransform: 'capitalize' }}>
-                {t}
+                {t === 'latex' ? 'LaTeX Editor' : t}
               </button>
             ))}
           </div>
@@ -123,34 +179,20 @@ export default function ResumeBuilderPage() {
             </div>
           )}
 
-          {tab === 'preview' && (
-            <div style={{ padding: '32px', background: 'white', borderRadius: '8px', minHeight: '400px' }}>
-              <div style={{ color: '#111', fontSize: '24px', fontWeight: 800, marginBottom: '4px' }}>{targetRole || 'Your Name'}</div>
-              <div style={{ color: '#555', fontSize: '14px', marginBottom: '16px' }}>{targetRole || 'Target Role'} {targetCompany ? `· targeting ${targetCompany}` : ''}</div>
-              
-              {resumeData ? (
-                <div style={{ color: '#333' }}>
-                  <p style={{ fontSize: '13px', marginBottom: '16px', lineHeight: 1.6 }}>{resumeData.summary}</p>
-                  
-                  <div style={{ marginBottom: '16px' }}>
-                    <h4 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '8px', borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>Core Competencies</h4>
-                    <p style={{ fontSize: '13px' }}>{resumeData.skills?.join(' • ')}</p>
-                  </div>
-                  
-                  <div>
-                    <h4 style={{ fontSize: '14px', fontWeight: 800, marginBottom: '8px', borderBottom: '1px solid #ddd', paddingBottom: '4px' }}>Experience Highlights</h4>
-                    <ul style={{ paddingLeft: '20px', fontSize: '13px', margin: 0, display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      {resumeData.experience_bullets?.map((b: string, i: number) => (
-                        <li key={i}>{b}</li>
-                      ))}
-                    </ul>
-                  </div>
-                </div>
-              ) : (
-                <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '4px', color: '#555', fontSize: '13px', textAlign: 'center' }}>
-                  ✨ Click "Generate with AI" to populate your resume
-                </div>
-              )}
+          {tab === 'latex' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', height: '100%', minHeight: '500px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Raw LaTeX Source. You can edit this directly and compile it elsewhere.</p>
+                <button onClick={() => setLatexCode(IMPORT_TEMPLATE)} className="btn-secondary" style={{ fontSize: '12px', padding: '6px 12px' }}>
+                  📥 Import ATS Template
+                </button>
+              </div>
+              <textarea 
+                value={latexCode} 
+                onChange={e => setLatexCode(e.target.value)} 
+                placeholder="% Your LaTeX code will appear here..." 
+                style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', color: 'var(--text-primary)', fontSize: '13px', fontFamily: 'var(--font-mono)', outline: 'none', resize: 'vertical', minHeight: '400px', whiteSpace: 'pre' }} 
+              />
             </div>
           )}
         </div>
@@ -173,11 +215,12 @@ export default function ResumeBuilderPage() {
 
           <div className="card">
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>Export Options</div>
-            {[['📄', 'PDF (A4)'], ['📋', 'DOCX (editable)'], ['📝', 'ATS Plain Text'], ['{ }', 'JSON Resume']].map(([icon, label]) => (
-              <button key={label as string} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text-secondary)', fontFamily: 'var(--font-body)', marginBottom: '8px', transition: 'all 0.2s' }}>
-                <span>{icon}</span>{label}
-              </button>
-            ))}
+            <button onClick={handleDownload} style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', background: 'var(--accent-primary)', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', color: '#000', fontWeight: 700, fontFamily: 'var(--font-body)', marginBottom: '8px', transition: 'all 0.2s' }}>
+              <span>📄</span> Download .tex
+            </button>
+            <button disabled style={{ display: 'flex', alignItems: 'center', gap: '10px', width: '100%', padding: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'not-allowed', fontSize: '13px', color: 'var(--text-muted)', fontFamily: 'var(--font-body)', marginBottom: '8px', transition: 'all 0.2s', opacity: 0.5 }}>
+              <span>📝</span> Export JSON
+            </button>
           </div>
         </div>
       </div>

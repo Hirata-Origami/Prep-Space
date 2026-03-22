@@ -37,7 +37,7 @@ const DEMO_PANELS = [
     ),
   },
   {
-    title: 'Gemini Live Interview',
+    title: 'AI Voice Interview',
     desc: 'Real-time voice interview with sub-100ms AI response latency',
     content: (
       <div style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
