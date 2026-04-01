@@ -266,17 +266,16 @@ function LiveInterviewPage() {
       config: {
         systemInstruction: { parts: [{ text: systemInstructionText }] },
         responseModalities: [Modality.AUDIO],
-        speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } } },
+        speechConfig: { 
+          voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Orus' } },
+          languageCode: 'en-US'
+        },
         automaticActivityDetection: {
           startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
           endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
-          silenceDurationMs: 600,
+          silenceDurationMs: 300,
         },
         proactiveAudio: true,
-        thinkingConfig: {
-          thinkingBudget: 1024,
-          includeThoughts: true,
-        },
         inputAudioTranscription: {},
         outputAudioTranscription: {},
       } as any,
@@ -605,19 +604,40 @@ function LiveInterviewPage() {
       });
 
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+      const fileName = `session_${sessionId}.webm`;
+      
       try {
-        const supabase = createClient();
-        const fileName = `session_${sessionId}_${Date.now()}.webm`;
-        const { error } = await supabase.storage.from('interview_audio').upload(fileName, audioBlob, { contentType: 'audio/webm' });
+        toast.loading('Saving session evidence...', { id: 'upload-audio' });
+        // 1. Get Presigned URL
+        const presignRes = await fetch('/api/upload-audio', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: fileName, contentType: 'audio/webm' })
+        });
+        const uploadData = await presignRes.json();
         
-        if (!error) {
-          const { data } = supabase.storage.from('interview_audio').getPublicUrl(fileName);
-          audioUrl = data.publicUrl;
+        if (presignRes.ok && uploadData.url) {
+          // 2. Upload to S3
+          const s3Res = await fetch(uploadData.url, {
+            method: 'PUT',
+            body: audioBlob,
+            headers: { 'Content-Type': 'audio/webm' }
+          });
+          
+          if (s3Res.ok) {
+            audioUrl = uploadData.publicUrl;
+            toast.success('Evidence saved securely', { id: 'upload-audio' });
+          } else {
+            console.error('Failed to PUT to S3:', await s3Res.text());
+            toast.error('Failed to upload audio to S3', { id: 'upload-audio' });
+          }
         } else {
-          console.error('Audio upload error:', error);
+          console.error('Presign error:', uploadData.error);
+          toast.error('Failed to prepare S3 upload', { id: 'upload-audio' });
         }
       } catch (err) {
         console.error('Failed to upload audio:', err);
+        toast.error('Audio upload failed', { id: 'upload-audio' });
       }
     }
 
@@ -661,6 +681,7 @@ function LiveInterviewPage() {
             role: targetRole,
             interview_type: interviewType,
             audio_url: audioUrl,
+            session_time: sessionTime,
           }),
         });
 

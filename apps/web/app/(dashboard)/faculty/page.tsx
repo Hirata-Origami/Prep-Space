@@ -1,14 +1,20 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
-const COHORTS = [
-  { name: 'CS Batch 2026', students: 120, ready: 45, avgScore: 72 },
-  { name: 'Fullstack Bootcamp Q1', students: 48, ready: 31, avgScore: 84 },
-  { name: 'DSA Intensive', students: 85, ready: 12, avgScore: 56 },
-];
-
 export default function FacultyPortal() {
+  const [cohorts, setCohorts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/faculty/cohorts')
+      .then(res => res.json())
+      .then(data => setCohorts(data.cohorts || []))
+      .catch(console.error)
+      .finally(() => setLoading(false));
+  }, []);
+
   return (
     <div style={{ padding: '32px' }}>
       <div style={{ marginBottom: '32px' }}>
@@ -20,7 +26,16 @@ export default function FacultyPortal() {
         <div className="card" style={{ padding: '24px' }}>
           <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>Active Cohorts</h2>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {COHORTS.map((c, i) => (
+            {loading ? (
+              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                <div style={{ width: '30px', height: '30px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 16px' }} />
+                Loading cohorts...
+              </div>
+            ) : cohorts.length === 0 ? (
+              <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
+                No active cohorts found. Create student groups in the Network tab to track them here.
+              </div>
+            ) : cohorts.map((c, i) => (
               <div key={i} style={{ padding: '20px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div>

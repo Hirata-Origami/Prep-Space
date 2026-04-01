@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { useRef } from 'react';
 
 export default function NewCompanyPage() {
   const router = useRouter();
@@ -16,7 +17,35 @@ export default function NewCompanyPage() {
   const [comments, setComments] = useState('');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [parsingJd, setParsingJd] = useState(false);
   const [generatedCompany, setGeneratedCompany] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setParsingJd(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/roadmaps/parse', {
+        method: 'POST',
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to parse file');
+      
+      setJd(data.text);
+      toast.success('Job description extracted!');
+    } catch (err: any) {
+      toast.error(err.message);
+    } finally {
+      setParsingJd(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
 
   const handleGenerate = async () => {
     if (!companyName.trim()) {
@@ -119,9 +148,25 @@ export default function NewCompanyPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                  Job Description (optional)
-                </label>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Job Description (optional)
+                  </label>
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={parsingJd}
+                    style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', opacity: parsingJd ? 0.7 : 1 }}
+                  >
+                    {parsingJd ? 'Extracting...' : '📄 Upload PDF/DOCX'}
+                  </button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    onChange={handleFileUpload}
+                    accept=".pdf,.docx,.txt"
+                    style={{ display: 'none' }} 
+                  />
+                </div>
                 <textarea
                   value={jd}
                   onChange={e => setJd(e.target.value)}

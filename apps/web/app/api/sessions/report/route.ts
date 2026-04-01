@@ -40,7 +40,8 @@ Return ONLY valid JSON with this exact shape:
   "metrics": {
     "wpm": number,
     "filler_words_count": number
-  }
+  },
+  "session_pacing": "string — e.g. 'Session ended too quickly — candidate may not have given complete answers' or 'Optimal pacing' or 'Session ran long — evaluate time management'"
 }`;
 
 export async function POST(request: Request) {
@@ -52,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { session_id, transcript, role, interview_type, audio_url } = body;
+  const { session_id, transcript, role, interview_type, audio_url, session_time } = body;
 
   if (!session_id || !transcript) {
     return NextResponse.json({ error: 'session_id and transcript are required' }, { status: 400 });
@@ -74,7 +75,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const prompt = `Role: ${role || 'General'}\nInterview Type: ${interview_type || 'General'}\n\n--- TRANSCRIPT ---\n${transcript}\n--- END TRANSCRIPT ---\n\nGenerate a detailed evaluation report.`;
+  const durationInMins = session_time ? (session_time / 60).toFixed(1) : undefined;
+  
+  const pacingContext = durationInMins 
+    ? `\nThe interview lasted for ${durationInMins} minutes. Evaluate if this was too short (< 5 min), optimal (10-25 min), or too long (> 30 min) and reflect this in your summary and session_pacing.`
+    : '';
+
+  const prompt = `Role: ${role || 'General'}\nInterview Type: ${interview_type || 'General'}${pacingContext}\n\n--- TRANSCRIPT ---\n${transcript}\n--- END TRANSCRIPT ---\n\nGenerate a detailed evaluation report.`;
 
   try {
     const result = await withRetry(() => model.generateContent([
@@ -103,6 +110,7 @@ export async function POST(request: Request) {
       user_id: dbUser.id,
       overall_score: reportData.overall_score,
       hire_recommendation: reportData.recommendation,
+      duration_seconds: session_time || null,
       analysis: {
         ...reportData,
         audio_url: audio_url || null

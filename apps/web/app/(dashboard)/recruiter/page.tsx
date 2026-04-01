@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { useRef, useCallback } from 'react';
 
 interface Candidate {
   id: string;
@@ -53,19 +54,24 @@ export default function RecruiterDashboard() {
   const [creating, setCreating] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
+  const loadPipelines = useCallback(() => {
     fetch('/api/recruiter/pipelines')
       .then(r => r.json())
       .then(data => {
         if (data.pipelines) {
           setPipelines(data.pipelines);
-          if (data.pipelines.length > 0) setSelectedPipeline(data.pipelines[0]);
+          if (data.pipelines.length > 0) setSelectedPipeline(prev => data.pipelines.find((p: Pipeline) => p.id === prev?.id) || data.pipelines[0]);
         }
       })
       .catch(e => console.error(e))
       .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadPipelines();
+  }, [loadPipelines]);
 
   const handleCreatePipeline = async () => {
     setCreating(true);
@@ -95,16 +101,57 @@ export default function RecruiterDashboard() {
   const handleInvite = async () => {
     if (!inviteEmail.trim() || !selectedPipeline) return;
     setInviting(true);
+    let parsedEmails: string[] = [];
+
+    toast.loading('Parsing invite list...', { id: 'invite' });
     try {
-      // Log invite (email provider not configured — see plan)
-      console.log(`[Recruiter] Inviting ${inviteEmail} to pipeline ${selectedPipeline.id}`);
-      toast.success(`Invite sent to ${inviteEmail}! (Check console for now — connect an email provider in settings)`);
+      const parseRes = await fetch('/api/recruiter/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'parse', text: inviteEmail })
+      });
+      const parseData = await parseRes.json();
+      if (!parseRes.ok) throw new Error(parseData.error || 'Failed to parse');
+      
+      parsedEmails = parseData.emails;
+      toast.loading(`Found ${parsedEmails.length} emails. Sending invites...`, { id: 'invite' });
+      
+      // Send invites
+      const sendRes = await fetch('/api/recruiter/invite', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          action: 'send', 
+          emails: parsedEmails, 
+          pipeline_id: selectedPipeline.id,
+          pipeline_role: selectedPipeline.role_name
+        })
+      });
+      
+      const sendData = await sendRes.json();
+      if (!sendRes.ok) throw new Error(sendData.error || 'Failed to send');
+
+      toast.success(`Successfully added ${sendData.count} candidates to pipeline!`, { id: 'invite' });
       setInviteEmail('');
+      loadPipelines();
     } catch (e: any) {
-      toast.error(e.message);
+      toast.error(e.message, { id: 'invite' });
     } finally {
       setInviting(false);
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      setInviteEmail(prev => prev ? prev + '\n' + text : text);
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
   const totalCandidates = pipelines.reduce((s, p) => s + (p.pipeline_candidates?.length || 0), 0);
@@ -221,18 +268,33 @@ export default function RecruiterDashboard() {
                   </div>
                 </div>
 
-                {/* Invite candidate */}
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    className="input"
-                    value={inviteEmail}
-                    onChange={e => setInviteEmail(e.target.value)}
-                    placeholder="candidate@email.com"
-                    style={{ width: '220px' }}
-                    onKeyDown={e => e.key === 'Enter' && handleInvite()}
-                  />
-                  <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px', opacity: inviting || !inviteEmail.trim() ? 0.7 : 1 }}>
-                    📨 Invite
+                {/* Bulk Invite */}
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-start' }}>
+                  <div style={{ position: 'relative' }}>
+                    <textarea
+                      className="input"
+                      value={inviteEmail}
+                      onChange={e => setInviteEmail(e.target.value)}
+                      placeholder="Paste emails, ranges (user01 to user40), or CSV... "
+                      rows={2}
+                      style={{ width: '320px', resize: 'vertical', minHeight: '40px', fontSize: '12px' }}
+                    />
+                    <button 
+                      onClick={() => fileInputRef.current?.click()}
+                      style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '10px', padding: '2px 6px', cursor: 'pointer', color: 'var(--text-muted)' }}
+                    >
+                      📎 CSV
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      accept=".csv,.txt"
+                      onChange={handleFileUpload} 
+                      style={{ display: 'none' }} 
+                    />
+                  </div>
+                  <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px', height: '40px', opacity: inviting || !inviteEmail.trim() ? 0.7 : 1 }}>
+                    {inviting ? '...' : '📩 Bulk Invite'}
                   </button>
                 </div>
               </div>

@@ -114,12 +114,42 @@ export default function ReportDetailPage() {
     <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }} className="report-container">
       <style>{`
         @media print {
-          .no-print { display: none !important; }
-          body { background: white !important; color: black !important; }
-          .surface { border: 1px solid #eee !important; background: white !important; box-shadow: none !important; }
-          .report-container { padding: 0 !important; max-width: 100% !important; }
-          .progress-bar { border: 1px solid #ccc !important; }
-          .progress-bar-fill { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+          .no-print, nav, aside, .btn-primary, .btn-secondary, header, #chat-widget-container { display: none !important; }
+          @page { margin: 15mm; }
+          body { 
+            background: white !important; 
+            color: black !important; 
+            overflow: visible !important;
+            height: auto !important;
+          }
+          /* Ensure text is black for readability */
+          * {
+            color: black !important;
+          }
+          /* Except for explicitly colored text like scores */
+          .print-keep-color * {
+            color: inherit !important;
+          }
+          .surface, .card { 
+            border: 1px solid #ddd !important; 
+            background: white !important; 
+            box-shadow: none !important; 
+            page-break-inside: avoid;
+            color: black !important;
+            margin-bottom: 20px !important;
+          }
+          .report-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+          .progress-bar-fill, .waveform-bar { 
+            print-color-adjust: exact; 
+            -webkit-print-color-adjust: exact; 
+          }
+          main {
+            overflow: visible !important;
+            height: auto !important;
+            background: white !important;
+          }
+          /* Force page breaks gracefully */
+          h2 { page-break-after: avoid; }
         }
         .waveform-bar {
           height: 100%;
@@ -203,21 +233,18 @@ export default function ReportDetailPage() {
 
         <div className="surface" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <h3 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Deep Analysis Waveform</h3>
-          <div style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '3px', marginBottom: '16px' }}>
-            {Array.from({ length: 40 }).map((_, i) => {
+          <div className="no-print" style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '2px', marginBottom: '16px' }}>
+            {Array.from({ length: 80 }).map((_, i) => {
               const height = 20 + Math.random() * 60;
-              const isMarked = markers.some((m: any) => {
+              const totalDuration = report.duration_seconds || audioRef.current?.duration || 300;
+              const pos = (i / 80) * totalDuration;
+              
+              const mMatch = markers.find((m: any) => {
                 const start = parseTime(m.start_time);
-                const total = audioRef.current?.duration || 300;
-                const pos = (i / 40) * total;
-                return pos >= start && pos <= start + 30;
+                return pos >= start && pos <= start + (totalDuration * 0.05); // highlight ~5% of waveform
               });
-              const type = markers.find((m: any) => {
-                const start = parseTime(m.start_time);
-                const total = audioRef.current?.duration || 300;
-                const pos = (i / 40) * total;
-                return pos >= start && pos <= start + 30;
-              })?.type;
+
+              const type = mMatch?.type;
 
               return (
                 <div key={i} className="waveform-bar" style={{ 
@@ -229,11 +256,12 @@ export default function ReportDetailPage() {
               );
             })}
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
+          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
             <span>0:00</span>
             <span>Audio Transcript Timeline</span>
             <span>{report.duration_seconds ? `${Math.floor(report.duration_seconds/60)}:${(report.duration_seconds%60).toString().padStart(2, '0')}` : '5:00'}</span>
           </div>
+          <div className="print-keep-color" style={{ display: 'none', color: 'black' }} dangerouslySetInnerHTML={{ __html: `<style>@media print { .print-keep-color { display: block !important; } }</style>Time Analyzed: ${report.duration_seconds ? `${Math.floor(report.duration_seconds/60)}:${(report.duration_seconds%60).toString().padStart(2, '0')}` : '5:00'} min` }} />
         </div>
       </div>
 
