@@ -3,13 +3,54 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
+
+interface ChatMessage {
+  role: 'user' | 'coach';
+  content: string;
+}
 
 export default function ReportDetailPage() {
   const { id } = useParams();
   const [report, setReport] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Chat state
+  const [chatOpen, setChatOpen] = useState(false);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatOpen) {
+      chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [chatMessages, chatOpen]);
+
+  const sendChat = async () => {
+    if (!chatInput.trim() || chatLoading) return;
+    const userMsg = chatInput.trim();
+    setChatInput('');
+    setChatMessages(prev => [...prev, { role: 'user', content: userMsg }]);
+    setChatLoading(true);
+    try {
+      const res = await fetch(`/api/reports/${id}/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMsg, chat_history: chatMessages }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to get response');
+      setChatMessages(prev => [...prev, { role: 'coach', content: data.reply }]);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setChatLoading(false);
+    }
+  };
 
   const parseTime = (timeStr: string) => {
     if (!timeStr) return 0;
@@ -345,6 +386,131 @@ export default function ReportDetailPage() {
           </section>
         </div>
       </div>
+
+      {/* Floating Chat Button */}
+      <button
+        onClick={() => setChatOpen(v => !v)}
+        className="no-print"
+        style={{
+          position: 'fixed',
+          bottom: '24px',
+          right: '24px',
+          width: '56px',
+          height: '56px',
+          borderRadius: '50%',
+          background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)',
+          border: 'none',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '22px',
+          boxShadow: '0 4px 20px rgba(77,255,160,0.4)',
+          zIndex: 100,
+          transition: 'transform 0.2s',
+        }}
+        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
+        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+        title="Chat with AI Coach"
+      >
+        {chatOpen ? '✕' : '💬'}
+      </button>
+
+      {/* Chat Panel */}
+      <AnimatePresence>
+        {chatOpen && (
+          <motion.div
+            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            className="no-print"
+            style={{
+              position: 'fixed',
+              bottom: '92px',
+              right: '24px',
+              width: '380px',
+              maxHeight: '500px',
+              background: 'var(--bg-surface)',
+              border: '1px solid var(--border)',
+              borderRadius: '20px',
+              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
+              display: 'flex',
+              flexDirection: 'column',
+              zIndex: 99,
+              overflow: 'hidden',
+            }}
+          >
+            {/* Chat Header */}
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(77,255,160,0.03)' }}>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🧑‍🏫</div>
+              <div>
+                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>AI Interview Coach</div>
+                <div style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>● Analyzing your report</div>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {chatMessages.length === 0 && (
+                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
+                  <div>Ask me anything about your interview performance!</div>
+                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    {['What should I focus on first?', 'How do I improve my system design score?', 'What resources do you recommend?'].map(q => (
+                      <button key={q} onClick={() => { setChatInput(q); }} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.15s' }}>
+                        {q}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {chatMessages.map((msg, i) => (
+                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
+                  <div style={{
+                    maxWidth: '85%',
+                    padding: '10px 14px',
+                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+                    background: msg.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
+                    color: msg.role === 'user' ? '#080C14' : 'var(--text-primary)',
+                    fontSize: '13px',
+                    lineHeight: 1.5,
+                    border: msg.role === 'coach' ? '1px solid var(--border)' : 'none',
+                    fontWeight: msg.role === 'user' ? 700 : 400,
+                  }}>
+                    {msg.content}
+                  </div>
+                </div>
+              ))}
+              {chatLoading && (
+                <div style={{ display: 'flex', gap: '4px', padding: '8px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '16px 16px 16px 4px', width: 'fit-content' }}>
+                  {[0, 1, 2].map(i => (
+                    <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', animation: `bounce ${0.6 + i * 0.15}s ease infinite alternate` }} />
+                  ))}
+                </div>
+              )}
+              <div ref={chatEndRef} />
+            </div>
+
+            {/* Input */}
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
+              <input
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
+                placeholder="Ask your coach…"
+                style={{ flex: 1, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', fontFamily: 'var(--font-body)' }}
+              />
+              <button
+                onClick={sendChat}
+                disabled={chatLoading || !chatInput.trim()}
+                style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, opacity: chatLoading || !chatInput.trim() ? 0.5 : 1, transition: 'opacity 0.2s' }}
+              >
+                →
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

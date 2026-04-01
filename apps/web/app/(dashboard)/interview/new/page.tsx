@@ -28,19 +28,26 @@ const MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
 const SAMPLE_RATE = 16000;
 const VIDEO_FPS = 1; // 1 frame/sec for video analysis
 
-function buildSystemInstruction(type: InterviewType, role: string, company?: string, round?: string, customTopic?: string): string {
+function buildSystemInstruction(type: InterviewType, role: string, company?: string, round?: string, customTopic?: string, moduleTopics?: string[]): string {
   const typeGuide: Record<InterviewType, string> = {
-    conceptual: 'Ask deep conceptual questions. Probe understanding, not just definitions. Ask 8-10 questions, progressively harder.',
+    conceptual: 'Ask deep conceptual questions. Probe understanding, not just definitions.',
     behavioral: 'Use the STAR method. Ask about specific past experiences. Probe for depth on impact and lessons learned.',
     system_design: 'Start with an open-ended design problem. Probe scalability, trade-offs, and failure modes.',
     coding_walkthrough: 'Ask the candidate to walk through their approach to coding problems. Probe for complexity analysis and edge cases.',
   };
 
   const companyContext = company ? `You are an elite interviewer at ${company}. This is the ${round || 'technical'} round.` : `You are Alex, an expert technical interviewer at a top tech company. This is a ${type.replace('_', ' ')} interview.`;
-  const topicContext = customTopic ? `The specific topic or focus area for this interview is: ${customTopic}. Ensure your questions revolve around this topic.` : '';
+  const topicContext = customTopic ? `The specific topic or focus area for this interview is: ${customTopic}.` : '';
+
+  const moduleContext = moduleTopics && moduleTopics.length > 0
+    ? `\nMODULE TOPICS TO COVER (ALL must be tested):
+${moduleTopics.map((t, i) => `  ${i + 1}. ${t}`).join('\n')}
+
+CRITICAL BREADTH RULE: You MUST ask at least one question about EACH topic listed above. Go deep when probing BUT ensure you cover ALL topics before the session ends. If you have gone deep on one topic and not yet covered others, explicitly transition: "Let me shift to [next topic]..."`
+    : '';
 
   return `Your name is Alex. ${companyContext} You are interviewing for the role: ${role}.
-${topicContext}
+${topicContext}${moduleContext}
 
 BEHAVIOR:
 - Be professional yet personable. Speak concisely — your spoken responses should be 1-3 sentences max.
@@ -49,7 +56,7 @@ BEHAVIOR:
 - If the candidate is off-track, gently redirect.
 - Keep track of the conversation flow and build on previous answers.
 - You can see and hear the candidate via video/audio. React naturally if you notice they seem confused or confident.
-- After 8-10 questions, wrap up the session warmly.
+- Ask 8-12 questions total, ensuring ALL module topics are covered.
 
 START: Greet the candidate warmly, mention the interview stage${company ? ` at ${company}` : ''}, and ask your first question immediately.`;
 }
@@ -84,14 +91,59 @@ function LiveInterviewPage() {
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const transcriptEndRef = useRef<HTMLDivElement>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const audioOutputRef = useRef<AudioContext | null>(null);
   const mixDestinationRef = useRef<MediaStreamAudioDestinationNode | null>(null);
 
-  // Auto-scroll transcript
+  // Auto-scroll transcript WITHIN container only (not page)
   useEffect(() => {
-    transcriptEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = transcriptContainerRef.current;
+    if (container) {
+      container.scrollTop = container.scrollHeight;
+    }
   }, [transcript]);
+
+  // Fullscreen + keyboard blocking during live session
+  useEffect(() => {
+    if (sessionState !== 'live') return;
+
+    // Enter fullscreen
+    const el = document.documentElement;
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+
+    // Block keyboard shortcuts
+    const blockKeys = (e: KeyboardEvent) => {
+      // Block Win key, F1-F12 combos, and common app launchers
+      if (e.key === 'Meta' || e.key === 'OS') { e.preventDefault(); e.stopPropagation(); return; }
+      if (e.metaKey) { e.preventDefault(); e.stopPropagation(); return; }
+      // Allow Ctrl+Alt+Del (handled by OS), block other Ctrl combos like Ctrl+W, Ctrl+T, Ctrl+N
+      if (e.ctrlKey && !e.altKey && ['w','t','n','r','p'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      // Block Escape from exiting fullscreen during interview
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+    };
+
+    // Warn on page unload / refresh
+    const handleUnload = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = 'Your interview progress will not be saved. Are you sure you want to leave?';
+      return e.returnValue;
+    };
+
+    document.addEventListener('keydown', blockKeys, true);
+    window.addEventListener('beforeunload', handleUnload);
+
+    return () => {
+      document.removeEventListener('keydown', blockKeys, true);
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, [sessionState]);
 
   // Attach video stream when live
   useEffect(() => {
@@ -422,6 +474,13 @@ function LiveInterviewPage() {
       const company = searchParams.get('company') || undefined;
       const round = searchParams.get('round') || undefined;
 
+      // Parse module topics from URL for breadth-aware interviewing
+      let moduleTopics: string[] = [];
+      try {
+        const rawTopics = searchParams.get('module_topics');
+        if (rawTopics) moduleTopics = JSON.parse(decodeURIComponent(rawTopics));
+      } catch {}
+
       const sessionRes = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -461,8 +520,9 @@ function LiveInterviewPage() {
       // Crucial: Resume AudioContext after user gesture
       if (audioContext.state === 'suspended') await audioContext.resume();
 
-      // 5. Connect WebSocket to Gemini Live
-      await connectToGemini(apiKey, buildSystemInstruction(topicType, role, company, round, customTopic));
+      // 5. Connect WebSocket to Gemini Live (pass module topics for breadth coverage)
+      await connectToGemini(apiKey, buildSystemInstruction(topicType, role, company, round, customTopic, moduleTopics));
+
 
       // 5b. Start internal audio recorder for the report
       try {
@@ -573,7 +633,13 @@ function LiveInterviewPage() {
       audioOutputRef.current.close().catch(() => { });
     }
 
+    // Exit fullscreen when interview ends
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => {});
+    }
+
     setSessionState('complete');
+
 
     // Generate report if we have a session and enough transcript
     if (sessionId && transcript.length > 2) {
@@ -801,7 +867,7 @@ function LiveInterviewPage() {
                 <div style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>{alexStatus === 'speaking' ? 'Alex is speaking...' : alexStatus === 'listening' ? 'Listening to you...' : ''}</div>
               </div>
 
-              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div ref={transcriptContainerRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {transcript.length === 0 && (
                   <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)', fontSize: '13px' }}>
                     Transcript will appear here as you talk...

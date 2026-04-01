@@ -14,7 +14,9 @@ export function getGeminiClient(userApiKey?: string | null): GoogleGenerativeAI 
 
 export const GEMINI_MODELS = {
   FLASH_LITE: 'gemini-3.1-flash-lite-preview',
+  FLASH: 'gemini-3.1-flash',
 } as const;
+
 
 /**
  * Executes a Gemini API call with exponential backoff retries for 429 Too Many Requests.
