@@ -5,9 +5,8 @@ import { getModel } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function GET(request: Request) {
+  const resend = new Resend(process.env.RESEND_API_KEY);
   // Simple cron auth to prevent direct malicious hits if exposed
   const authHeader = request.headers.get('authorization');
   if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
