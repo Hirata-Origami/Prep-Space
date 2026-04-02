@@ -55,11 +55,26 @@ export async function GET() {
           return sessionsData.map(s => ({ ...s, interview_reports: [] }));
         }
 
-        // Map reports to sessions
-        return sessionsData.map(session => ({
-          ...session,
-          interview_reports: reportsData.filter(r => r.session_id === session.id)
-        }));
+        // Map reports to sessions and handle stale/interrupted cases
+        return sessionsData.map(session => {
+          const reports = reportsData.filter(r => r.session_id === session.id);
+          const isStale = session.state === 'IN_PROGRESS' && (new Date().getTime() - new Date(session.created_at).getTime() > 30 * 60000);
+          
+          if (isStale) {
+            if (session.duration_seconds && session.duration_seconds > 2) {
+              // Mark as interrupted if it had ticks but no report yet
+              session.state = 'interrupted';
+            } else {
+              // Discard completely empty abandoned sessions
+              session.state = 'discarded';
+            }
+          }
+
+          return {
+            ...session,
+            interview_reports: reports
+          };
+        }).filter(s => s.state !== 'discarded');
       },
       300
     );

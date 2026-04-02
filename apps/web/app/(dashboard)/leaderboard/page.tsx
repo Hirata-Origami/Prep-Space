@@ -33,7 +33,7 @@ export default function LeaderboardPage() {
   return (
     <div style={{ padding: '32px', maxWidth: '900px' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>🏆 Global Leaderboard</h1>
+        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Global Leaderboard</h1>
         <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Top performers ranked by XP earned and consistency</p>
       </div>
 
@@ -58,7 +58,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[1] ? 'rgba(192,192,192,0.3)' : 'var(--border)' }}>
                 {top3[1] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥈</div>
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>2nd</div>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #B8C4E0, #6B7A99)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#080C14', margin: '0 auto 10px' }}>
                       {top3[1].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -73,14 +73,14 @@ export default function LeaderboardPage() {
               <div className="card glow-mint" style={{ padding: '24px', textAlign: 'center', borderColor: 'rgba(77,255,160,0.4)', background: 'rgba(77,255,160,0.04)' }}>
                 {top3[0] ? (
                   <>
-                    <div style={{ fontSize: '44px', marginBottom: '8px' }}>🥇</div>
+                    <div style={{ fontSize: '44px', marginBottom: '8px' }}>1st</div>
                     <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, color: '#080C14', margin: '0 auto 10px' }}>
                       {top3[0].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{top3[0].full_name}</div>
                     <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '8px' }}>{top3[0].target_role ?? 'Candidate'}</div>
                     <div style={{ fontSize: '26px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)' }}>{(top3[0].xp).toLocaleString()} XP</div>
-                    {top3[0].streak_days > 0 && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>🔥 {top3[0].streak_days}-day streak</div>}
+                    {top3[0].streak_days > 0 && <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>{top3[0].streak_days}-day streak</div>}
                   </>
                 ) : <div style={{ opacity: 0.3 }}>—</div>}
               </div>
@@ -89,7 +89,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[2] ? 'rgba(205,127,50,0.3)' : 'var(--border)' }}>
                 {top3[2] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥉</div>
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>3rd</div>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #CD7F32, #8B5E3C)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 auto 10px' }}>
                       {top3[2].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -108,7 +108,7 @@ export default function LeaderboardPage() {
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>
-                    {['Rank', 'Candidate', 'XP', '🔥 Streak'].map(h => (
+                    {['Rank', 'Candidate', 'XP', 'Streak'].map(h => (
                       <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Rank' ? 'center' : 'left', fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{h}</th>
                     ))}
                   </tr>
@@ -127,7 +127,7 @@ export default function LeaderboardPage() {
                         </div>
                       </td>
                       <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: 'var(--accent-primary)' }}>{(u.xp ?? 0).toLocaleString()}</td>
-                      <td style={{ padding: '14px 16px', fontSize: '14px', color: u.streak_days > 20 ? '#FFB547' : 'var(--text-secondary)' }}>🔥 {u.streak_days || 0}d</td>
+                      <td style={{ padding: '14px 16px', fontSize: '14px', color: u.streak_days > 20 ? '#FFB547' : 'var(--text-secondary)' }}>{u.streak_days || 0}d</td>
                     </tr>
                   ))}
                 </tbody>
@@ -137,7 +137,6 @@ export default function LeaderboardPage() {
 
           {users.length === 0 && (
             <div className="surface" style={{ padding: '64px', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🏆</div>
               <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Be the first on the leaderboard!</div>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Complete your first interview session to earn XP and appear here.</p>
               <a href="/interview/new" className="btn-primary" style={{ textDecoration: 'none', fontSize: '14px', padding: '10px 24px' }}>Start a Session</a>

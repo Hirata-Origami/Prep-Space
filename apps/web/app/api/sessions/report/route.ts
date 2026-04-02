@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { session_id, transcript, role, interview_type, audio_url, session_time } = body;
+  const { session_id, transcript, role, interview_type, audio_url, session_time, tab_switches, cheating_flags } = body;
 
   if (!session_id || !transcript) {
     return NextResponse.json({ error: 'session_id and transcript are required' }, { status: 400 });
@@ -104,12 +104,34 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'User record not found' }, { status: 404 });
     }
 
+    // Proctoring deductions
+    let finalScore = reportData.overall_score;
+    let finalRecommendation = reportData.recommendation;
+
+    if (tab_switches && typeof tab_switches === 'number' && tab_switches > 0) {
+      // Deduct 5 points per tab switch, up to 30 points
+      const deduction = Math.min(tab_switches * 5, 30);
+      finalScore = Math.max(0, finalScore - deduction);
+      
+      // Auto downgrade recommendation if high cheating
+      if (tab_switches >= 3 && finalRecommendation !== 'No Hire') {
+        finalRecommendation = finalRecommendation === 'Strong Hire' ? 'Hire' : 'No Hire';
+      }
+      
+      reportData.proctoring_flags = {
+        tab_switches,
+        cheating_flags: cheating_flags || [],
+        penalty_applied: deduction
+      };
+      reportData.summary += ` [Penalty: ${deduction} points deducted due to ${tab_switches} tab switches detected]`;
+    }
+
     // Save report to Supabase
     let insertData: any = {
       session_id,
       user_id: dbUser.id,
-      overall_score: reportData.overall_score,
-      hire_recommendation: reportData.recommendation,
+      overall_score: finalScore,
+      hire_recommendation: finalRecommendation,
       duration_seconds: session_time || null,
       analysis: {
         ...reportData,
@@ -149,8 +171,12 @@ export async function POST(request: Request) {
       })
       .eq('id', session_id);
 
-    // Award XP to user
-    await supabase.rpc('increment_xp', { user_id: dbUser.id, amount: 50 });
+    // Award XP to user safely
+    try {
+      await supabase.rpc('increment_xp', { user_id: dbUser.id, amount: 50 });
+    } catch (xpErr) {
+      console.warn("[POST /api/sessions/report] Failed to increment XP", xpErr);
+    }
 
     // Invalidate sessions list cache
     try {

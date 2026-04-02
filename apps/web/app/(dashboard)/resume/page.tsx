@@ -34,6 +34,7 @@ export default function ResumeBuilderPage() {
   const [tab, setTab] = useState<'profile' | 'experience' | 'skills' | 'latex'>('profile');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [latexTab, setLatexTab] = useState<'code' | 'preview'>('code');
   const [latexCode, setLatexCode] = useState<string>(DEFAULT_LATEX);
   const [resumeData, setResumeData] = useState<{
@@ -176,6 +177,47 @@ export default function ResumeBuilderPage() {
   const updateExp = (idx: number, field: string, value: string) =>
     setExperience(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.type !== 'application/pdf') {
+       toast.error("Please upload a PDF file");
+       return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/resume/extract', {
+        method: 'POST',
+        body: formData
+      });
+      const data = await res.json();
+      
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.extracted) {
+        const { profile: importedProfile, experience: importedExperience, education: importedEducation, skills: importedSkills } = data.extracted;
+        
+        if (importedProfile) setProfile(p => ({ ...p, ...importedProfile }));
+        if (importedExperience && importedExperience.length > 0) setExperience(importedExperience);
+        if (importedEducation) setEducation(e => ({ ...e, ...importedEducation }));
+        if (importedSkills) setSkills(importedSkills);
+
+        toast.success("Resume data extracted successfully!");
+      }
+
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to extract resume');
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = ''; // Reset input
+    }
+  };
+
   const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' as const };
   const labelStyle = { fontSize: '12px', fontWeight: 600 as const, color: 'var(--text-muted)' as const, display: 'block' as const, marginBottom: '6px' };
 
@@ -208,7 +250,16 @@ export default function ResumeBuilderPage() {
 
       {tab === 'profile' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>Personal Information</h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Personal Information</h2>
+            
+            {/* Auto-fill from PDF button */}
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(77,255,160,0.1)', border: '1px solid rgba(77,255,160,0.2)', padding: '6px 14px', borderRadius: '8px', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', opacity: isUploading ? 0.7 : 1 }}>
+               {isUploading ? '⏳ Extracting...' : '📄 Auto-fill from PDF'}
+               <input type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
+            </label>
+          </div>
+          
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
             <div><label style={labelStyle}>Full Name</label><input style={inputStyle} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Jane Doe" /></div>
             <div><label style={labelStyle}>Email</label><input style={inputStyle} value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} placeholder="jane@example.com" /></div>

@@ -29,7 +29,7 @@ export async function POST(request: Request) {
 
   let model;
   try {
-    model = getModel(dbUser.gemini_api_key, 'FLASH');
+    model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : 'No Gemini API key configured';
     return NextResponse.json({ error: msg }, { status: 400 });

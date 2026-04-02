@@ -36,33 +36,61 @@ export async function POST(request: Request) {
       throw new Error(repos.message || 'Failed to fetch repos');
     }
 
-    // 2. Extract basic info and attempt to fetch READMEs
+    // 2. Extract deep architecture info using DeepWiki MCP
     const repoContexts = await Promise.all(repos.map(async (r: any) => {
-      let readmeText = '';
+      let analysis = "No detailed architecture available.";
       try {
-        const readmeRes = await fetch(`https://raw.githubusercontent.com/${username}/${r.name}/${r.default_branch}/README.md`);
-        if (readmeRes.ok) {
-          readmeText = await readmeRes.text();
-          // Truncate readme to avoid hitting context limits
-          readmeText = readmeText.substring(0, 500);
+        const repoName = `${username}/${r.name}`;
+        const mcPostBody = {
+          jsonrpc: "2.0",
+          id: Math.random().toString(),
+          method: "tools/call",
+          params: {
+            name: "ask_question",
+            arguments: {
+              repoName,
+              question: "Provide a detailed report on what this repo does, its architecture, impact, and tech stack. Focus on information suitable for a tech resume."
+            }
+          }
+        };
+
+        const mcpRes = await fetch("https://mcp.deepwiki.com/mcp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream"
+          },
+          body: JSON.stringify(mcPostBody),
+        });
+
+        if (mcpRes.ok) {
+          const mcpText = await mcpRes.text();
+          // Extract JSON from SSE format (e.g., data: {...})
+          const match = mcpText.match(/data: (.*)/);
+          if (match && match[1]) {
+            const data = JSON.parse(match[1]);
+            if (data.result && data.result.content && data.result.content.length > 0) {
+              analysis = data.result.content[0].text;
+            }
+          }
         }
       } catch (e) {
-        // ignore readme errors
+        console.error("DeepWiki MCP Error for", r.name, e);
       }
 
       return `Repository: ${r.name}
 Description: ${r.description || 'N/A'}
 Language: ${r.language || 'N/A'}
 Stars: ${r.stargazers_count}
-README snippet:
-${readmeText}`;
+Architecture Analysis:
+${analysis}`;
     }));
 
-    const contextStr = repoContexts.join('\n\n');
+    const contextStr = repoContexts.join('\n\n---\n\n');
 
     // 3. Summarize using Gemini
-    const model = getModel(dbUser.gemini_api_key, 'FLASH');
-    const prompt = `Analyze these GitHub repositories and generate a professional project summary for a tech resume.
+    const model = getModel(dbUser.gemini_api_key, 'FLASH_LITE'); // Using Flash Lite for faster, robust generation
+    const prompt = `Analyze these GitHub repositories based on their architecture reports and generate a professional project summary for a tech resume.
 Format the output as a JSON array of objects, where each object represents a project and has:
 - title: Project name
 - description: 1-2 sentence professional summary of what it is
@@ -73,7 +101,7 @@ Format the output as a JSON array of objects, where each object represents a pro
 REPOSITORIES:
 ${contextStr}
 
-Return ONLY valid JSON array.`;
+Rule: Return ONLY a valid JSON array, do not include markdown \`\`\`json wrappers.`;
 
     const result = await withRetry(() => model.generateContent(prompt));
     const responseText = result.response.text().trim().replace(/```json/g, '').replace(/```/g, '');

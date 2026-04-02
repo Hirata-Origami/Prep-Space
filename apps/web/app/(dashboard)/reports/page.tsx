@@ -11,11 +11,18 @@ export default function ReportsPage() {
 
   useEffect(() => {
     async function fetchSessions() {
+      const cached = localStorage.getItem('prepspace_reports_cache');
+      if (cached) {
+        setSessions(JSON.parse(cached));
+        setIsLoading(false);
+      }
+
       try {
         const res = await fetch('/api/sessions');
         if (res.ok) {
           const data = await res.json();
           setSessions(data.sessions || []);
+          localStorage.setItem('prepspace_reports_cache', JSON.stringify(data.sessions || []));
         }
       } catch (err) {
         console.error('Failed to fetch sessions:', err);

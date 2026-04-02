@@ -56,6 +56,7 @@ export default function MockCompanyPage() {
       role: targetRole,
       company: selected.name,
       round: selectedRound,
+      direct: 'true',
     });
     // Pass round topics if available
     const roundTopics = selected.round_topics?.[selectedRound];

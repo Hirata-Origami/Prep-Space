@@ -171,7 +171,7 @@ export default function RecruiterDashboard() {
           <p style={{ fontSize: '16px', color: 'var(--text-muted)' }}>Manage AI-evaluated hiring pipelines and ranked shortlists.</p>
         </div>
         <button onClick={() => setShowNewPipeline(v => !v)} className="btn-primary" style={{ padding: '10px 20px', fontSize: '13px' }}>
-          ➕ Create Pipeline
+          Create Pipeline
         </button>
       </div>
 
@@ -226,10 +226,9 @@ export default function RecruiterDashboard() {
         </div>
       ) : pipelines.length === 0 ? (
         <div className="card" style={{ padding: '60px', textAlign: 'center' }}>
-          <div style={{ fontSize: '48px', marginBottom: '16px' }}>📋</div>
           <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>No pipelines yet</h2>
           <p style={{ color: 'var(--text-muted)', marginBottom: '20px' }}>Create your first hiring pipeline to start evaluating candidates</p>
-          <button onClick={() => setShowNewPipeline(true)} className="btn-primary">➕ Create First Pipeline</button>
+          <button onClick={() => setShowNewPipeline(true)} className="btn-primary">Create First Pipeline</button>
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: '24px' }}>
@@ -283,7 +282,7 @@ export default function RecruiterDashboard() {
                       onClick={() => fileInputRef.current?.click()}
                       style={{ position: 'absolute', bottom: '8px', right: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '4px', fontSize: '10px', padding: '2px 6px', cursor: 'pointer', color: 'var(--text-muted)' }}
                     >
-                      📎 CSV
+                      CSV
                     </button>
                     <input 
                       type="file" 
@@ -294,14 +293,13 @@ export default function RecruiterDashboard() {
                     />
                   </div>
                   <button onClick={handleInvite} disabled={inviting || !inviteEmail.trim()} className="btn-primary" style={{ fontSize: '12px', padding: '8px 14px', height: '40px', opacity: inviting || !inviteEmail.trim() ? 0.7 : 1 }}>
-                    {inviting ? '...' : '📩 Bulk Invite'}
+                    {inviting ? '...' : 'Bulk Invite'}
                   </button>
                 </div>
               </div>
 
               {currentCandidates.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
-                  <div style={{ fontSize: '36px', marginBottom: '12px' }}>📩</div>
                   <p style={{ fontSize: '14px' }}>No candidates yet. Invite candidates or share the pipeline link.</p>
                 </div>
               ) : (
@@ -337,18 +335,51 @@ export default function RecruiterDashboard() {
                               <div style={{ fontSize: '9px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>AI Score</div>
                             </div>
                           )}
-                          <span style={{
-                            padding: '4px 12px',
-                            borderRadius: '100px',
-                            fontSize: '11px',
-                            fontWeight: 700,
-                            background: stageColor,
-                            color: stageText,
-                            textTransform: 'capitalize',
-                            border: `1px solid ${stageText}33`,
-                          }}>
-                            {c.stage?.replace('_', ' ')}
-                          </span>
+                          <select
+                            value={c.stage || 'invited'}
+                            onChange={async (e) => {
+                              const newStage = e.target.value;
+                              toast.loading(`Updating ${displayName} to ${newStage}...`, { id: `status-${c.id}` });
+                              try {
+                                const res = await fetch('/api/recruiter/pipelines/status', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({
+                                    candidate_id: c.id,
+                                    stage: newStage,
+                                    pipeline_name: selectedPipeline.role_name,
+                                    candidate_name: displayName,
+                                    candidate_email: c.email
+                                  })
+                                });
+                                if (!res.ok) throw new Error('Failed to update stage');
+                                toast.success(`Moved to ${newStage.replace('_', ' ')}! Email deployed if applicable.`, { id: `status-${c.id}` });
+                                loadPipelines(); // refresh
+                              } catch(err: any) {
+                                toast.error(err.message, { id: `status-${c.id}` });
+                              }
+                            }}
+                            style={{
+                              padding: '4px 12px',
+                              borderRadius: '100px',
+                              fontSize: '11px',
+                              fontWeight: 700,
+                              background: stageColor,
+                              color: stageText,
+                              textTransform: 'capitalize',
+                              border: `1px solid ${stageText}33`,
+                              cursor: 'pointer',
+                              outline: 'none',
+                              appearance: 'none',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <option value="invited" style={{color: '#000'}}>Invited</option>
+                            <option value="in_progress" style={{color: '#000'}}>In Progress</option>
+                            <option value="completed" style={{color: '#000'}}>Completed</option>
+                            <option value="shortlisted" style={{color: '#000'}}>Shortlisted (Automated Email)</option>
+                            <option value="rejected" style={{color: '#000'}}>Rejected (Automated Email)</option>
+                          </select>
                           <button className="btn-secondary" style={{ padding: '6px 14px', fontSize: '12px' }}>
                             View Report
                           </button>

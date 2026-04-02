@@ -11,48 +11,60 @@ export async function GET() {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: profileData, error } = await supabase
-    .from('users')
-    .select('id, supabase_uid, full_name, email, gemini_api_key, avatar_url, xp, streak_days, target_role, target_company, level')
-    .eq('supabase_uid', user.id);
+  const { fetchWithRedis } = await import('@/lib/redis');
 
-  let profile = profileData?.[0];
+  let safeProfile;
+  try {
+    safeProfile = await fetchWithRedis(
+      `api_profile_${user.id}`,
+      async () => {
+        const { data: profileData, error } = await supabase
+          .from('users')
+          .select('id, supabase_uid, full_name, email, gemini_api_key, avatar_url, xp, streak_days, target_role, target_company, level')
+          .eq('supabase_uid', user.id);
 
-  if (error) {
+        let profile = profileData?.[0];
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        // Create profile if it doesn't exist
+        if (!profile) {
+          const { data: newProfileData, error: createError } = await supabase
+            .from('users')
+            .insert({
+              supabase_uid: user.id,
+              email: user.email,
+              full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
+              avatar_url: user.user_metadata?.avatar_url || null,
+            })
+            .select();
+
+          if (createError) {
+            throw new Error(createError.message);
+          }
+          
+          profile = newProfileData?.[0];
+        }
+
+        let maskedKey = null;
+        if (profile?.gemini_api_key) {
+          const k = profile.gemini_api_key;
+          maskedKey = k.length > 8 ? `${k.slice(0, 4)}••••••••••${k.slice(-4)}` : '••••••••';
+        }
+
+        return {
+          ...profile,
+          gemini_api_key: maskedKey,
+          has_gemini_key: !!profile?.gemini_api_key,
+        };
+      },
+      300 // cache for 5 minutes
+    );
+  } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-
-  // Create profile if it doesn't exist
-  if (!profile) {
-    const { data: newProfileData, error: createError } = await supabase
-      .from('users')
-      .insert({
-        supabase_uid: user.id,
-        email: user.email,
-        full_name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'User',
-        avatar_url: user.user_metadata?.avatar_url || null,
-      })
-      .select();
-
-    if (createError) {
-      return NextResponse.json({ error: createError.message }, { status: 500 });
-    }
-    
-    profile = newProfileData?.[0];
-  }
-
-  let maskedKey = null;
-  if (profile?.gemini_api_key) {
-    const k = profile.gemini_api_key;
-    maskedKey = k.length > 8 ? `${k.slice(0, 4)}••••••••••${k.slice(-4)}` : '••••••••';
-  }
-
-  // Mask the gemini key
-  const safeProfile = {
-    ...profile,
-    gemini_api_key: maskedKey,
-    has_gemini_key: !!profile?.gemini_api_key,
-  };
 
   return NextResponse.json({ profile: safeProfile });
 }
@@ -88,6 +100,15 @@ export async function PATCH(request: Request) {
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  try {
+    const { redis } = await import('@/lib/redis');
+    if (redis && profile) {
+      await redis.del(`api_profile_${user.id}`);
+    }
+  } catch (err) {
+    console.warn("Cache bust failed for profile update", err);
   }
 
   return NextResponse.json({ profile, message: 'Profile updated successfully' });

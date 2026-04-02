@@ -22,40 +22,44 @@ export async function GET(req: Request) {
 
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  if (type === 'my') {
-    const { data, error } = await supabase
-      .from('group_members')
-      .select('group_id, groups!inner(*)')
-      .eq('user_id', dbUser.id);
-    
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ groups: data.map(d => d.groups) }, {
-      headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=59' },
-    });
-  } else {
-    // Discover: all public groups the user is NOT in
-    const { data: myGroupIds } = await supabase
-      .from('group_members')
-      .select('group_id')
-      .eq('user_id', dbUser.id);
-    
-    const excludedIds = myGroupIds?.map(g => g.group_id) || [];
+  const { fetchWithRedis } = await import('@/lib/redis');
 
-    const query = supabase
-      .from('groups')
-      .select('*')
-      .eq('access_type', 'public');
-    
-    if (excludedIds.length > 0) {
-      query.not('id', 'in', `(${excludedIds.join(',')})`);
-    }
+  let groups;
+  try {
+    groups = await fetchWithRedis(
+      `api_groups_${dbUser.id}_${type}`,
+      async () => {
+        if (type === 'my') {
+          const { data, error } = await supabase
+            .from('group_members')
+            .select('group_id, groups!inner(*)')
+            .eq('user_id', dbUser.id);
+          if (error) throw new Error(error.message);
+          return data.map(d => d.groups);
+        } else {
+          const { data: myGroupIds } = await supabase
+            .from('group_members')
+            .select('group_id')
+            .eq('user_id', dbUser.id);
+          const excludedIds = myGroupIds?.map(g => g.group_id) || [];
 
-    const { data: discoverGroups, error: groupsError } = await query;
-    if (groupsError) return NextResponse.json({ error: groupsError.message }, { status: 500 });
-    return NextResponse.json({ groups: discoverGroups }, {
-      headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=59' },
-    });
+          const query = supabase.from('groups').select('*').eq('access_type', 'public');
+          if (excludedIds.length > 0) {
+            query.not('id', 'in', `(${excludedIds.join(',')})`);
+          }
+
+          const { data: discoverGroups, error: groupsError } = await query;
+          if (groupsError) throw new Error(groupsError.message);
+          return discoverGroups;
+        }
+      },
+      300
+    );
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
   }
+
+  return NextResponse.json({ groups });
 }
 
 export async function POST(req: Request) {

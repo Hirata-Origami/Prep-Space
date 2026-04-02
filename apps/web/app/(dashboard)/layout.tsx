@@ -265,7 +265,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {user?.full_name ?? 'Candidate'}
               </div>
               <div style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                {user?.level?.toUpperCase() ?? 'NOVICE'} {user?.streak_days ? `· 🔥 ${user.streak_days}d` : ''}
+                {user?.level?.toUpperCase() ?? 'NOVICE'} {user?.streak_days ? `· ${user.streak_days}d` : ''}
               </div>
             </div>
             {!user?.has_gemini_key && (
@@ -309,8 +309,6 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
               {/* Menu items */}
               {[
-                { icon: User, label: 'Profile', href: '/profile' },
-                { icon: Bell, label: 'Notifications', href: '/notifications' },
                 { icon: Settings, label: 'Settings', href: '/settings', badge: !user?.has_gemini_key },
               ].map(({ icon: Icon, label, href, badge }) => (
                 <Link

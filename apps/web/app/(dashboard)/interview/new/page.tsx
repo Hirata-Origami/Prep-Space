@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { GoogleGenAI, Modality, StartSensitivity, EndSensitivity } from '@google/genai';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { useUser } from '@/lib/hooks/useUser';
 
 type InterviewType = 'conceptual' | 'behavioral' | 'system_design' | 'coding_walkthrough';
 type SessionState = 'setup' | 'connecting' | 'live' | 'complete';
@@ -62,9 +63,10 @@ START: Greet the candidate warmly, mention the interview stage${company ? ` at $
 }
 
 function LiveInterviewPage() {
+  const { user } = useUser();
   const [interviewType, setInterviewType] = useState<InterviewType>('conceptual');
   const [customTopic, setCustomTopic] = useState('');
-  const [targetRole, setTargetRole] = useState('Frontend Engineer');
+  const [targetRole, setTargetRole] = useState('Software Engineer');
   const [sessionState, setSessionState] = useState<SessionState>('setup');
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isMuted, setIsMuted] = useState(false);
@@ -104,13 +106,36 @@ function LiveInterviewPage() {
     }
   }, [transcript]);
 
+  // Sync target role from user profile
+  useEffect(() => {
+    if (user?.target_role && !searchParams.get('role')) {
+      setTargetRole(user.target_role);
+    }
+  }, [user, searchParams]);
+
+  // Heartbeat to save transcript if tab is closed illegally
+  useEffect(() => {
+    if (sessionState === 'live' && sessionId && transcript.length > 0) {
+      const interval = setInterval(() => {
+        // We use Beacon to ensure it can run on unload, or just regular fetch in background
+        fetch('/api/sessions/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: sessionId, transcript_length: transcript.length }),
+          keepalive: true
+        }).catch(() => {});
+      }, 15000);
+      return () => clearInterval(interval);
+    }
+  }, [sessionState, sessionId, transcript.length]);
+
   // Fullscreen + keyboard blocking during live session
   useEffect(() => {
     if (sessionState !== 'live') return;
 
     // Enter fullscreen
     const el = document.documentElement;
-    if (el.requestFullscreen) el.requestFullscreen().catch(() => {});
+    if (el.requestFullscreen) el.requestFullscreen().catch(() => { });
 
     // Block keyboard shortcuts
     const blockKeys = (e: KeyboardEvent) => {
@@ -118,7 +143,7 @@ function LiveInterviewPage() {
       if (e.key === 'Meta' || e.key === 'OS') { e.preventDefault(); e.stopPropagation(); return; }
       if (e.metaKey) { e.preventDefault(); e.stopPropagation(); return; }
       // Allow Ctrl+Alt+Del (handled by OS), block other Ctrl combos like Ctrl+W, Ctrl+T, Ctrl+N
-      if (e.ctrlKey && !e.altKey && ['w','t','n','r','p'].includes(e.key.toLowerCase())) {
+      if (e.ctrlKey && !e.altKey && ['w', 't', 'n', 'r', 'p'].includes(e.key.toLowerCase())) {
         e.preventDefault();
         e.stopPropagation();
       }
@@ -187,7 +212,7 @@ function LiveInterviewPage() {
     const source = ctx.createBufferSource();
     source.buffer = buffer;
     source.connect(ctx.destination);
-    
+
     // Connect to the mix destination for recording if it exists
     if (mixDestinationRef.current) {
       source.connect(mixDestinationRef.current);
@@ -266,14 +291,14 @@ function LiveInterviewPage() {
       config: {
         systemInstruction: { parts: [{ text: systemInstructionText }] },
         responseModalities: [Modality.AUDIO],
-        speechConfig: { 
+        speechConfig: {
           voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Orus' } },
           languageCode: 'en-US'
         },
         automaticActivityDetection: {
           startOfSpeechSensitivity: StartSensitivity.START_SENSITIVITY_HIGH,
           endOfSpeechSensitivity: EndSensitivity.END_SENSITIVITY_HIGH,
-          silenceDurationMs: 300,
+          silenceDurationMs: 50,
         },
         proactiveAudio: true,
         inputAudioTranscription: {},
@@ -478,7 +503,7 @@ function LiveInterviewPage() {
       try {
         const rawTopics = searchParams.get('module_topics');
         if (rawTopics) moduleTopics = JSON.parse(decodeURIComponent(rawTopics));
-      } catch {}
+      } catch { }
 
       const sessionRes = await fetch('/api/sessions', {
         method: 'POST',
@@ -528,7 +553,7 @@ function LiveInterviewPage() {
         if (!audioOutputRef.current) {
           audioOutputRef.current = new AudioContext({ sampleRate: 24000 });
         }
-        
+
         // Ensure context is running
         if (audioOutputRef.current.state === 'suspended') {
           await audioOutputRef.current.resume();
@@ -540,7 +565,7 @@ function LiveInterviewPage() {
         // Connect user's mic to the mix destination (but NOT to ctx.destination to avoid echo)
         const micSourceForMix = audioOutputRef.current.createMediaStreamSource(stream);
         micSourceForMix.connect(mixDest);
-        
+
         // Start recording the mixed stream
         const mediaRecorder = new MediaRecorder(mixDest.stream);
         mediaRecorderRef.current = mediaRecorder;
@@ -577,10 +602,10 @@ function LiveInterviewPage() {
     const direct = searchParams.get('direct');
     const topic = searchParams.get('topic');
     const role = searchParams.get('role');
-    
+
     if (topic && !directStartedRef.current) setInterviewType(topic as InterviewType);
     if (role && !directStartedRef.current) setTargetRole(role);
-    
+
     if (direct === 'true' && sessionState === 'setup' && !directStartedRef.current) {
       directStartedRef.current = true;
       startSession();
@@ -591,7 +616,7 @@ function LiveInterviewPage() {
   const endSession = useCallback(async () => {
     // Close WebSocket
     sessionRef.current?.close();
-    
+
     let audioUrl = null;
     // Stop recording and upload
     if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
@@ -605,7 +630,7 @@ function LiveInterviewPage() {
 
       const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
       const fileName = `session_${sessionId}.webm`;
-      
+
       try {
         toast.loading('Saving session evidence...', { id: 'upload-audio' });
         // 1. Get Presigned URL
@@ -615,7 +640,7 @@ function LiveInterviewPage() {
           body: JSON.stringify({ filename: fileName, contentType: 'audio/webm' })
         });
         const uploadData = await presignRes.json();
-        
+
         if (presignRes.ok && uploadData.url) {
           // 2. Upload to S3
           const s3Res = await fetch(uploadData.url, {
@@ -623,7 +648,7 @@ function LiveInterviewPage() {
             body: audioBlob,
             headers: { 'Content-Type': 'audio/webm' }
           });
-          
+
           if (s3Res.ok) {
             audioUrl = uploadData.publicUrl;
             toast.success('Evidence saved securely', { id: 'upload-audio' });
@@ -655,7 +680,7 @@ function LiveInterviewPage() {
 
     // Exit fullscreen when interview ends
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
 
     setSessionState('complete');
@@ -670,7 +695,7 @@ function LiveInterviewPage() {
         const s = Math.floor((relMs % 60000) / 1000).toString().padStart(2, '0');
         return `[${m}:${s}] ${t.role === 'ai' ? 'Alex' : 'You'}: ${t.text}`;
       }).join('\n\n');
-      
+
       try {
         const res = await fetch('/api/sessions/report', {
           method: 'POST',
@@ -736,10 +761,10 @@ function LiveInterviewPage() {
       clearInterval(videoIntervalRef.current);
       clearInterval(timerRef.current);
       if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-        audioCtxRef.current.close().catch(() => {});
+        audioCtxRef.current.close().catch(() => { });
       }
       if (audioOutputRef.current && audioOutputRef.current.state !== 'closed') {
-        audioOutputRef.current.close().catch(() => {});
+        audioOutputRef.current.close().catch(() => { });
       }
     };
   }, []);
@@ -808,13 +833,13 @@ function LiveInterviewPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           {/* Header */}
           <div style={{ height: '52px', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', padding: '0 20px', flexShrink: 0 }}>
-            <button onClick={endSession} className="btn-primary" style={{ 
-              background: 'rgba(255,77,106,0.1)', 
-              color: '#FF4D6A', 
-              border: '1px solid rgba(255,77,106,0.2)', 
-              padding: '6px 20px', 
-              fontSize: '13px', 
-              fontWeight: 800 
+            <button onClick={endSession} className="btn-primary" style={{
+              background: 'rgba(255,77,106,0.1)',
+              color: '#FF4D6A',
+              border: '1px solid rgba(255,77,106,0.2)',
+              padding: '6px 20px',
+              fontSize: '13px',
+              fontWeight: 800
             }}>
               End Interview
             </button>
