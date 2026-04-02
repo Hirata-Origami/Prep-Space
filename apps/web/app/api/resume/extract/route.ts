@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel } from '@/lib/gemini';
-const pdfParse = require('pdf-parse');
+// No pdf-parse needed, we pass purely via base64 array payload
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -31,18 +31,12 @@ export async function POST(req: Request) {
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    let textStr = '';
+    let base64Data = '';
     
-    // Parse PDF
     if (file.type === 'application/pdf') {
-      const data = await pdfParse(buffer);
-      textStr = data.text;
+      base64Data = buffer.toString('base64');
     } else {
        return NextResponse.json({ error: 'Unsupported file type. Please upload a PDF.' }, { status: 400 });
-    }
-
-    if (!textStr.trim()) {
-      return NextResponse.json({ error: 'Failed to extract text from file.' }, { status: 500 });
     }
 
     const model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
@@ -82,12 +76,12 @@ Return ONLY valid JSON. Keep formatting clean. Do not include markdown codeblock
     }
   ]
 }
-
-Resume Text:
-${textStr.substring(0, 10000)}
     `;
 
-    const result = await model.generateContent([{ text: prompt }]);
+    const result = await model.generateContent([
+      { text: prompt },
+      { inlineData: { data: base64Data, mimeType: 'application/pdf' } }
+    ]);
     let jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
     let parsedData = JSON.parse(jsonStr);
 

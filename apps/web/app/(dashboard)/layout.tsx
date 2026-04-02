@@ -245,7 +245,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             onMouseLeave={e => { if (!userMenuOpen) e.currentTarget.style.background = 'transparent'; }}
           >
             {/* Avatar circle */}
-            <div style={{
+            <div 
+              suppressHydrationWarning
+              style={{
               width: '32px',
               height: '32px',
               borderRadius: '8px',
@@ -261,7 +263,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
               {user?.full_name?.[0]?.toUpperCase() ?? 'U'}
             </div>
             <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-              <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div suppressHydrationWarning style={{ fontSize: '13px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user?.full_name ?? 'Candidate'}
               </div>
               <div style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>
