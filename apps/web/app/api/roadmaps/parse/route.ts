@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+import { createClient } from '@/lib/supabase/server';
+import { getModel } from '@/lib/gemini';
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,9 +17,29 @@ export async function POST(req: NextRequest) {
 
     const filename = file.name.toLowerCase();
     if (filename.endsWith('.pdf')) {
-      const parser = new PDFParse({ data: buffer });
-      const result = await parser.getText();
-      text = result.text;
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      let apiKey = process.env.GEMINI_API_KEY!;
+      
+      if (user) {
+        const { data: dbUser } = await supabase
+          .from('users')
+          .select('gemini_api_key')
+          .eq('supabase_uid', user.id)
+          .single();
+        if (dbUser?.gemini_api_key) apiKey = dbUser.gemini_api_key;
+      }
+
+      const model = getModel(apiKey, 'FLASH_LITE');
+      const base64Data = buffer.toString('base64');
+      const prompt = "Extract all text from this document as raw, plain text. Do not add markdown or extra conversational text, just output the literal document text.";
+      
+      const result = await model.generateContent([
+        { text: prompt },
+        { inlineData: { data: base64Data, mimeType: 'application/pdf' } }
+      ]);
+      text = result.response.text();
     } else if (filename.endsWith('.docx')) {
       const result = await mammoth.extractRawText({ buffer });
       text = result.value;
