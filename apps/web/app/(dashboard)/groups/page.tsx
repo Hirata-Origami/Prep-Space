@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
+import { useGroups } from '@/lib/hooks/useGroups';
 
 const TABS = ['My Groups', 'Discover', 'Create'];
 
@@ -11,31 +12,13 @@ export default function GroupsPage() {
   const [tab, setTab] = useState('My Groups');
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
-  const [accessType, setAccessType] = useState<'private' | 'shared' | 'public'>('shared');
-  const [groups, setGroups] = useState<any[]>([]);
-  const [discoverGroups, setDiscoverGroups] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [accessType, setAccessType] = useState<'shared' | 'public'>('shared');
   const [submitting, setSubmitting] = useState(false);
 
-  const fetchGroups = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch(`/api/groups?type=${tab === 'Discover' ? 'discover' : 'my'}`);
-      if (res.ok) {
-        const data = await res.json();
-        if (tab === 'Discover') setDiscoverGroups(data.groups || []);
-        else setGroups(data.groups || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const { groups, isLoading: loadingMy, mutate: mutateMy } = useGroups('my');
+  const { groups: discoverGroups, isLoading: loadingDiscover, mutate: mutateDiscover } = useGroups('discover');
 
-  useEffect(() => {
-    if (tab !== 'Create') fetchGroups();
-  }, [tab]);
+  const isLoading = tab === 'My Groups' ? loadingMy : loadingDiscover;
 
   const handleCreate = async () => {
     if (!groupName) return toast.error('Group name is required');
@@ -48,6 +31,7 @@ export default function GroupsPage() {
       });
       if (res.ok) {
         toast.success('Group created!');
+        mutateMy();
         setTab('My Groups');
         setGroupName('');
         setDescription('');
@@ -71,7 +55,8 @@ export default function GroupsPage() {
       });
       if (res.ok) {
         toast.success('Joined group!');
-        fetchGroups();
+        mutateMy();
+        mutateDiscover();
       } else {
         const data = await res.json();
         throw new Error(data.error || 'Failed to join');
@@ -80,6 +65,8 @@ export default function GroupsPage() {
       toast.error(e.message);
     }
   };
+
+  const activeGroups = tab === 'My Groups' ? groups : discoverGroups;
 
   return (
     <div style={{ padding: '32px' }}>
@@ -101,7 +88,7 @@ export default function GroupsPage() {
       </div>
 
       {tab === 'My Groups' && (
-        loading ? (
+        isLoading && groups.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading groups…</div>
         ) : groups.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
@@ -114,7 +101,7 @@ export default function GroupsPage() {
             </div>
           </div>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
             {groups.map(g => (
               <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
@@ -130,14 +117,14 @@ export default function GroupsPage() {
       )}
 
       {tab === 'Discover' && (
-        loading ? (
+        isLoading && discoverGroups.length === 0 ? (
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Discovering groups…</div>
         ) : (
           <div>
             <div style={{ marginBottom: '20px' }}> 
               <input type="text" placeholder="Search public groups by name or role…" className="input" style={{ maxWidth: '460px' }} />
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {discoverGroups.map(g => (
                 <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>

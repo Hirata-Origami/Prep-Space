@@ -1,41 +1,20 @@
+'use client';
+
 import Link from 'next/link';
-import type { Metadata } from 'next';
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+import { useRoadmaps } from '@/lib/hooks/useRoadmaps';
+import { motion } from 'framer-motion';
 
-export const metadata: Metadata = { title: 'Roadmaps — PrepSpace' };
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+export default function RoadmapPage() {
+  const { roadmaps, isLoading } = useRoadmaps();
 
-export default async function RoadmapPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) {
-    redirect('/auth/login');
-  }
-
-  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
-  let roadmaps: any[] = [];
-  
-  if (dbUser) {
-    const { fetchWithRedis } = await import('@/lib/redis');
-    const { data } = await fetchWithRedis(
-      `roadmaps_${dbUser.id}`,
-      async () => {
-        const { data } = await supabase
-          .from('roadmaps')
-          .select('id, title, status, created_at, modules(count)')
-          .eq('user_id', dbUser.id)
-          .order('created_at', { ascending: false });
-        return { data };
-      },
-      300 // Cache for 5 minutes
+  if (isLoading && roadmaps.length === 0) {
+    return (
+      <div style={{ padding: '32px' }}>
+        <div style={{ width: '100%', height: '200px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ color: 'var(--text-muted)' }}>Loading roadmaps…</div>
+        </div>
+      </div>
     );
-    
-    if (data) {
-      roadmaps = data;
-    }
   }
 
   return (
@@ -49,7 +28,8 @@ export default async function RoadmapPage() {
       </div>
 
       {roadmaps.length === 0 ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>🗺️</div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>No roadmaps yet</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '420px', lineHeight: 1.7, marginBottom: '28px' }}>
@@ -61,12 +41,14 @@ export default async function RoadmapPage() {
           <p style={{ marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
             Choose from 15 predefined tracks or paste any job description
           </p>
-        </div>
+        </motion.div>
       ) : (
         <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
           {roadmaps.map((rm) => (
             <Link key={rm.id} href={`/roadmap/${rm.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-              <div style={{ padding: '24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', transition: 'transform 0.2s, borderColor 0.2s', cursor: 'pointer' }}>
+              <motion.div 
+                whileHover={{ y: -4 }}
+                style={{ padding: '24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', transition: 'border-color 0.2s', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ fontSize: '24px' }}>🗺️</div>
                   <div style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '100px', fontWeight: 600, background: rm.status === 'completed' ? 'rgba(77,255,160,0.1)' : 'rgba(123,97,255,0.1)', color: rm.status === 'completed' ? 'var(--accent-primary)' : '#7B61FF', textTransform: 'capitalize' }}>
@@ -78,7 +60,7 @@ export default async function RoadmapPage() {
                   <span>{rm.modules?.[0]?.count || 0} Modules</span>
                   <span>{new Date(rm.created_at).toLocaleDateString()}</span>
                 </div>
-              </div>
+              </motion.div>
             </Link>
           ))}
         </div>

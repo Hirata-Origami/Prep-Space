@@ -1,45 +1,21 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
-import { toast } from 'sonner';
+import { useCompanies, Company } from '@/lib/hooks/useCompanies';
 
-interface Company {
-  id: string;
-  name: string;
-  logo_emoji: string;
-  industry: string;
-  size: string;
-  interview_culture: string;
-  rounds: string[];
-  round_topics?: Record<string, string[]>;
-  known_patterns: string[];
-  community_pass_rate: number;
-  difficulty_rating: number;
-}
 
 export default function MockCompanyPage() {
   const router = useRouter();
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { companies, isLoading } = useCompanies();
   const [selected, setSelected] = useState<Company | null>(null);
   const [selectedRound, setSelectedRound] = useState<string>('');
   const [targetRole, setTargetRole] = useState('Software Engineer');
   const [searchQuery, setSearchQuery] = useState('');
 
-  useEffect(() => {
-    fetch('/api/mock-companies')
-      .then(r => r.json())
-      .then(data => {
-        if (data.companies) setCompanies(data.companies);
-      })
-      .catch(e => console.error('Failed to load companies:', e))
-      .finally(() => setIsLoading(false));
-  }, []);
-
-  const filteredCompanies = companies.filter(c =>
+  const filteredCompanies = companies.filter((c: Company) =>
     c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     c.industry?.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -101,7 +77,7 @@ export default function MockCompanyPage() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {filteredCompanies.map((company, i) => (
+          {filteredCompanies.map((company: Company, i: number) => (
             <motion.div
               key={company.id}
               initial={{ opacity: 0, y: 20 }}
@@ -137,7 +113,7 @@ export default function MockCompanyPage() {
               </div>
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
-                {(company.rounds || []).slice(0, 3).map(r => (
+                {(company.rounds || []).slice(0, 3).map((r: string) => (
                   <span key={r} style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(77,255,160,0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(77,255,160,0.15)' }}>
                     {r}
                   </span>

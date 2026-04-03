@@ -16,12 +16,9 @@ import {
   FileUser,
   Trophy,
   Settings,
-  Flame,
   Zap,
   ChevronDown,
-  LogOut,
-  User,
-  Bell,
+  LogOut
 } from 'lucide-react';
 
 const NAV_GROUPS = [
@@ -73,6 +70,11 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isLoading && user) {
@@ -245,32 +247,31 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             onMouseLeave={e => { if (!userMenuOpen) e.currentTarget.style.background = 'transparent'; }}
           >
             {/* Avatar circle */}
-            <div 
-              suppressHydrationWarning
+            <div
               style={{
-              width: '32px',
-              height: '32px',
-              borderRadius: '8px',
-              background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '13px',
-              fontWeight: 800,
-              color: '#fff',
-              flexShrink: 0,
-            }}>
-              {user?.full_name?.[0]?.toUpperCase() ?? 'U'}
+                width: '32px',
+                height: '32px',
+                borderRadius: '8px',
+                background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '13px',
+                fontWeight: 800,
+                color: '#fff',
+                flexShrink: 0,
+              }}>
+              {mounted ? (user?.full_name?.[0]?.toUpperCase() ?? 'U') : 'U'}
             </div>
             <div style={{ minWidth: 0, flex: 1, textAlign: 'left' }}>
-              <div suppressHydrationWarning style={{ fontSize: '13px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user?.full_name ?? 'Candidate'}
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {mounted ? (user?.full_name ?? 'Candidate') : 'Candidate'}
               </div>
               <div style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                {user?.level?.toUpperCase() ?? 'NOVICE'} {user?.streak_days ? `· ${user.streak_days}d` : ''}
+                {mounted ? `${user?.level?.toUpperCase() ?? 'NOVICE'} ${user?.streak_days ? `· ${user.streak_days}d` : ''}` : 'NOVICE'}
               </div>
             </div>
-            {!user?.has_gemini_key && (
+            {mounted && !user?.has_gemini_key && (
               <div style={{ width: '7px', height: '7px', borderRadius: '50%', background: 'var(--accent-amber)', boxShadow: '0 0 8px var(--accent-amber)', flexShrink: 0 }} />
             )}
             <ChevronDown size={14} style={{ color: 'var(--text-muted)', opacity: 0.5, flexShrink: 0, transform: userMenuOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }} />

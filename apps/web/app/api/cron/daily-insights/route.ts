@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     // Since this is a system cron, we use a default api key or the service owner key.
     // In this app, users provide their own keys, but for global crons, we need a service level key.
     // Assuming the user running this has their key in NEXT_PUBLIC_GEMINI_API_KEY or we just use one from an admin user.
-    
+
     if (!process.env.GEMINI_API_KEY) {
       return NextResponse.json({ error: 'No AI key available for system cron' }, { status: 500 });
     }
@@ -43,19 +43,28 @@ export async function GET(request: Request) {
     }`;
 
     const aiRes = await model.generateContent(prompt);
-    const resultText = aiRes.response.text().replace(/```json/g, '').replace(/```/g, '').trim();
+    const rawText = aiRes.response.text();
+    // Robust extraction of JSON from markdown blocks if they exist
+    const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+    const resultText = jsonMatch ? jsonMatch[0] : rawText.trim();
     const insights = JSON.parse(resultText);
 
     // 2. Fetch Active Users (who have logged in or done a session recently)
-    // For now we will fetch all users who have an email to keep it simple and fulfill the requirement.
-    // In production, we'd chunk this or use Resend audiences.
-    const { data: users, error: usersErr } = await supabase
-      .from('users')
-      .select('email, full_name')
-      .not('email', 'is', null)
-      .limit(50); // Keep batch size small for free tier
-      
-    if (usersErr) throw new Error(usersErr.message);
+    const { searchParams } = new URL(request.url);
+    const testEmail = searchParams.get('test_email');
+
+    let users;
+    if (testEmail) {
+      users = [{ email: testEmail, full_name: 'Test Admin' }];
+    } else {
+      const { data, error: usersErr } = await supabase
+        .from('users')
+        .select('email, full_name')
+        .not('email', 'is', null)
+        .limit(50);
+      if (usersErr) throw new Error(usersErr.message);
+      users = data;
+    }
 
     if (!users || users.length === 0) {
       return NextResponse.json({ message: 'No users found' });
@@ -63,48 +72,78 @@ export async function GET(request: Request) {
 
     // 3. Compile HTML
     const getHtml = (name: string) => `
-      <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background: #080C14; color: #F0F4FF; padding: 32px; border-radius: 16px; border: 1px solid rgba(77,255,160,0.2);">
-        <div style="text-align: center; margin-bottom: 32px;">
-          <h1 style="color: #4DFFA0; margin: 0; font-size: 24px;">PrepSpace Daily Insights</h1>
-          <p style="color: #6B7A99; font-size: 14px; margin-top: 8px;">Your edge in tech interviews</p>
-        </div>
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+      </head>
+      <body style="margin: 0; padding: 0; background-color: #05070A; font-family: 'Inter', -apple-system, sans-serif;">
+        <div style="max-width: 600px; margin: 0 auto; background: #080C14; border: 1px solid rgba(77,255,160,0.15); border-radius: 16px; overflow: hidden; margin-top: 40px; margin-bottom: 40px;">
+          <!-- Header -->
+          <div style="padding: 40px 32px; text-align: center; background: linear-gradient(135deg, rgba(77,255,160,0.1) 0%, rgba(123,97,255,0.1) 100%);">
+            <div style="font-size: 12px; font-weight: 800; color: #4DFFA0; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px;">Exclusive Daily Insight</div>
+            <h1 style="color: #FFFFFF; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em;">PrepSpace Intelligence</h1>
+          </div>
 
-        <p style="font-size: 16px; color: #B8C4E0;">Hello ${name},</p>
-        
-        <div style="background: rgba(123,97,255,0.1); border-left: 4px solid #7B61FF; padding: 20px; border-radius: 4px; margin: 24px 0;">
-          <h3 style="color: #7B61FF; margin-top: 0;">💡 ${insights.tip_title}</h3>
-          <p style="margin-bottom: 0; line-height: 1.6;">${insights.tip_content}</p>
-        </div>
+          <div style="padding: 32px;">
+            <p style="font-size: 16px; color: #B8C4E0; margin-bottom: 32px;">Hello ${name},</p>
+            
+            <!-- Tip Section -->
+            <div style="background: rgba(123,97,255,0.08); border-left: 4px solid #7B61FF; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
+              <h3 style="color: #7B61FF; margin: 0 0 12px 0; font-size: 18px; display: flex; align-items: center; gap: 8px;">
+                💡 ${insights.tip_title}
+              </h3>
+              <p style="margin: 0; line-height: 1.7; color: #F0F4FF; font-size: 15px;">${insights.tip_content}</p>
+            </div>
 
-        <div style="background: rgba(77,255,160,0.05); border: 1px solid rgba(77,255,160,0.2); padding: 20px; border-radius: 12px; margin: 24px 0;">
-          <h3 style="color: #4DFFA0; margin-top: 0; display: flex; align-items: center; gap: 8px;">
-            🏢 Spotlight: ${insights.company_name}
-          </h3>
-          <p style="margin-bottom: 0; line-height: 1.6; color: #B8C4E0;">${insights.company_insight}</p>
-        </div>
+            <!-- Company Section -->
+            <div style="background: rgba(77,255,160,0.05); border: 1px solid rgba(77,255,160,0.15); padding: 24px; border-radius: 12px; margin-bottom: 32px;">
+              <h3 style="color: #4DFFA0; margin: 0 0 12px 0; font-size: 18px;">🏢 Spotlight: ${insights.company_name}</h3>
+              <p style="margin: 0; line-height: 1.7; color: #D1D9E6; font-size: 14px;">${insights.company_insight}</p>
+            </div>
 
-        <div style="text-align: center; margin: 32px 0; font-style: italic; color: #FFB547;">
-          "${insights.quote}"
-        </div>
+            <!-- Quote -->
+            <div style="text-align: center; margin: 40px 0; padding: 24px; border-top: 1px solid rgba(255,181,71,0.1);">
+              <div style="font-size: 32px; color: rgba(255,181,71,0.3); margin-bottom: 8px;">&ldquo;</div>
+              <div style="font-style: italic; color: #FFB547; font-size: 17px; line-height: 1.6;">${insights.quote}</div>
+            </div>
 
-        <div style="text-align: center; margin-top: 40px;">
-          <a href="${process.env.NEXT_PUBLIC_APP_URL || 'https://prep-space.vercel.app'}/dashboard" style="background: #4DFFA0; color: #080C14; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">
-            Start a Practice Session
-          </a>
+            <!-- CTA -->
+            <div style="text-align: center; margin-top: 48px;">
+              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://prep-space.vercel.app'}/dashboard" 
+                 style="background: #4DFFA0; color: #080C14; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 800; font-size: 15px; display: inline-block; transition: transform 0.2s;">
+                Open My Dashboard
+              </a>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div style="padding: 32px; background: rgba(0,0,0,0.2); text-align: center; border-top: 1px solid rgba(255,255,255,0.05);">
+            <p style="color: #6B7A99; font-size: 12px; margin: 0;">&copy; 2026 PrepSpace Intelligence. All rights reserved.</p>
+            <p style="color: #6B7A99; font-size: 11px; margin-top: 8px;">You are receiving this because you are an active candidate on our platform.</p>
+          </div>
         </div>
-      </div>
+      </body>
+      </html>
     `;
 
     // 4. Batch Send via Resend
     // Resend allows batch sending max 100 at a time
     const emailBatch = users.map(u => ({
-      from: 'PrepSpace Insights <noreply@prepspace.io>',
-      to: u.email,
+      from: 'PrepSpace <onboarding@resend.dev>',
+      to: [u.email],
       subject: `PrepSpace: ${insights.tip_title}`,
       html: getHtml(u.full_name || 'Candidate')
     }));
 
-    await resend.batch.send(emailBatch);
+    const { data, error: sendError } = await resend.batch.send(emailBatch);
+    
+    if (sendError) {
+      console.error('[Resend Batch Error]:', sendError);
+      return NextResponse.json({ error: sendError.message }, { status: 500 });
+    }
+
+    console.log('[Resend Batch Success]:', data);
 
     return NextResponse.json({ success: true, sent_count: emailBatch.length });
   } catch (error: any) {

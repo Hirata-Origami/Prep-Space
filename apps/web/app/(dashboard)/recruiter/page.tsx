@@ -3,30 +3,8 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { useRef, useCallback } from 'react';
-
-interface Candidate {
-  id: string;
-  name?: string;
-  email: string;
-  stage: string;
-  composite_score?: number;
-  round_scores?: Record<string, number>;
-  invited_at?: string;
-  completed_at?: string;
-  users?: { full_name: string; email: string; avatar_url?: string };
-}
-
-interface Pipeline {
-  id: string;
-  role_name: string;
-  rounds: string[];
-  pass_threshold: number;
-  deadline?: string;
-  status: string;
-  created_at: string;
-  pipeline_candidates: Candidate[];
-}
+import { useRef } from 'react';
+import { useRecruiter, Pipeline, Candidate } from '@/lib/hooks/useRecruiter';
 
 const STAGE_COLORS: Record<string, string> = {
   invited: 'rgba(255,181,71,0.12)',
@@ -44,8 +22,7 @@ const STAGE_TEXT: Record<string, string> = {
 };
 
 export default function RecruiterDashboard() {
-  const [pipelines, setPipelines] = useState<Pipeline[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { pipelines, isLoading, mutate: loadPipelines } = useRecruiter();
   const [selectedPipeline, setSelectedPipeline] = useState<Pipeline | null>(null);
   const [showNewPipeline, setShowNewPipeline] = useState(false);
   const [newRole, setNewRole] = useState('');
@@ -56,22 +33,11 @@ export default function RecruiterDashboard() {
   const [inviting, setInviting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadPipelines = useCallback(() => {
-    fetch('/api/recruiter/pipelines')
-      .then(r => r.json())
-      .then(data => {
-        if (data.pipelines) {
-          setPipelines(data.pipelines);
-          if (data.pipelines.length > 0) setSelectedPipeline(prev => data.pipelines.find((p: Pipeline) => p.id === prev?.id) || data.pipelines[0]);
-        }
-      })
-      .catch(e => console.error(e))
-      .finally(() => setIsLoading(false));
-  }, []);
-
   useEffect(() => {
-    loadPipelines();
-  }, [loadPipelines]);
+    if (pipelines.length > 0 && !selectedPipeline) {
+      setSelectedPipeline(pipelines[0]);
+    }
+  }, [pipelines, selectedPipeline]);
 
   const handleCreatePipeline = async () => {
     setCreating(true);
@@ -85,9 +51,8 @@ export default function RecruiterDashboard() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to create');
 
-      const newPipeline = { ...data.pipeline, pipeline_candidates: [] };
-      setPipelines(prev => [newPipeline, ...prev]);
-      setSelectedPipeline(newPipeline);
+      loadPipelines();
+      setSelectedPipeline({ ...data.pipeline, pipeline_candidates: [] });
       setShowNewPipeline(false);
       setNewRole('');
       toast.success('Pipeline created!');
@@ -154,11 +119,11 @@ export default function RecruiterDashboard() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
-  const totalCandidates = pipelines.reduce((s, p) => s + (p.pipeline_candidates?.length || 0), 0);
-  const shortlisted = pipelines.flatMap(p => p.pipeline_candidates || []).filter(c => c.stage === 'shortlisted').length;
+  const totalCandidates = pipelines.reduce((s: number, p: Pipeline) => s + (p.pipeline_candidates?.length || 0), 0);
+  const shortlisted = pipelines.flatMap((p: Pipeline) => p.pipeline_candidates || []).filter((c: Candidate) => c.stage === 'shortlisted').length;
   const avgScore = (() => {
-    const scored = pipelines.flatMap(p => p.pipeline_candidates || []).filter(c => c.composite_score != null);
-    return scored.length ? Math.round(scored.reduce((s, c) => s + (c.composite_score || 0), 0) / scored.length) : null;
+    const scored = pipelines.flatMap((p: Pipeline) => p.pipeline_candidates || []).filter((c: Candidate) => c.composite_score != null);
+    return scored.length ? Math.round(scored.reduce((s: number, c: Candidate) => s + (c.composite_score || 0), 0) / scored.length) : null;
   })();
 
   const currentCandidates = (selectedPipeline?.pipeline_candidates || []).slice().sort((a, b) => (b.composite_score || 0) - (a.composite_score || 0));
@@ -178,7 +143,7 @@ export default function RecruiterDashboard() {
       {/* Stats */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px', marginBottom: '32px' }}>
         {[
-          { label: 'Active Pipelines', value: pipelines.filter(p => p.status === 'active').length.toString(), trend: `${pipelines.length} total` },
+          { label: 'Active Pipelines', value: pipelines.filter((p: Pipeline) => p.status === 'active').length.toString(), trend: `${pipelines.length} total` },
           { label: 'Total Candidates', value: totalCandidates.toString(), trend: 'Across all pipelines' },
           { label: 'Avg. AI Score', value: avgScore != null ? `${avgScore}%` : '—', trend: 'Composite score' },
           { label: 'Shortlisted', value: shortlisted.toString(), trend: shortlisted > 0 ? '✓ Ready to review' : 'None yet' },
@@ -235,7 +200,7 @@ export default function RecruiterDashboard() {
           {/* Sidebar: Pipeline list */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px', letterSpacing: '0.08em' }}>Pipelines</div>
-            {pipelines.map(p => (
+            {pipelines.map((p: Pipeline) => (
               <button
                 key={p.id}
                 onClick={() => setSelectedPipeline(p)}

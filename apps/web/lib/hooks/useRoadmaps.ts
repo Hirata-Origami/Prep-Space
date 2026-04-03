@@ -7,10 +7,11 @@ const fetcher = (url: string) => fetch(url).then(r => r.json());
 export interface Roadmap {
   id: string;
   title: string;
-  role: string;
+  role?: string;
+  progress_pct?: number;
   status: 'active' | 'completed' | 'paused';
-  progress_pct: number;
   created_at: string;
+  modules?: Array<{ count: number }>;
 }
 
 export function useRoadmaps() {

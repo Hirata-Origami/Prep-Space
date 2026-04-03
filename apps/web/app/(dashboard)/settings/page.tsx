@@ -19,7 +19,6 @@ export default function SettingsPage() {
 
   // Gemini key state
   const [geminiKey, setGeminiKey] = useState('');
-  const [showKey, setShowKey] = useState(false);
 
   useEffect(() => {
     if (user) {

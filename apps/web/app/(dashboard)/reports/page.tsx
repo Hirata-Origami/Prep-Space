@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import type { Metadata } from 'next';
 
 export default function ReportsPage() {
   const [sessions, setSessions] = useState<any[]>([]);
@@ -61,20 +60,20 @@ export default function ReportsPage() {
       {/* Filters */}
       <div style={{ display: 'flex', gap: '8px', marginBottom: '24px' }}>
         {['All', 'Conceptual', 'Behavioral', 'System Design', 'Coding walkthrough'].map((f) => (
-          <button 
-            key={f} 
+          <button
+            key={f}
             onClick={() => setFilter(f)}
-            style={{ 
-              padding: '7px 16px', 
-              borderRadius: '100px', 
-              fontSize: '13px', 
-              fontWeight: 600, 
-              border: '1px solid', 
-              cursor: 'pointer', 
-              fontFamily: 'var(--font-body)', 
-              background: filter === f ? 'rgba(77,255,160,0.1)' : 'transparent', 
-              borderColor: filter === f ? 'var(--accent-primary)' : 'var(--border)', 
-              color: filter === f ? 'var(--accent-primary)' : 'var(--text-muted)' 
+            style={{
+              padding: '7px 16px',
+              borderRadius: '100px',
+              fontSize: '13px',
+              fontWeight: 600,
+              border: '1px solid',
+              cursor: 'pointer',
+              fontFamily: 'var(--font-body)',
+              background: filter === f ? 'rgba(77,255,160,0.1)' : 'transparent',
+              borderColor: filter === f ? 'var(--accent-primary)' : 'var(--border)',
+              color: filter === f ? 'var(--accent-primary)' : 'var(--text-muted)'
             }}>
             {f}
           </button>
@@ -91,7 +90,7 @@ export default function ReportsPage() {
           <div style={{ fontSize: '64px', marginBottom: '20px' }}>📊</div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>No reports found</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '400px', lineHeight: 1.7, marginBottom: '24px' }}>
-            {filter === 'All' 
+            {filter === 'All'
               ? "Complete your first AI interview session and your detailed report will appear here."
               : `You haven't completed any ${filter} interviews yet.`}
           </p>
@@ -104,15 +103,15 @@ export default function ReportsPage() {
           {filteredSessions.map((session) => {
             const report = session.interview_reports?.[0];
             return (
-              <Link 
-                key={session.id} 
+              <Link
+                key={session.id}
                 href={report ? `/reports/${report.id}` : '#'}
                 className="surface"
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  justifyContent: 'space-between', 
-                  padding: '16px 20px', 
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  padding: '16px 20px',
                   textDecoration: 'none',
                   transition: 'transform 0.15s',
                   cursor: report ? 'pointer' : 'default',
@@ -122,21 +121,21 @@ export default function ReportsPage() {
                 onMouseLeave={e => report && (e.currentTarget.style.transform = 'translateY(0)')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ 
-                    width: '48px', 
-                    height: '48px', 
-                    borderRadius: '12px', 
-                    background: 'rgba(77,255,160,0.1)', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    fontSize: '20px' 
+                  <div style={{
+                    width: '48px',
+                    height: '48px',
+                    borderRadius: '12px',
+                    background: 'rgba(77,255,160,0.1)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '20px'
                   }}>
                     {session.interview_type === 'behavioral' ? '🌟' : session.interview_type === 'system_design' ? '🏗️' : session.interview_type === 'coding_walkthrough' ? '💻' : '🧠'}
                   </div>
                   <div>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-                      {session.plan?.role || 'Technical Interview'} 
+                      {session.plan?.role || 'Technical Interview'}
                       <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 500, marginLeft: '8px', textTransform: 'capitalize' }}>
                         • {session.interview_type?.replace('_', ' ')}
                       </span>
@@ -144,7 +143,7 @@ export default function ReportsPage() {
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{formatDate(session.created_at)}</div>
                   </div>
                 </div>
-                
+
                 <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
                   {session.state === 'COMPLETE' && report ? (
                     <div style={{ textAlign: 'right' }}>

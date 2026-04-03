@@ -1,19 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useFaculty, Cohort } from '@/lib/hooks/useFaculty';
 
 export default function FacultyPortal() {
-  const [cohorts, setCohorts] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    fetch('/api/faculty/cohorts')
-      .then(res => res.json())
-      .then(data => setCohorts(data.cohorts || []))
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, []);
+  const { cohorts, isLoading: loading } = useFaculty();
 
   return (
     <div style={{ padding: '32px' }}>
@@ -35,7 +25,7 @@ export default function FacultyPortal() {
               <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)', color: 'var(--text-muted)' }}>
                 No active cohorts found. Create student groups in the Network tab to track them here.
               </div>
-            ) : cohorts.map((c, i) => (
+            ) : cohorts.map((c: Cohort, i: number) => (
               <div key={i} style={{ padding: '20px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
                   <div>
@@ -54,7 +44,7 @@ export default function FacultyPortal() {
                   </div>
                   <div style={{ padding: '10px', background: 'rgba(255,77,106,0.05)', borderRadius: '8px', border: '1px solid rgba(255,77,106,0.1)' }}>
                     <div style={{ fontSize: '10px', color: '#FF4D6A', fontWeight: 800 }}>AT RISK</div>
-                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{c.students - c.ready - 20/*simulated*/} Students</div>
+                    <div style={{ fontSize: '16px', fontWeight: 700 }}>{c.students - c.ready} Students</div>
                   </div>
                 </div>
                 <button className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>View Full Cohort Data</button>

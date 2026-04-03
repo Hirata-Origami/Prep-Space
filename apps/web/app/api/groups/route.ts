@@ -24,6 +24,8 @@ export async function GET(req: Request) {
 
   const { fetchWithRedis } = await import('@/lib/redis');
 
+  const ttl = type === 'discover' ? 1800 : 300; // 30m for discover, 5m for my groups
+  
   let groups;
   try {
     groups = await fetchWithRedis(
@@ -53,7 +55,7 @@ export async function GET(req: Request) {
           return discoverGroups;
         }
       },
-      300
+      ttl
     );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -107,6 +109,15 @@ export async function POST(req: Request) {
     });
 
   if (memberError) return NextResponse.json({ error: memberError.message }, { status: 500 });
+
+  // Invalidate caches
+  try {
+    const { redis } = await import('@/lib/redis');
+    await redis.del(`api_groups_${dbUser.id}_my`);
+    await redis.del(`api_groups_${dbUser.id}_discover`);
+  } catch (e) {
+    console.warn("Redis invalidation failed", e);
+  }
 
   return NextResponse.json({ group }, { status: 201 });
 }

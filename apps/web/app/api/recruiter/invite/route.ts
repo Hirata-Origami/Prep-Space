@@ -82,16 +82,22 @@ ${text}`;
       // If Resend is configured, send emails
       if (resend) {
         for (const candidate of (inserted || [])) {
-          await resend.emails.send({
-            from: 'PrepSpace <invites@prepspace.io>', // Update with your verified domain
-            to: candidate.email,
+          const { data, error: sendError } = await resend.emails.send({
+            from: 'PrepSpace <onboarding@resend.dev>',
+            to: [candidate.email],
             subject: `Interview Invitation: ${pipeline_role || 'PrepSpace Assessment'}`,
             html: `
               <h2>You have been invited to an interview</h2>
               <p>Please click the link below to start your assessment for ${pipeline_role || 'the role'}:</p>
               <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}" style="display:inline-block;padding:12px 24px;background:#4DFFA0;color:#080C14;text-decoration:none;font-weight:bold;border-radius:8px;">Start Assessment</a>
             `
-          }).catch((e: any) => console.error('Resend error for', candidate.email, e));
+          });
+          
+          if (sendError) {
+            console.error('Resend error for', candidate.email, sendError);
+          } else {
+            console.log('Resend success for', candidate.email, data);
+          }
         }
       } else {
         console.log(`[Mock Send] Resend API key missing. Would have sent invites to:`, emails);

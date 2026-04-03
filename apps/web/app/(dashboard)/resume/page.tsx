@@ -3,47 +3,17 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-
-const DEFAULT_LATEX = `\\documentclass[letterpaper,11pt]{article}
-\\usepackage{latexsym}
-\\usepackage[empty]{fullpage}
-\\usepackage{titlesec}
-\\usepackage[colorlinks=true, linkcolor=blue, urlcolor=blue]{hyperref}
-\\usepackage{tabularx}
-\\begin{document}
-\\begin{center}
-    \\textbf{\\Huge \\scshape Jane Doe} \\\\ \\vspace{1pt}
-    123-456-7890 $|$ \\href{mailto:email@example.com}{email@example.com} $|$ 
-    \\href{https://linkedin.com/in/jane}{linkedin.com/in/jane} $|$
-    \\href{https://github.com/jane}{github.com/jane}
-\\end{center}
-\\section{Experience}
-  \\textbf{Software Engineer} $|$ Tech Corp \\hfill Jan 2022 -- Present
-  \\begin{itemize}
-    \\item Built scalable microservices serving 10M+ users with 99.99\\% uptime
-    \\item Reduced API latency by 40\\% through query optimization and caching
-  \\end{itemize}
-\\section{Education}
-  \\textbf{B.S. Computer Science} $|$ University of Technology \\hfill May 2022
-\\section{Skills}
-  \\textbf{Languages:} Python, TypeScript, Go, Rust \\\\
-  \\textbf{Technologies:} React, Node.js, PostgreSQL, Redis, Docker, Kubernetes
-\\end{document}`;
+import { useResume, Experience, Education } from '@/lib/hooks/useResume';
 
 export default function ResumeBuilderPage() {
+  const { resumeData, isLoading: fetchLoading, updateResume } = useResume();
   const [tab, setTab] = useState<'profile' | 'experience' | 'skills' | 'latex'>('profile');
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [latexTab, setLatexTab] = useState<'code' | 'preview'>('code');
-  const [latexCode, setLatexCode] = useState<string>(DEFAULT_LATEX);
-  const [resumeData, setResumeData] = useState<{
-    summary?: string;
-    skills?: string[];
-    experience_bullets?: string[];
-  } | null>(null);
 
-  // Form state
+  // Local state for form inputs, synced with SWR cache
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -53,46 +23,26 @@ export default function ResumeBuilderPage() {
     targetRole: '',
     targetCompany: '',
   });
-  const [experience, setExperience] = useState<Array<{
-    company: string;
-    role: string;
-    start: string;
-    end: string;
-    bullets: string;
-  }>>([{ company: '', role: '', start: '', end: 'Present', bullets: '' }]);
-  const [education, setEducation] = useState({ degree: '', institution: '', year: '' });
+  const [experience, setExperience] = useState<Experience[]>([]);
+  const [education, setEducation] = useState<Education>({ degree: '', institution: '', year: '' });
   const [skills, setSkills] = useState('');
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [latexCode, setLatexCode] = useState('');
 
-  // Load saved profile from DB on mount
+  // Sync SWR data to local state on initial load
   useEffect(() => {
-    fetch('/api/resume/profile')
-      .then(r => r.json())
-      .then(data => {
-        if (data.profile_sections) {
-          const s = data.profile_sections;
-          if (s.profile) setProfile(prev => ({ ...prev, ...s.profile }));
-          if (s.experience) setExperience(s.experience);
-          if (s.education) setEducation(s.education);
-          if (s.skills) setSkills(s.skills);
-          if (s.latex_code) setLatexCode(s.latex_code);
-        }
-      })
-      .catch(() => {/* silently fail, use defaults */})
-      .finally(() => setDataLoaded(true));
-  }, []);
+    if (resumeData) {
+      if (resumeData.profile) setProfile(resumeData.profile);
+      if (resumeData.experience) setExperience(resumeData.experience);
+      if (resumeData.education) setEducation(resumeData.education);
+      if (resumeData.skills) setSkills(resumeData.skills);
+      if (resumeData.latex_code) setLatexCode(resumeData.latex_code);
+    }
+  }, [resumeData]);
 
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/resume/profile', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          profile_sections: { profile, experience, education, skills, latex_code: latexCode },
-        }),
-      });
-      if (!res.ok) throw new Error('Save failed');
+      await updateResume({ profile, experience, education, skills, latex_code: latexCode });
       toast.success('Resume data saved!');
     } catch (e: any) {
       toast.error(e.message);
@@ -116,10 +66,14 @@ export default function ResumeBuilderPage() {
           skills: skills.split(',').map(s => s.trim()).filter(Boolean),
         }),
       });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Generation failed');
-      setResumeData(data);
-      if (data.latex_code) setLatexCode(data.latex_code);
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Generation failed');
+      
+      if (result.latex_code) {
+        setLatexCode(result.latex_code);
+        // Persist to cache immediately
+        await updateResume({ latex_code: result.latex_code });
+      }
       toast.success('Resume generated!');
       setTab('latex');
     } catch (e: any) {
@@ -300,9 +254,9 @@ export default function ResumeBuilderPage() {
           <div className="card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Education</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>Degree</label><input style={inputStyle} value={education.degree} onChange={e => setEducation(ed => ({ ...ed, degree: e.target.value }))} placeholder="B.S. Computer Science" /></div>
-              <div><label style={labelStyle}>Institution</label><input style={inputStyle} value={education.institution} onChange={e => setEducation(ed => ({ ...ed, institution: e.target.value }))} placeholder="MIT" /></div>
-              <div><label style={labelStyle}>Year</label><input style={inputStyle} value={education.year} onChange={e => setEducation(ed => ({ ...ed, year: e.target.value }))} placeholder="2022" /></div>
+              <div><label style={labelStyle}>Degree</label><input style={inputStyle} value={education.degree} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, degree: e.target.value }))} placeholder="B.S. Computer Science" /></div>
+              <div><label style={labelStyle}>Institution</label><input style={inputStyle} value={education.institution} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, institution: e.target.value }))} placeholder="MIT" /></div>
+              <div><label style={labelStyle}>Year</label><input style={inputStyle} value={education.year} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, year: e.target.value }))} placeholder="2022" /></div>
             </div>
           </div>
         </motion.div>
@@ -320,7 +274,8 @@ export default function ResumeBuilderPage() {
             <div style={{ marginTop: '20px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>AI-Filtered Skills for {profile.targetRole || 'Target Role'}</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {resumeData.skills.map(s => (
+                {/* resumeData.skills is a string in our hook, let's assume it might be array from backend or just use local skills */}
+                {skills.split(',').map((s: string) => (
                   <span key={s} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'rgba(77,255,160,0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(77,255,160,0.2)', fontWeight: 600 }}>{s}</span>
                 ))}
               </div>
@@ -397,7 +352,7 @@ export default function ResumeBuilderPage() {
                       <span style={{ fontWeight: 'normal', fontSize: '12px' }}>{exp.start} – {exp.end}</span>
                     </div>
                     <ul style={{ marginTop: '4px', paddingLeft: '20px' }}>
-                      {exp.bullets.split('\n').filter(Boolean).map((b, j) => (
+                      {exp.bullets.split('\n').filter(Boolean).map((b: string, j: number) => (
                         <li key={j} style={{ color: '#333', fontSize: '12px', marginBottom: '3px' }}>{b}</li>
                       ))}
                     </ul>

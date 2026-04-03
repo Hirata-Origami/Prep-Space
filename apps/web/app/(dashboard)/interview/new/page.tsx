@@ -6,7 +6,6 @@ import { toast } from 'sonner';
 import Link from 'next/link';
 import { GoogleGenAI, Modality, StartSensitivity, EndSensitivity } from '@google/genai';
 import { useSearchParams } from 'next/navigation';
-import { createClient } from '@/lib/supabase/client';
 import { useUser } from '@/lib/hooks/useUser';
 
 type InterviewType = 'conceptual' | 'behavioral' | 'system_design' | 'coding_walkthrough';
@@ -123,7 +122,7 @@ function LiveInterviewPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ session_id: sessionId, transcript_length: transcript.length }),
           keepalive: true
-        }).catch(() => {});
+        }).catch(() => { });
       }, 15000);
       return () => clearInterval(interval);
     }

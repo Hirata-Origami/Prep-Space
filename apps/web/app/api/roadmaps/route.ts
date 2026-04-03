@@ -22,13 +22,32 @@ export async function GET() {
       async () => {
         const { data, error } = await supabase
           .from('roadmaps')
-          .select(`id, title, status, created_at, modules(count)`)
+          .select(`
+            id, 
+            title, 
+            status, 
+            created_at, 
+            target_role,
+            modules(status)
+          `)
           .eq('user_id', dbUser.id)
           .order('created_at', { ascending: false });
+        
         if (error) throw new Error(error.message);
-        return data;
+
+        // Map and calculate progress
+        return data.map((r: any) => {
+          const total = r.modules?.length || 0;
+          const completed = r.modules?.filter((m: any) => m.status === 'completed').length || 0;
+          return {
+            ...r,
+            role: r.target_role || 'General Track',
+            progress_pct: total > 0 ? Math.round((completed / total) * 100) : 0,
+            modules: { count: total } // Keep modules(count) for compatibility if needed elsewhere
+          };
+        });
       },
-      300
+      600 // Cache for 10 minutes
     );
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 });
@@ -87,6 +106,7 @@ export async function POST(request: Request) {
   try {
     const { redis } = await import('@/lib/redis');
     if (redis) {
+      await redis.set(`api_roadmaps_${dbUser.id}`, null); // Force deep invalidate
       await redis.del(`api_roadmaps_${dbUser.id}`);
       await redis.del(`roadmaps_${dbUser.id}`);
       console.log(`[POST /api/roadmaps] Invalidated cache for user ${dbUser.id}`);
