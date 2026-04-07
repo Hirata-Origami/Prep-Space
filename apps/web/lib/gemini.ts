@@ -14,7 +14,7 @@ export function getGeminiClient(userApiKey?: string | null): GoogleGenerativeAI 
 
 export const GEMINI_MODELS = {
   FLASH_LITE: 'gemini-3.1-flash-lite-preview',
-  FLASH: 'gemini-3.1-flash',
+  FLASH: 'gemini-3.1-flash-lite-preview',
 } as const;
 
 
