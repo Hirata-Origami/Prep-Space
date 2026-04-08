@@ -31,7 +31,7 @@ export async function GET() {
     .eq('created_by', dbUser.id)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   if (!groups || groups.length === 0) return NextResponse.json({ cohorts: [] });
 
   const cohortIds = groups.map(g => g.id);

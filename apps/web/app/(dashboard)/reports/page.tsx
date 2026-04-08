@@ -87,7 +87,7 @@ export default function ReportsPage() {
         </div>
       ) : filteredSessions.length === 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>📊</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}></div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>No reports found</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '400px', lineHeight: 1.7, marginBottom: '24px' }}>
             {filter === 'All'
@@ -131,7 +131,7 @@ export default function ReportsPage() {
                     justifyContent: 'center',
                     fontSize: '20px'
                   }}>
-                    {session.interview_type === 'behavioral' ? '🌟' : session.interview_type === 'system_design' ? '🏗️' : session.interview_type === 'coding_walkthrough' ? '💻' : '🧠'}
+                    {session.interview_type === 'behavioral' ? '' : session.interview_type === 'system_design' ? '️' : session.interview_type === 'coding_walkthrough' ? '' : ''}
                   </div>
                   <div>
                     <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
@@ -166,12 +166,12 @@ export default function ReportsPage() {
         <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>What each report includes</h2>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '14px' }}>
           {[
-            { icon: '📡', title: 'Competency Radar', desc: '8-dimension chart with performance breakdown across key signals.' },
-            { icon: '📝', title: 'Answer Analysis', desc: 'Question-by-question breakdown of your answers vs. ideal responses.' },
-            { icon: '💡', title: 'Actionable Insights', desc: 'Specific strengths and improvement areas distilled by Gemini.' },
-            { icon: '📈', title: 'Score Tracking', desc: 'Monitor your progress across multiple sessions to see improvement.' },
-            { icon: '🗣', title: 'Communication Skills', desc: 'Evaluation of clarity, confidence, and conciseness.' },
-            { icon: '🎯', title: 'Role Specifics', desc: 'Tailored feedback based on your target role and interview type.' },
+            { icon: '', title: 'Competency Radar', desc: '8-dimension chart with performance breakdown across key signals.' },
+            { icon: '', title: 'Answer Analysis', desc: 'Question-by-question breakdown of your answers vs. ideal responses.' },
+            { icon: '', title: 'Actionable Insights', desc: 'Specific strengths and improvement areas distilled by Gemini.' },
+            { icon: '', title: 'Score Tracking', desc: 'Monitor your progress across multiple sessions to see improvement.' },
+            { icon: '', title: 'Communication Skills', desc: 'Evaluation of clarity, confidence, and conciseness.' },
+            { icon: '', title: 'Role Specifics', desc: 'Tailored feedback based on your target role and interview type.' },
           ].map(({ icon, title, desc }) => (
             <div key={title} className="surface" style={{ padding: '18px' }}>
               <div style={{ fontSize: '24px', marginBottom: '10px' }}>{icon}</div>

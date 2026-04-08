@@ -1,12 +1,11 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel, withRetry } from '@/lib/gemini';
-import { Resend } from 'resend';
+import { sendEmail } from '@/lib/email';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
@@ -25,7 +24,7 @@ export async function POST(request: Request) {
   let body;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
   }
 
@@ -51,9 +50,9 @@ ${text}`;
       if (!Array.isArray(parsedEmails)) throw new Error('Not an array');
 
       return NextResponse.json({ emails: parsedEmails });
-    } catch (e: any) {
+    } catch (e: unknown) {
       console.error('Email parse error:', e);
-      return NextResponse.json({ error: 'Failed to parse emails from text: ' + e.message }, { status: 500 });
+      return NextResponse.json({ error: 'Failed to parse emails from text: ' + (e instanceof Error ? e.message : "Unknown error") }, { status: 500 });
     }
   } else if (action === 'send') {
     // 2. Send Invites
@@ -76,36 +75,49 @@ ${text}`;
 
       if (error) {
         // May fail if candidate already exists in pipeline (uniq constraint)
-        return NextResponse.json({ error: error.message }, { status: 400 });
+        return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 400 });
       }
 
-      // If Resend is configured, send emails
-      if (resend) {
-        for (const candidate of (inserted || [])) {
-          const { data, error: sendError } = await resend.emails.send({
-            from: 'PrepSpace <onboarding@resend.dev>',
-            to: [candidate.email],
+      // Send emails using SMTP
+      for (const candidate of (inserted || [])) {
+        try {
+          await sendEmail({
+            to: candidate.email,
             subject: `Interview Invitation: ${pipeline_role || 'PrepSpace Assessment'}`,
             html: `
-              <h2>You have been invited to an interview</h2>
-              <p>Please click the link below to start your assessment for ${pipeline_role || 'the role'}:</p>
-              <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}" style="display:inline-block;padding:12px 24px;background:#4DFFA0;color:#080C14;text-decoration:none;font-weight:bold;border-radius:8px;">Start Assessment</a>
+              <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #1A1C1E; line-height: 1.6; border: 1px solid #E1E3E5; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
+                <div style="background-color: #f7f9fc; padding: 32px; text-align: center; border-bottom: 1px solid #E1E3E5;">
+                  <h1 style="margin: 0; font-size: 24px; color: #080C14; font-weight: 700;">You're Invited! 🎉</h1>
+                </div>
+                <div style="padding: 40px 32px;">
+                  <p style="font-size: 16px; margin-top: 0;">Hi there,</p>
+                  <p style="font-size: 16px;">We're thrilled to invite you to the next step of the interview process for the <strong>${pipeline_role || 'open position'}</strong>.</p>
+                  <p style="font-size: 16px; color: #4A5568;">Your background really stood out to us, and we'd love for you to complete a brief technical assessment. This is your chance to showcase your skills in a comfortable environment.</p>
+                  <div style="text-align: center; margin: 40px 0;">
+                    <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}" 
+                       style="display: inline-block; padding: 14px 32px; background-color: #080C14; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
+                      Start Your Assessment
+                    </a>
+                  </div>
+                  <p style="font-size: 16px; color: #4A5568;">We wish you the best of luck!</p>
+                  <p style="font-size: 15px; margin-bottom: 0; font-weight: 600; color: #080C14;">Warmly,</p>
+                  <p style="font-size: 14px; margin-top: 4px; color: #6B7A99;">The Hiring Team</p>
+                </div>
+                <div style="background-color: #f7f9fc; padding: 20px 32px; border-top: 1px solid #E1E3E5;">
+                  <p style="font-size: 13px; color: #888; margin: 0; text-align: center;">If the button doesn't work, copy and paste this link into your browser:<br/><span style="color: #4A5568;">${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}</span></p>
+                </div>
+              </div>
             `
           });
-          
-          if (sendError) {
-            console.error('Resend error for', candidate.email, sendError);
-          } else {
-            console.log('Resend success for', candidate.email, data);
-          }
+          console.log('Invite sent to', candidate.email);
+        } catch (sendError) {
+          console.error('Email send error for', candidate.email, sendError);
         }
-      } else {
-        console.log(`[Mock Send] Resend API key missing. Would have sent invites to:`, emails);
       }
 
       return NextResponse.json({ success: true, count: inserted?.length || 0 });
-    } catch (e: any) {
-      return NextResponse.json({ error: e.message }, { status: 500 });
+    } catch (e: unknown) {
+    return NextResponse.json({ error: (e instanceof Error ? e.message : "Unknown error") }, { status: 500 });
     }
   }
 

@@ -53,8 +53,8 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json({ url, publicUrl, key });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('S3 Presign Error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to generate upload URL' }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? (error instanceof Error ? error.message : "Unknown error") : 'Failed to generate upload URL' }, { status: 500 });
   }
 }

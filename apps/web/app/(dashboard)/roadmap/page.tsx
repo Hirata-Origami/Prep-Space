@@ -30,7 +30,7 @@ export default function RoadmapPage() {
       {roadmaps.length === 0 ? (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🗺️</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}>️</div>
           <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>No roadmaps yet</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '420px', lineHeight: 1.7, marginBottom: '28px' }}>
             Create your first roadmap by picking a career track or uploading a job description. The AI will build a calibrated prep plan for you.
@@ -50,7 +50,7 @@ export default function RoadmapPage() {
                 whileHover={{ y: -4 }}
                 style={{ padding: '24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', transition: 'border-color 0.2s', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '24px' }}>🗺️</div>
+                  <div style={{ fontSize: '24px' }}>️</div>
                   <div style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '100px', fontWeight: 600, background: rm.status === 'completed' ? 'rgba(77,255,160,0.1)' : 'rgba(123,97,255,0.1)', color: rm.status === 'completed' ? 'var(--accent-primary)' : '#7B61FF', textTransform: 'capitalize' }}>
                     {rm.status}
                   </div>

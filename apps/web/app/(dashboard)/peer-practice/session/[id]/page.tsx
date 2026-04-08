@@ -18,6 +18,7 @@ export default function PeerSessionPage() {
   const [messages, setMessages] = useState<{role: 'user' | 'ai', text: string}[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +28,7 @@ export default function PeerSessionPage() {
   }, [messages]);
 
   const startTranscription = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SpeechRecognition) {
       toast.error('Web Speech API is not supported in this browser. Try Chrome or Edge.');
@@ -38,6 +40,7 @@ export default function PeerSessionPage() {
     recognition.interimResults = true;
     recognition.lang = 'en-US';
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
       let interim = '';
       let final = '';
@@ -51,6 +54,7 @@ export default function PeerSessionPage() {
       setTranscript(prev => (prev + ' ' + final).trim() + interim);
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onerror = (event: any) => {
       console.warn('Speech error:', event.error);
     };
@@ -94,8 +98,8 @@ export default function PeerSessionPage() {
       if (!res.ok) throw new Error(data.error);
 
       setMessages(prev => [...prev, { role: 'ai', text: data.reply }]);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to get help');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to get help');
       setMessages(prev => [...prev, { role: 'ai', text: 'Error connecting to CoPilot.' }]);
     } finally {
       setIsLoading(false);
@@ -133,8 +137,8 @@ export default function PeerSessionPage() {
         style={{ borderLeft: '1px solid var(--border)', background: 'var(--bg-surface)', flexShrink: 0, display: 'flex', flexDirection: 'column' }}
       >
         <div style={{ padding: '16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>🤖 AI Co-Pilot</h2>
-          <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}>✕</button>
+          <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}> AI Co-Pilot</h2>
+          <button onClick={() => setDrawerOpen(false)} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}></button>
         </div>
 
         <div style={{ padding: '16px', borderBottom: '1px solid var(--border)' }}>
@@ -145,7 +149,7 @@ export default function PeerSessionPage() {
              </button>
            ) : (
              <button onClick={startTranscription} className="btn-secondary" style={{ width: '100%', justifyContent: 'center' }}>
-               🎙 Start Listening
+                Start Listening
              </button>
            )}
            <div style={{ marginTop: '10px', fontSize: '11px', color: 'var(--text-muted)', padding: '8px', background: 'var(--bg-elevated)', borderRadius: '6px', height: '60px', overflowY: 'auto' }}>
@@ -156,7 +160,7 @@ export default function PeerSessionPage() {
         <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
           {messages.length === 0 && (
              <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', marginTop: '40px' }}>
-               Ask me for help, hints, or to resolve a logic dispute with your peer. I'll read the live transcript context!
+               Ask me for help, hints, or to resolve a logic dispute with your peer. I&apos;ll read the live transcript context!
              </div>
           )}
           {messages.map((m, i) => (

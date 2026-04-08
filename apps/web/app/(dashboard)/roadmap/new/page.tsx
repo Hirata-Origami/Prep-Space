@@ -138,7 +138,7 @@ export default function NewRoadmapPage() {
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              ✅ Roadmap Generated
+               Roadmap Generated
             </h1>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
               {generatedRoadmap.modules?.length || 0} modules · Review, refine, then save
@@ -149,7 +149,7 @@ export default function NewRoadmapPage() {
               ← Regenerate
             </button>
             <button onClick={() => setShowRefine(v => !v)} className="btn-secondary" style={{ fontSize: '13px', padding: '9px 18px', borderColor: showRefine ? 'var(--accent-primary)' : undefined, color: showRefine ? 'var(--accent-primary)' : undefined }}>
-              ✏️ Refine
+              ️ Refine
             </button>
             <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ fontSize: '13px', padding: '9px 20px' }}>
               {saving ? 'Saving…' : 'Save Roadmap →'}
@@ -215,7 +215,7 @@ export default function NewRoadmapPage() {
                     className="btn-primary"
                     style={{ fontSize: '13px', padding: '9px 20px', opacity: refining || !refineComments.trim() ? 0.7 : 1 }}
                   >
-                    {refining ? '✨ Refining…' : '✨ Apply Refinement'}
+                    {refining ? ' Refining…' : ' Apply Refinement'}
                   </button>
                 </div>
               </div>
@@ -253,7 +253,7 @@ export default function NewRoadmapPage() {
                   )}
                   <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                     {m.estimated_hours && `⏱ ~${m.estimated_hours}h`}
-                    {m.coverage_note && <span style={{ marginLeft: '12px' }}>📊 {m.coverage_note}</span>}
+                    {m.coverage_note && <span style={{ marginLeft: '12px' }}> {m.coverage_note}</span>}
                   </div>
                 </div>
               </div>
@@ -262,9 +262,9 @@ export default function NewRoadmapPage() {
         </div>
 
         <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button onClick={() => setShowRefine(true)} className="btn-secondary">✏️ Refine Roadmap</button>
+          <button onClick={() => setShowRefine(true)} className="btn-secondary">️ Refine Roadmap</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '12px 28px', fontSize: '15px' }}>
-            {saving ? 'Saving…' : '💾 Save Roadmap →'}
+            {saving ? 'Saving…' : ' Save Roadmap →'}
           </button>
         </div>
       </div>
@@ -281,9 +281,9 @@ export default function NewRoadmapPage() {
       {/* Mode selector */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
         {([
-          { id: 'generate', icon: '🎯', label: 'By Role', desc: 'Pick a role name' },
-          { id: 'jd', icon: '📋', label: 'From JD', desc: 'Paste a job description' },
-          { id: 'custom', icon: '✏️', label: 'Manual', desc: 'Build it yourself' },
+          { id: 'generate', icon: '', label: 'By Role', desc: 'Pick a role name' },
+          { id: 'jd', icon: '', label: 'From JD', desc: 'Paste a job description' },
+          { id: 'custom', icon: '️', label: 'Manual', desc: 'Build it yourself' },
         ] as { id: Mode; icon: string; label: string; desc: string }[]).map(({ id, icon, label, desc }) => (
           <button key={id} onClick={() => setMode(id)}
             style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${mode === id ? 'var(--accent-primary)' : 'var(--border)'}`, background: mode === id ? 'rgba(77,255,160,0.06)' : 'var(--bg-elevated)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
@@ -314,7 +314,7 @@ export default function NewRoadmapPage() {
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(77,255,160,0.03)', border: '1px dashed rgba(77,255,160,0.3)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s', opacity: parsing ? 0.6 : 1 }}>
                 <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsing} />
-                <span style={{ fontSize: '24px', marginBottom: '8px' }}>{parsing ? '⌛' : '📄'}</span>
+                <span style={{ fontSize: '24px', marginBottom: '8px' }}>{parsing ? '⌛' : ''}</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{parsing ? 'Parsing File...' : 'Upload JD (PDF, DOCX, TXT)'}</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>or type/paste below</span>
               </label>
@@ -326,7 +326,7 @@ export default function NewRoadmapPage() {
 
         {mode === 'custom' && (
           <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}>🚧</div>
+            <div style={{ fontSize: '40px', marginBottom: '12px' }}></div>
             <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Manual builder coming soon</div>
             <p style={{ fontSize: '13px' }}>For now, use the AI-powered modes above. Manual editing is available after generation via the Refine option.</p>
           </div>
@@ -335,7 +335,7 @@ export default function NewRoadmapPage() {
         {mode !== 'custom' && (
           <>
             <div style={{ padding: '10px 14px', background: 'rgba(77,255,160,0.04)', border: '1px solid rgba(77,255,160,0.15)', borderRadius: '8px', marginBottom: '14px', fontSize: '12px', color: 'var(--text-muted)' }}>
-              ✨ Will generate <strong style={{ color: 'var(--accent-primary)' }}>16-20 comprehensive modules</strong> covering 90%+ of knowledge needed to crack this role
+               Will generate <strong style={{ color: 'var(--accent-primary)' }}>16-20 comprehensive modules</strong> covering 90%+ of knowledge needed to crack this role
             </div>
             <button onClick={handleGenerate} disabled={loading || (mode === 'generate' && !role) || (mode === 'jd' && !jd)} className="btn-primary" style={{ width: '100%', fontSize: '15px', padding: '14px', opacity: loading ? 0.7 : 1 }}>
               {loading ? (
@@ -343,7 +343,7 @@ export default function NewRoadmapPage() {
                   <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                   Generating 16+ modules…
                 </span>
-              ) : '✨ Generate Roadmap with AI'}
+              ) : ' Generate Roadmap with AI'}
             </button>
           </>
         )}
@@ -351,7 +351,7 @@ export default function NewRoadmapPage() {
 
       {!user?.has_gemini_key && (
         <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(255,181,71,0.06)', border: '1px solid rgba(255,181,71,0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span>⚠️</span>
+          <span>️</span>
           <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: '#FFB547', fontWeight: 600 }}>Add one in Settings →</a></span>
         </div>
       )}

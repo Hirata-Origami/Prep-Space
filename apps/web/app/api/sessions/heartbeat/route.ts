@@ -28,7 +28,7 @@ export async function POST(req: Request) {
       .eq('state', 'IN_PROGRESS'); // only update if still live
 
     return NextResponse.json({ success: true });
-  } catch (e) {
+  } catch {
     return NextResponse.json({ error: 'Failed' }, { status: 500 });
   }
 }

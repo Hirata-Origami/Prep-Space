@@ -46,10 +46,10 @@ export async function GET(
     .maybeSingle();
 
   if (session) {
-    (report as any).interview_sessions = session;
+    (report as Record<string, unknown>).interview_sessions = session;
     // Propagate duration if not on report
     if (!report.duration_seconds && session.duration_seconds) {
-      (report as any).duration_seconds = session.duration_seconds;
+      (report as Record<string, unknown>).duration_seconds = session.duration_seconds;
     }
   }
 

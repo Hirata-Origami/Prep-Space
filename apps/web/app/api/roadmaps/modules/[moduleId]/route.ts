@@ -36,7 +36,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'Module not found' }, { status: 404 });
   }
 
-  const roadmapUserId = (module as any).roadmaps?.user_id;
+  const roadmapUserId = (module as unknown as { roadmaps?: { user_id: string } }).roadmaps?.user_id;
   if (roadmapUserId !== dbUser.id) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }

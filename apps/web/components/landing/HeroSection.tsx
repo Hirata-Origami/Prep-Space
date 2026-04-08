@@ -33,8 +33,6 @@ export function HeroSection() {
   const [mounted, setMounted] = useState(false);
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
-  const rotateX = useTransform(mouseY, [-300, 300], [8, -8]);
-  const rotateY = useTransform(mouseX, [-300, 300], [-8, 8]);
 
   useEffect(() => { setMounted(true); }, []);
 

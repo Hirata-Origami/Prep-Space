@@ -71,7 +71,7 @@ export async function POST(request: Request) {
   try {
     model = getModel(profile?.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'No Gemini API key';
+    const msg = e instanceof Error ? (e instanceof Error ? e.message : "Unknown error") : 'No Gemini API key';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
@@ -127,7 +127,7 @@ export async function POST(request: Request) {
     }
 
     // Save report to Supabase
-    let insertData: any = {
+    const insertData: Record<string, unknown> = {
       session_id,
       user_id: dbUser.id,
       overall_score: finalScore,
@@ -145,7 +145,7 @@ export async function POST(request: Request) {
       .select();
 
     // If the 'analysis' column is missing, try inserting without it
-    if (saveError && (saveError as any).code === 'PGRST204') {
+    if (saveError && (saveError as { code?: string }).code === 'PGRST204') {
       console.warn("[POST /api/sessions/report] 'analysis' column missing, retrying without it...");
       delete insertData.analysis;
       const secondAttempt = await supabase
@@ -163,30 +163,52 @@ export async function POST(request: Request) {
 
     const report = savedReportData?.[0];
 
-    // Update session state
-    await supabase
-      .from('interview_sessions')
-      .update({
-        state: 'COMPLETE',
-      })
-      .eq('id', session_id);
+    // 5. Send automated report email via SMTP
+    if (report && user.email) {
+      try {
+        const { sendEmail } = await import('@/lib/email');
+        const reportUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/reports/${report.id}`;
+        
+        await sendEmail({
+          to: user.email,
+          subject: `Interview Report Ready: ${role || 'Assessment'}`,
+          html: `
+            <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #f7f9fc; border-radius: 16px; overflow: hidden; border: 1px solid #e1e3e5;">
+              <div style="background-color: #ffffff; padding: 40px 32px; text-align: center; border-bottom: 1px solid #e1e3e5;">
+                <h1 style="color: #080C14; font-size: 24px; font-weight: 700; margin: 0;">You finished! 🎉</h1>
+                <p style="color: #4A5568; font-size: 16px; margin-top: 12px; margin-bottom: 0;">We've prepared your comprehensive feedback report.</p>
+              </div>
 
-    // Award XP to user safely
-    try {
-      await supabase.rpc('increment_xp', { user_id: dbUser.id, amount: 50 });
-    } catch (xpErr) {
-      console.warn("[POST /api/sessions/report] Failed to increment XP", xpErr);
-    }
+              <div style="padding: 40px 32px; background-color: #ffffff;">
+                <div style="text-align: center; margin-bottom: 32px;">
+                  <div style="font-size: 13px; color: #6B7A99; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px;">Overall Performance</div>
+                  <div style="font-size: 56px; font-weight: 800; color: #4DFFA0; line-height: 1;">${finalScore}<span style="font-size: 24px;">%</span></div>
+                  <div style="font-size: 16px; font-weight: 600; color: #080C14; margin-top: 12px; background-color: #f7f9fc; display: inline-block; padding: 6px 16px; border-radius: 100px;">Recommendation: ${finalRecommendation}</div>
+                </div>
 
-    // Invalidate sessions list cache
-    try {
-      const { redis } = await import('@/lib/redis');
-      if (redis) {
-        await redis.del(`api_sessions_${dbUser.id}`);
-        console.log(`[POST /api/sessions/report] Invalidated sessions cache for user ${dbUser.id}`);
+                <div style="border-top: 1px solid #e1e3e5; padding-top: 32px; margin-bottom: 40px;">
+                  <h3 style="color: #080C14; font-size: 18px; margin: 0 0 16px 0;">Executive Summary</h3>
+                  <p style="color: #4A5568; line-height: 1.6; margin: 0; font-size: 15px;">${reportData.summary}</p>
+                </div>
+
+                <div style="text-align: center;">
+                  <a href="${reportUrl}" 
+                     style="display: inline-block; background-color: #080C14; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
+                    View Detailed Feedback
+                  </a>
+                </div>
+              </div>
+
+              <div style="background-color: #f7f9fc; padding: 24px 32px; text-align: center; border-top: 1px solid #e1e3e5;">
+                <p style="color: #6B7A99; font-size: 13px; margin: 0;">We're rooting for you!<br/><strong>PrepSpace Team</strong></p>
+              </div>
+            </div>
+          `
+        });
+        console.log(`[POST /api/sessions/report] Automated report email sent to ${user.email}`);
+      } catch (emailErr) {
+        console.error("[POST /api/sessions/report] Failed to send report email:", emailErr);
       }
-    } catch (redisErr) {
-      console.warn("[POST /api/sessions/report] Redis invalidation failed:", redisErr);
     }
 
     return NextResponse.json({ report });

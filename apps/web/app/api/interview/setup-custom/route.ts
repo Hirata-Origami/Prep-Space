@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   let model;
   try {
     model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
-  } catch (e: any) {
+  } catch {
     return NextResponse.json({ error: 'Gemini API key not configured or invalid' }, { status: 400 });
   }
 
@@ -91,7 +91,7 @@ export async function POST(req: Request) {
     if (sessionError) throw sessionError;
 
     return NextResponse.json({ session });
-  } catch (e: any) {
+  } catch (e: unknown) {
     console.error('AI Interview Generation Error:', e);
     return NextResponse.json({ error: 'Failed to generate custom interview plan' }, { status: 500 });
   }

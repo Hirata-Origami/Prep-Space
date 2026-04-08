@@ -14,12 +14,12 @@ const FEATURES = [
       <div style={{ padding: '28px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Backend Engineer — Meta</div>
         {[
-          { name: 'Data Structures & Algorithms', pct: 91, status: '✅ Mastered' },
-          { name: 'System Design at Scale', pct: 52, status: '📖 In Progress', active: true },
-          { name: 'Distributed Databases', pct: 28, status: '🎯 Priority Gap' },
-          { name: 'API Design & REST', pct: 0, status: '🔒 Locked' },
+          { name: 'Data Structures & Algorithms', pct: 91, status: ' Mastered' },
+          { name: 'System Design at Scale', pct: 52, status: ' In Progress', active: true },
+          { name: 'Distributed Databases', pct: 28, status: ' Priority Gap' },
+          { name: 'API Design & REST', pct: 0, status: ' Locked' },
         ].map((m) => (
-          <div key={m.name} style={{ marginBottom: '14px', opacity: m.status.includes('🔒') ? 0.45 : 1, border: m.active ? '1px solid rgba(77,255,160,0.3)' : '1px solid var(--border)', borderRadius: '10px', padding: '12px 14px', background: m.active ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)' }}>
+          <div key={m.name} style={{ marginBottom: '14px', opacity: m.status.includes('') ? 0.45 : 1, border: m.active ? '1px solid rgba(77,255,160,0.3)' : '1px solid var(--border)', borderRadius: '10px', padding: '12px 14px', background: m.active ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.status}</span>
@@ -34,7 +34,7 @@ const FEATURES = [
     tag: 'Module 2',
     tagColor: 'badge-violet',
     title: 'Native AI Voice Interview',
-    description: 'Practicing by typing isn\'t enough. Experience real-time voice interviews that feel like actual recruiter screens.',
+    description: 'Practicing by typing isn&apos;t enough. Experience real-time voice interviews that feel like actual recruiter screens.',
     bullets: ['Direct WebSocket to AI (no proxy latency)', 'Native Voice Activity Detection — automatic turn management', '7 interview types: coding, system design, behavioral, SQL, and more', 'Adaptive difficulty adjusts question-by-question'],
     visual: (
       <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -46,13 +46,13 @@ const FEATURES = [
               <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>● Live — 42ms latency</div>
             </div>
           </div>
-          <span className="badge badge-mint" style={{ fontSize: '11px' }}>🛡 Verified</span>
+          <span className="badge badge-mint" style={{ fontSize: '11px' }}> Verified</span>
         </div>
         <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: '2px solid #7B61FF' }}>
           &quot;Design a URL shortener that handles 100M redirects per day. Walk me through your approach.&quot;
         </div>
         <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: `2px solid var(--accent-primary)` }}>
-          You: &quot;I'd start with the API layer — a simple REST endpoint POST /shorten. For storage I'd use Redis for hot URLs and PostgreSQL for the full dataset…&quot;
+          You: &quot;I&apos;d start with the API layer — a simple REST endpoint POST /shorten. For storage I&apos;d use Redis for hot URLs and PostgreSQL for the full dataset…&quot;
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
           {['Difficulty', 'Topic', 'Time'].map((l, i) => (
@@ -68,7 +68,7 @@ const FEATURES = [
     tag: 'Module 3',
     tagColor: 'badge-amber',
     title: 'Mock Company Interviews',
-    description: 'Practice for exactly the company you\'re targeting. 50+ companies seeded with real interview formats, known patterns, and culture context. Ruthless mode simulates real interview-day pressure with no hints.',
+    description: 'Practice for exactly the company you&apos;re targeting. 50+ companies seeded with real interview formats, known patterns, and culture context. Ruthless mode simulates real interview-day pressure with no hints.',
     bullets: ['50+ companies: FAANG, unicorns, consulting firms', 'Train mode (hints on) vs. Ruthless mode (zero hints, strict time limits)', 'AI interrupts if you run over time — just like a real interviewer', '"What the interviewer was thinking" section post-session'],
     visual: (
       <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -93,7 +93,7 @@ const FEATURES = [
     tagColor: 'badge-mint',
     title: 'Timestamped Audio Evidence',
     description: 'Every score is backed by a replayable audio moment. Click any weakness on your report and hear exactly what you said — and what you should have said instead. First platform to do this.',
-    bullets: ['Colored waveform markers: 🟢 strong · 🟡 partial · 🔴 missed', 'Click any marker → seek + AI annotation overlay', 'Speaking analytics: WPM, filler words, answer length distribution', 'D3.js radar chart vs. previous session + role percentile'],
+    bullets: ['Colored waveform markers:  strong ·  partial ·  missed', 'Click any marker → seek + AI annotation overlay', 'Speaking analytics: WPM, filler words, answer length distribution', 'D3.js radar chart vs. previous session + role percentile'],
     visual: (
       <div style={{ padding: '28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -195,7 +195,7 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {feature.bullets.map(b => (
             <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
+              <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}></span>
               {b}
             </li>
           ))}

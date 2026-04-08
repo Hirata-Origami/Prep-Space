@@ -18,7 +18,7 @@ export async function GET() {
     .order('difficulty_rating', { ascending: false });
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   // Auto-seed if empty
@@ -28,7 +28,7 @@ export async function GET() {
         name: 'Zepto',
         industry: 'Hyper-local Delivery',
         size: 'hypergrowth',
-        logo_emoji: '⚡',
+        logo_emoji: '',
         difficulty_rating: 8.5,
         community_pass_rate: 42,
         interview_culture: 'Extremely fast-paced. High focus on low-latency systems, concurrency, and shipping features under tight deadlines.',
@@ -46,7 +46,7 @@ export async function GET() {
         name: 'FinTech Startup',
         industry: 'FinTech',
         size: 'startup',
-        logo_emoji: '💳',
+        logo_emoji: '',
         difficulty_rating: 8.0,
         community_pass_rate: 55,
         interview_culture: 'Balances speed with extreme reliability. Focuses on ACID compliance, distributed transactions, and security.',
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     .from('company_profiles')
     .insert({
       name,
-      logo_emoji: logo_emoji || '🏢',
+      logo_emoji: logo_emoji || '',
       industry: industry || 'Tech',
       size: size || 'large',
       interview_culture,
@@ -103,7 +103,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   return NextResponse.json({ company: data }, { status: 201 });

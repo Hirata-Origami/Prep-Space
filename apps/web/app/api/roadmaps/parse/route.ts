@@ -50,8 +50,8 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ text: text.trim() });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('File parsing error:', error);
-    return NextResponse.json({ error: 'Failed to parse file: ' + error.message }, { status: 500 });
+    return NextResponse.json({ error: 'Failed to parse file: ' + (error instanceof Error ? (error instanceof Error ? error.message : "Unknown error") : 'Unknown error') }, { status: 500 });
   }
 }

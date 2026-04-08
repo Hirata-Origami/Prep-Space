@@ -39,8 +39,8 @@ export default function GroupsPage() {
         const data = await res.json();
         throw new Error(data.error || 'Failed to create group');
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSubmitting(false);
     }
@@ -61,12 +61,11 @@ export default function GroupsPage() {
         const data = await res.json();
         throw new Error(data.error || 'Failed to join');
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
-  const activeGroups = tab === 'My Groups' ? groups : discoverGroups;
 
   return (
     <div style={{ padding: '32px' }}>
@@ -92,7 +91,7 @@ export default function GroupsPage() {
           <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading groups…</div>
         ) : groups.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ fontSize: '56px', marginBottom: '16px' }}>👥</div>
+            <div style={{ fontSize: '56px', marginBottom: '16px' }}></div>
             <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>No groups yet</h2>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '380px', lineHeight: 1.7, marginBottom: '20px' }}>Join or create a study group to prep together, share roadmaps, and compete on leaderboards.</p>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -154,8 +153,8 @@ export default function GroupsPage() {
               <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Access Type</label>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                 {[
-                  { id: 'shared', icon: '🤝', label: 'Shared (Invite Only)', desc: 'Up to 50 members, admin features, deadlines', limit: '50 members' },
-                  { id: 'public', icon: '🌐', label: 'Public', desc: 'Anyone can join, read-only admin view', limit: 'Unlimited' },
+                  { id: 'shared', icon: '', label: 'Shared (Invite Only)', desc: 'Up to 50 members, admin features, deadlines', limit: '50 members' },
+                  { id: 'public', icon: '', label: 'Public', desc: 'Anyone can join, read-only admin view', limit: 'Unlimited' },
                 ].map(a => (
                   <div key={a.id} onClick={() => setAccessType(a.id as typeof accessType)}
                     style={{ display: 'flex', gap: '12px', padding: '12px 14px', borderRadius: '8px', border: `1px solid ${accessType === a.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: accessType === a.id ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)', cursor: 'pointer' }}>
@@ -164,7 +163,7 @@ export default function GroupsPage() {
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{a.label}</div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{a.desc} · {a.limit}</div>
                     </div>
-                    {accessType === a.id && <span style={{ marginLeft: 'auto', color: 'var(--accent-primary)' }}>✓</span>}
+                    {accessType === a.id && <span style={{ marginLeft: 'auto', color: 'var(--accent-primary)' }}></span>}
                   </div>
                 ))}
               </div>
@@ -174,7 +173,7 @@ export default function GroupsPage() {
               <textarea className="input" placeholder="What is this group about?" value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'none' }} />
             </div>
             <button onClick={handleCreate} disabled={submitting} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', opacity: submitting ? 0.7 : 1 }}>
-              {submitting ? 'Creating…' : '🚀 Create Group'}
+              {submitting ? 'Creating…' : ' Create Group'}
             </button>
           </div>
         </motion.div>

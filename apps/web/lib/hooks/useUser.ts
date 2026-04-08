@@ -34,7 +34,7 @@ export function useUser() {
       if (cached) {
         try {
           return { profile: JSON.parse(cached) };
-        } catch (e) {
+        } catch {
           return undefined;
         }
       }

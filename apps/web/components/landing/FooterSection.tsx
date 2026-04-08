@@ -1,6 +1,6 @@
 'use client';
 
-import Link from 'next/link';
+
 
 const FOOTER_LINKS = {
   Product: ['Roadmap Engine', 'AI Interviews', 'Mock Companies', 'Resume Builder', 'Peer Practice', 'Groups'],
@@ -26,7 +26,7 @@ export function FooterSection() {
             </p>
             {/* Social links */}
             <div style={{ display: 'flex', gap: '10px' }}>
-              {['𝕏', 'in', 'gh', '✉'].map((icon, i) => (
+              {['𝕏', 'in', 'gh', ''].map((icon, i) => (
                 <a key={i} href="#" style={{ width: '34px', height: '34px', background: 'var(--bg-elevated)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', border: '1px solid var(--border)', transition: 'all 0.2s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.color = 'var(--accent-primary)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>

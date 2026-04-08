@@ -29,19 +29,31 @@ export async function POST(
 
   if (!message) return NextResponse.json({ error: 'message is required' }, { status: 400 });
 
-  // Fetch the report — just by ID first, then check ownership (handles int vs uuid user_id mismatch)
-  const { data: report } = await supabase
+  // Fetch the report first
+  const { data: report, error: reportError } = await supabase
     .from('interview_reports')
-    .select('*, interview_sessions(id, created_at, interview_type, plan)')
+    .select('*')
     .eq('id', id)
     .maybeSingle();
 
-  if (!report) {
+  if (reportError || !report) {
+    if (reportError) console.error('[Chat API] Supabase error:', reportError);
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
 
-  // Check ownership — user_id may be the internal DB user id (int) or supabase_uid
-  // Try both patterns
+  // Fetch session separately (handles partitioning more reliably)
+  let session = null;
+  if (report.session_id) {
+    const { data } = await supabase
+      .from('interview_sessions')
+      .select('id, created_at, interview_type, plan')
+      .eq('id', report.session_id)
+      .maybeSingle();
+    session = data;
+  }
+  (report as Record<string, unknown>).interview_sessions = session;
+
+  // Check ownership
   const ownershipOk =
     report.user_id === dbUser.id ||
     report.user_id === user.id;
@@ -54,7 +66,7 @@ export async function POST(
   try {
     model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'No Gemini API key configured';
+    const msg = e instanceof Error ? (e instanceof Error ? e.message : "Unknown error") : 'No Gemini API key configured';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 

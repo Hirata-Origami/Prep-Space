@@ -98,7 +98,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .eq('group_id', id)
     .eq('user_id', targetUserId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
@@ -144,7 +144,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     .eq('group_id', id)
     .eq('user_id', targetUserId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }

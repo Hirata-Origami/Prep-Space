@@ -184,10 +184,10 @@ export default function ResumeBuilderPage() {
         </div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button onClick={handleSaveProfile} disabled={saving} className="btn-secondary" style={{ fontSize: '13px' }}>
-            {saving ? '💾 Saving…' : '💾 Save'}
+            {saving ? ' Saving…' : ' Save'}
           </button>
           <button onClick={handleGenerateLaTeX} disabled={generating} className="btn-primary" style={{ fontSize: '13px', opacity: generating ? 0.7 : 1 }}>
-            {generating ? '✨ Generating…' : '✨ Generate with AI'}
+            {generating ? ' Generating…' : ' Generate with AI'}
           </button>
         </div>
       </div>
@@ -209,7 +209,7 @@ export default function ResumeBuilderPage() {
             
             {/* Auto-fill from PDF button */}
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(77,255,160,0.1)', border: '1px solid rgba(77,255,160,0.2)', padding: '6px 14px', borderRadius: '8px', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', opacity: isUploading ? 0.7 : 1 }}>
-               {isUploading ? '⏳ Extracting...' : '📄 Auto-fill from PDF'}
+               {isUploading ? '⏳ Extracting...' : ' Auto-fill from PDF'}
                <input type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
             </label>
           </div>
@@ -233,7 +233,7 @@ export default function ResumeBuilderPage() {
             <div key={idx} className="card" style={{ padding: '20px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                 <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Experience #{idx + 1}</h3>
-                {experience.length > 1 && <button onClick={() => removeExperience(idx)} style={{ background: 'none', border: 'none', color: '#FF4D6A', cursor: 'pointer', fontSize: '18px' }}>✕</button>}
+                {experience.length > 1 && <button onClick={() => removeExperience(idx)} style={{ background: 'none', border: 'none', color: '#FF4D6A', cursor: 'pointer', fontSize: '18px' }}></button>}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
                 <div><label style={labelStyle}>Company</label><input style={inputStyle} value={exp.company} onChange={e => updateExp(idx, 'company', e.target.value)} placeholder="Google" /></div>
@@ -293,7 +293,7 @@ export default function ResumeBuilderPage() {
                 {'</>'}  Code
               </button>
               <button onClick={() => setLatexTab('preview')} style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 700, background: latexTab === 'preview' ? 'var(--bg-surface)' : 'transparent', color: latexTab === 'preview' ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all 0.15s' }}>
-                👁 Preview
+                 Preview
               </button>
             </div>
 

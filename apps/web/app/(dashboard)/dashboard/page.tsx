@@ -38,7 +38,7 @@ function GeminiKeyBanner({ hasKey }: { hasKey: boolean }) {
       gap: '14px',
       marginBottom: '24px',
     }}>
-      <div style={{ fontSize: '24px', flexShrink: 0 }}>🔑</div>
+      <div style={{ fontSize: '24px', flexShrink: 0 }}></div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>Add your Gemini API key to unlock AI features</div>
         <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>PrepSpace uses your personal Gemini key for roadmap generation, AI interviews, and report analysis.</div>
@@ -86,14 +86,14 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
           <h1 style={{ fontSize: '30px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px', lineHeight: 1.2 }}>
-            {greeting} {userLoading ? '👋' : `${firstName} 👋`}
+            {greeting} {userLoading ? '' : `${firstName} `}
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>
             {user?.target_role ? `Preparing for ${user.target_role}` : 'Ready for today\'s prep session?'}
           </p>
         </div>
         <Link href="/interview/new" className="btn-primary" style={{ fontSize: '14px', padding: '10px 22px', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>🎙</span> Start Interview
+          <span></span> Start Interview
         </Link>
       </div>
 
@@ -102,10 +102,10 @@ export default function DashboardPage() {
 
       {/* Stats Row */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '28px' }}>
-        <StatCard label="Sessions Completed" value={completedSessions.length} icon="🎙" color="var(--accent-primary)" />
-        <StatCard label="Avg Score" value={avgScore !== null ? avgScore : '—'} icon="📈" color="#7B61FF" />
-        <StatCard label="Day Streak" value={user?.streak_days ?? 0} icon="🔥" color="#FFB547" />
-        <StatCard label="Total XP" value={user?.xp ? `${(user.xp).toLocaleString()}` : '0'} icon="⚡" color="var(--accent-primary)" />
+        <StatCard label="Sessions Completed" value={completedSessions.length} icon="" color="var(--accent-primary)" />
+        <StatCard label="Avg Score" value={avgScore !== null ? avgScore : '—'} icon="" color="#7B61FF" />
+        <StatCard label="Day Streak" value={user?.streak_days ?? 0} icon="" color="#FFB547" />
+        <StatCard label="Total XP" value={user?.xp ? `${(user.xp).toLocaleString()}` : '0'} icon="" color="var(--accent-primary)" />
       </div>
 
       {/* Main Grid */}
@@ -155,7 +155,7 @@ export default function DashboardPage() {
           <div className="card">
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Daily Streak</div>
-              <span style={{ fontSize: '24px' }}>🔥</span>
+              <span style={{ fontSize: '24px' }}></span>
             </div>
             <div style={{ fontSize: '42px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#FFB547', marginBottom: '6px', lineHeight: 1 }}>
               {userLoading ? '—' : user?.streak_days ?? 0}
@@ -174,10 +174,10 @@ export default function DashboardPage() {
           <div className="card">
             <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>Quick Access</div>
             {[
-              { label: '🏢 Mock Company Interview', href: '/mock-company' },
-              { label: '👥 Find Peer Practice', href: '/peer-practice' },
-              { label: '📝 Build Resume', href: '/resume' },
-              { label: '🏆 View Leaderboard', href: '/leaderboard' },
+              { label: ' Mock Company Interview', href: '/mock-company' },
+              { label: ' Find Peer Practice', href: '/peer-practice' },
+              { label: ' Build Resume', href: '/resume' },
+              { label: ' View Leaderboard', href: '/leaderboard' },
             ].map(({ label, href }) => (
               <Link key={href} href={href} style={{ display: 'block', padding: '10px 0', borderBottom: '1px solid var(--border)', fontSize: '13px', color: 'var(--text-secondary)', textDecoration: 'none', transition: 'color 0.15s' }}>
                 {label}
@@ -197,7 +197,7 @@ export default function DashboardPage() {
           <div className="surface" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
         ) : roadmaps.length === 0 ? (
           <div className="surface" style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🗺</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>No roadmaps yet</div>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>Create your first personalized roadmap to get started</p>
             <Link href="/roadmap/new" className="btn-primary" style={{ fontSize: '14px', padding: '10px 24px', textDecoration: 'none' }}>Create Your First Roadmap</Link>
@@ -233,7 +233,7 @@ export default function DashboardPage() {
           <div className="surface" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading…</div>
         ) : sessions.length === 0 ? (
           <div className="surface" style={{ padding: '48px', textAlign: 'center' }}>
-            <div style={{ fontSize: '48px', marginBottom: '16px' }}>🎙</div>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}></div>
             <div style={{ fontSize: '16px', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px' }}>No sessions yet</div>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '20px' }}>Your interview history will appear here</p>
             <Link href="/interview/new" className="btn-primary" style={{ fontSize: '14px', padding: '10px 24px', textDecoration: 'none' }}>Start Your First Session</Link>
@@ -242,7 +242,7 @@ export default function DashboardPage() {
           <div style={{ background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
             {sessions.slice(0, 5).map((s, idx) => (
               <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', padding: '16px 20px', borderBottom: idx < sessions.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: s.overall_score && s.overall_score >= 80 ? 'rgba(77,255,160,0.15)' : 'rgba(123,97,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}>🎙</div>
+                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: s.overall_score && s.overall_score >= 80 ? 'rgba(77,255,160,0.15)' : 'rgba(123,97,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', flexShrink: 0 }}></div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{s.role || s.interview_type || 'Interview Session'}</div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{new Date(s.created_at).toLocaleDateString()}</div>

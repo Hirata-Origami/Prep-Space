@@ -90,7 +90,7 @@ export default function ReportDetailPage() {
   if (!report) {
     return (
       <div style={{ padding: '80px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>️</div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Report not found</h2>
         <Link href="/reports" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Reports</Link>
       </div>
@@ -114,42 +114,65 @@ export default function ReportDetailPage() {
     <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }} className="report-container">
       <style>{`
         @media print {
-          .no-print, nav, aside, .btn-primary, .btn-secondary, header, #chat-widget-container { display: none !important; }
-          @page { margin: 15mm; }
-          body { 
-            background: white !important; 
-            color: black !important; 
+          /* Force all containers to expand for content */
+          html, body, main, 
+          #__next, [data-nextjs-scroll-focus-boundary],
+          .report-container {
             overflow: visible !important;
             height: auto !important;
+            min-height: auto !important;
+            position: static !important;
+            background: white !important;
+            color: black !important;
           }
+
+          .no-print, nav, aside, .btn-primary, .btn-secondary, header, #chat-widget-container { 
+            display: none !important; 
+          }
+          
+          @page { 
+            margin: 20mm;
+            size: auto;
+          }
+
           /* Ensure text is black for readability */
           * {
             color: black !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
           }
+
           /* Except for explicitly colored text like scores */
           .print-keep-color * {
             color: inherit !important;
           }
+
           .surface, .card { 
-            border: 1px solid #ddd !important; 
+            border: 1px solid #eee !important; 
             background: white !important; 
             box-shadow: none !important; 
             page-break-inside: avoid;
             color: black !important;
-            margin-bottom: 20px !important;
+            margin-bottom: 24px !important;
+            display: block !important;
           }
-          .report-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
+
+          .report-container { 
+            padding: 0 !important; 
+            max-width: 100% !important; 
+            margin: 0 !important; 
+          }
+          
           .progress-bar-fill, .waveform-bar { 
             print-color-adjust: exact; 
             -webkit-print-color-adjust: exact; 
           }
-          main {
-            overflow: visible !important;
-            height: auto !important;
-            background: white !important;
-          }
+
           /* Force page breaks gracefully */
-          h2 { page-break-after: avoid; }
+          h1, h2, h3 { 
+            page-break-after: avoid; 
+            break-after: avoid;
+          }
         }
         .waveform-bar {
           height: 100%;
@@ -166,7 +189,7 @@ export default function ReportDetailPage() {
           ← Back to Reports
         </Link>
         <button onClick={handleDownloadPDF} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>📥</span> Download PDF Report
+          <span></span> Download PDF Report
         </button>
       </div>
 
@@ -272,7 +295,7 @@ export default function ReportDetailPage() {
           {audioUrl && (
             <section className="surface" style={{ padding: '24px' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>🎙️</span> Playback & Evidence
+                <span style={{ fontSize: '20px' }}>️</span> Playback & Evidence
               </h2>
               <audio ref={audioRef} controls src={audioUrl} className="no-print" style={{ width: '100%', marginBottom: '16px', borderRadius: '8px', outline: 'none' }} />
               
@@ -322,7 +345,7 @@ export default function ReportDetailPage() {
           {/* Answer Analysis */}
           <section>
             <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>📝</span> Detailed Question Analysis
+              <span style={{ fontSize: '20px' }}></span> Detailed Question Analysis
             </h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               {sampleAnswers.map((item: any, i: number) => (
@@ -395,7 +418,7 @@ export default function ReportDetailPage() {
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {strengths.map((s: string, i: number) => (
                 <li key={i} style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '12px', lineHeight: 1.4 }}>
-                  <span style={{ color: 'var(--accent-primary)', fontWeight: 900 }}>✓</span> {s}
+                  <span style={{ color: 'var(--accent-primary)', fontWeight: 900 }}></span> {s}
                 </li>
               ))}
             </ul>
@@ -407,7 +430,7 @@ export default function ReportDetailPage() {
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {improvements.map((im: string, i: number) => (
                 <li key={i} style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '12px', lineHeight: 1.4 }}>
-                  <span style={{ color: 'var(--accent-amber)', fontWeight: 900 }}>⚡</span> {im}
+                  <span style={{ color: 'var(--accent-amber)', fontWeight: 900 }}></span> {im}
                 </li>
               ))}
             </ul>
@@ -441,7 +464,7 @@ export default function ReportDetailPage() {
         onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
         title="Chat with AI Coach"
       >
-        {chatOpen ? '✕' : '💬'}
+        {chatOpen ? '' : ''}
       </button>
 
       {/* Chat Panel */}
@@ -470,7 +493,7 @@ export default function ReportDetailPage() {
           >
             {/* Chat Header */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(77,255,160,0.03)' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🧑‍🏫</div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>‍</div>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>AI Interview Coach</div>
                 <div style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>● Analyzing your report</div>
@@ -481,7 +504,7 @@ export default function ReportDetailPage() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {chatMessages.length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
+                  <div style={{ fontSize: '32px', marginBottom: '8px' }}></div>
                   <div>Ask me anything about your interview performance!</div>
                   <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {['What should I focus on first?', 'How do I improve my system design score?', 'What resources do you recommend?'].map(q => (

@@ -36,8 +36,8 @@ export function ProblemSection() {
             interviews <span className="text-gradient-mint">they should pass</span>
           </h2>
           <p style={{ fontSize: '18px', color: 'var(--text-muted)', maxWidth: '600px', margin: '0 auto' }}>
-            Not because they lack skill — but because they've never practiced
-            the way they'll actually be asked to perform.
+            Not because they lack skill — but because they&apos;ve never practiced
+            the way they&apos;ll actually be asked to perform.
           </p>
         </motion.div>
 
@@ -61,7 +61,7 @@ export function ProblemSection() {
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Missing technical precision', 'No structured answer', 'Filler words: 5x "like", 4x "um"'].map(flag => (
                 <div key={flag} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#FF4D6A' }}>
-                  <span>⚠</span> {flag}
+                  <span></span> {flag}
                 </div>
               ))}
             </div>
@@ -85,7 +85,7 @@ export function ProblemSection() {
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Clear technical explanation', 'Structured: concept → mechanism → benefit', 'Score: 9.2/10 — Ready to hire'].map(flag => (
                 <div key={flag} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--accent-primary)' }}>
-                  <span>✓</span> {flag}
+                  <span></span> {flag}
                 </div>
               ))}
             </div>

@@ -1,10 +1,8 @@
 'use client';
 
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toast } from 'sonner';
 
 
 

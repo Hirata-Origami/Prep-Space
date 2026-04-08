@@ -30,8 +30,9 @@ export async function withRetry<T>(
   while (attempt < maxRetries) {
     try {
       return await operation();
-    } catch (error: any) {
-      if (error?.status === 429 || error?.message?.includes('429')) {
+    } catch (error: unknown) {
+      const err = error as { status?: number; message?: string };
+      if (err?.status === 429 || err?.message?.includes('429')) {
         attempt++;
         if (attempt >= maxRetries) throw error;
         const delay = baseDelayMs * Math.pow(2, attempt - 1);

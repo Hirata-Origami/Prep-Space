@@ -33,12 +33,12 @@ export async function GET() {
           .eq('user_id', dbUser.id)
           .order('created_at', { ascending: false });
         
-        if (error) throw new Error(error.message);
+        if (error) throw new Error((error instanceof Error ? error.message : "Unknown error"));
 
         // Map and calculate progress
-        return data.map((r: any) => {
+        return data.map((r: { target_role: string, modules?: { status: string }[] }) => {
           const total = r.modules?.length || 0;
-          const completed = r.modules?.filter((m: any) => m.status === 'completed').length || 0;
+          const completed = r.modules?.filter((m: { status: string }) => m.status === 'completed').length || 0;
           return {
             ...r,
             role: r.target_role || 'General Track',
@@ -49,8 +49,8 @@ export async function GET() {
       },
       600 // Cache for 10 minutes
     );
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? (err instanceof Error ? err.message : "Unknown error") : 'Unknown error' }, { status: 500 });
   }
 
   return NextResponse.json({ roadmaps });
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { title, description, modules } = body;
+  const { title, modules } = body;
 
   if (!title) {
     return NextResponse.json({ error: 'title is required' }, { status: 400 });
@@ -86,7 +86,7 @@ export async function POST(request: Request) {
     .single();
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   // Insert modules if provided

@@ -146,7 +146,7 @@ export default function RecruiterDashboard() {
           { label: 'Active Pipelines', value: pipelines.filter((p: Pipeline) => p.status === 'active').length.toString(), trend: `${pipelines.length} total` },
           { label: 'Total Candidates', value: totalCandidates.toString(), trend: 'Across all pipelines' },
           { label: 'Avg. AI Score', value: avgScore != null ? `${avgScore}%` : '—', trend: 'Composite score' },
-          { label: 'Shortlisted', value: shortlisted.toString(), trend: shortlisted > 0 ? '✓ Ready to review' : 'None yet' },
+          { label: 'Shortlisted', value: shortlisted.toString(), trend: shortlisted > 0 ? ' Ready to review' : 'None yet' },
         ].map((stat, i) => (
           <div key={i} className="surface" style={{ padding: '20px' }}>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '8px' }}>{stat.label}</div>

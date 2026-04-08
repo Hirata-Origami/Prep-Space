@@ -82,8 +82,8 @@ Return ONLY valid JSON. Keep formatting clean. Do not include markdown codeblock
       { text: prompt },
       { inlineData: { data: base64Data, mimeType: 'application/pdf' } }
     ]);
-    let jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-    let parsedData = JSON.parse(jsonStr);
+    const jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
+    const parsedData = JSON.parse(jsonStr);
 
     // Github README Recursive Enhancement
     if (parsedData.projects && Array.isArray(parsedData.projects)) {
@@ -127,8 +127,8 @@ Return ONLY valid JSON. Keep formatting clean. Do not include markdown codeblock
     }
 
     return NextResponse.json({ extracted: parsedData });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Resume Parse error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to parse' }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") || 'Failed to parse' }, { status: 500 });
   }
 }

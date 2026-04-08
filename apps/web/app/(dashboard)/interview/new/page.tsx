@@ -12,10 +12,10 @@ type InterviewType = 'conceptual' | 'behavioral' | 'system_design' | 'coding_wal
 type SessionState = 'setup' | 'connecting' | 'live' | 'complete';
 
 const INTERVIEW_TYPES: { id: InterviewType; label: string; icon: string; desc: string }[] = [
-  { id: 'conceptual', label: 'Conceptual', icon: '🧠', desc: 'Knowledge-based Q&A' },
-  { id: 'behavioral', label: 'Behavioral (STAR)', icon: '🌟', desc: 'Situation/Task/Action/Result' },
-  { id: 'system_design', label: 'System Design', icon: '🏗️', desc: 'Design distributed systems' },
-  { id: 'coding_walkthrough', label: 'Coding Walkthrough', icon: '💻', desc: 'Explain your approach verbally' },
+  { id: 'conceptual', label: 'Conceptual', icon: '', desc: 'Knowledge-based Q&A' },
+  { id: 'behavioral', label: 'Behavioral (STAR)', icon: '', desc: 'Situation/Task/Action/Result' },
+  { id: 'system_design', label: 'System Design', icon: '️', desc: 'Design distributed systems' },
+  { id: 'coding_walkthrough', label: 'Coding Walkthrough', icon: '', desc: 'Explain your approach verbally' },
 ];
 
 interface TranscriptEntry {
@@ -85,8 +85,8 @@ function LiveInterviewPage() {
   // Refs for media / WebSocket
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const userAnalyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null);
   const videoIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
@@ -234,7 +234,7 @@ function LiveInterviewPage() {
   // Stop all audio playback (e.g., on interruption)
   const stopAudioPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(source => {
-      try { source.stop(); } catch (e) { }
+      try { source.stop(); } catch { }
     });
     activeSourcesRef.current = [];
     lastAudioTimeRef.current = 0;
@@ -285,6 +285,7 @@ function LiveInterviewPage() {
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = await (ai.live as any).connect({
       model: MODEL,
       config: {
@@ -302,16 +303,19 @@ function LiveInterviewPage() {
         proactiveAudio: true,
         inputAudioTranscription: {},
         outputAudioTranscription: {},
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       callbacks: {
         onopen: () => {
           console.log("WebSocket opened successfully");
           toast.success("Connected to Gemini Live");
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onsetup: (data: any) => {
           console.log("Session connected (onsetup):", data);
           setSessionState('live');
           if (!audioCtxRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
             audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
           }
@@ -319,6 +323,7 @@ function LiveInterviewPage() {
             // Setup for user audio analyser if needed here
           }
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onmessage: (data: any) => {
           try {
             // DEEP DEBUG LOGGING
@@ -409,10 +414,11 @@ function LiveInterviewPage() {
             console.error("Error in onmessage handler:", err);
           }
         },
-        onerror: (e: any) => {
+        onerror: () => {
           toast.error('Connection error. Check your Gemini API key in Settings.');
           setSessionState('setup');
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onclose: (e: any) => {
           console.log("WebSocket closed:", e);
           if (sessionState === 'live') {
@@ -431,7 +437,7 @@ function LiveInterviewPage() {
     });
 
     console.log("Session connected and initial trigger sent.");
-  }, [interviewType, targetRole, animateWave, playPCMChunk, stopAudioPlayback, sessionState]);
+  }, [animateWave, playPCMChunk, stopAudioPlayback, sessionState]);
 
   // === SEND AUDIO to Gemini (PCM16 @ 16kHz) ===
   const sendAudioChunk = useCallback((pcm16: Int16Array) => {
@@ -609,6 +615,7 @@ function LiveInterviewPage() {
       directStartedRef.current = true;
       startSession();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, sessionState]);
 
   // === END SESSION ===
@@ -725,9 +732,10 @@ function LiveInterviewPage() {
         setIsGeneratingReport(false);
       }
     }
-  }, [sessionId, transcript, targetRole, interviewType, sessionStartTime]);
+  }, [sessionId, transcript, targetRole, interviewType, sessionStartTime, sessionTime]);
 
   // === TOGGLE MIC ===
+  /*
   const toggleMic = useCallback(() => {
     const audioTrack = streamRef.current?.getAudioTracks()[0];
     if (audioTrack) {
@@ -735,15 +743,13 @@ function LiveInterviewPage() {
       audioTrack.enabled = !newMutedState;
       setIsMuted(newMutedState);
 
-      // If we are muting, signal the end of the audio stream to Gemini
       if (newMutedState && sessionRef.current) {
         console.log("Mic muted - sending audioStreamEnd");
-        sessionRef.current.sendRealtimeInput({ audioStreamEnd: true });
+        (sessionRef.current as any).sendRealtimeInput({ audioStreamEnd: true });
       }
     }
   }, [isMuted]);
 
-  // === TOGGLE CAMERA ===
   const toggleCamera = useCallback(() => {
     const videoTrack = streamRef.current?.getVideoTracks()[0];
     if (videoTrack) {
@@ -751,6 +757,7 @@ function LiveInterviewPage() {
       setIsCameraOff(!isCameraOff);
     }
   }, [isCameraOff]);
+  */
 
   // Cleanup on unmount
   useEffect(() => {
@@ -801,12 +808,12 @@ function LiveInterviewPage() {
 
               {/* Device check */}
               <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>📹</span>
+                <span style={{ fontSize: '20px' }}></span>
                 <div style={{ flex: 1, fontSize: '13px', color: 'var(--text-secondary)' }}>Camera & microphone will be requested when you start. Video helps Alex read your body language and confidence.</div>
               </div>
 
               <button onClick={startSession} className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '16px', padding: '15px' }}>
-                🎙 Start Interview
+                 Start Interview
               </button>
             </div>
           </motion.div>
@@ -896,11 +903,11 @@ function LiveInterviewPage() {
                 <video ref={videoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOff ? 'none' : 'block', transform: 'scaleX(-1)' }} />
                 {isCameraOff && (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>👤</div>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}></div>
                   </div>
                 )}
                 <div style={{ position: 'absolute', bottom: '12px', left: '16px', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>You</div>
-                {isMuted && <div style={{ position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px', background: '#FF4D6A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🔇</div>}
+                {isMuted && <div style={{ position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px', background: '#FF4D6A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}></div>}
               </div>
             </div>
 
@@ -945,7 +952,7 @@ function LiveInterviewPage() {
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
           style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
           <div style={{ textAlign: 'center', maxWidth: '500px' }}>
-            <div style={{ fontSize: '72px', marginBottom: '24px' }}>✅</div>
+            <div style={{ fontSize: '72px', marginBottom: '24px' }}></div>
             <h2 style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '12px' }}>Interview Complete!</h2>
             <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '32px' }}>
               Great job! Your interview lasted {formatTime(sessionTime)}.

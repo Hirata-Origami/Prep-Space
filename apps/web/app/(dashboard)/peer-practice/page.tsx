@@ -14,7 +14,7 @@ export default function PeerPracticePage() {
   const [topic, setTopic] = useState('System Design');
   const [level, setLevel] = useState('Intermediate');
   const [searching, setSearching] = useState(false);
-  const [match, setMatch] = useState<any>(null);
+  const [match, setMatch] = useState<Record<string, unknown> | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [searchTime, setSearchTime] = useState(0);
   const searchTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
@@ -26,6 +26,7 @@ export default function PeerPracticePage() {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setUserId(user.id);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Subscribe to peer matches via Supabase Realtime
@@ -44,13 +45,14 @@ export default function PeerPracticePage() {
         setMatch(matchData);
         setSearching(false);
         clearInterval(searchTimerRef.current);
-        toast.success('🤝 Match Found!');
+        toast.success(' Match Found!');
       })
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId, searching]);
 
   // Search timer
@@ -83,14 +85,14 @@ export default function PeerPracticePage() {
         if (data.match) {
           setMatch(data.match);
           setSearching(false);
-          toast.success('🤝 Match Found!');
+          toast.success(' Match Found!');
           return;
         }
       }
       // Keep searching via Realtime subscription above
       // Will auto-timeout after 60 seconds if no match
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
       setSearching(false);
     }
   };
@@ -117,9 +119,9 @@ export default function PeerPracticePage() {
       {/* How it works */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
-          { step: '1', title: 'Set Your Preferences', desc: 'Choose topic and skill level. We match you with the best available partner.', icon: '📅' },
-          { step: '2', title: 'AI Matches You', desc: 'Matched by role, skill level, topic, and availability window in real-time.', icon: '🤖' },
-          { step: '3', title: 'Practice Together', desc: 'Live P2P session: take turns interviewing each other. Both provide AI-backed scores.', icon: '🤝' },
+          { step: '1', title: 'Set Your Preferences', desc: 'Choose topic and skill level. We match you with the best available partner.', icon: '' },
+          { step: '2', title: 'AI Matches You', desc: 'Matched by role, skill level, topic, and availability window in real-time.', icon: '' },
+          { step: '3', title: 'Practice Together', desc: 'Live P2P session: take turns interviewing each other. Both provide AI-backed scores.', icon: '' },
         ].map(({ step, title, desc, icon }) => (
           <div key={step} className="card" style={{ padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px', marginBottom: '10px' }}>{icon}</div>
@@ -147,7 +149,7 @@ export default function PeerPracticePage() {
               </select>
             </div>
             <button onClick={searching ? cancelSearch : startMatching} className={searching ? 'btn-secondary' : 'btn-primary'} style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '4px' }}>
-              {searching ? `⏱ ${formatTime(searchTime)} — Cancel Search` : '🔍 Find My Match'}
+              {searching ? `⏱ ${formatTime(searchTime)} — Cancel Search` : ' Find My Match'}
             </button>
           </div>
 
@@ -166,12 +168,12 @@ export default function PeerPracticePage() {
             {match && (
               <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 style={{ position: 'absolute', inset: 0, background: 'var(--bg-elevated)', border: '2px solid var(--accent-primary)', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 20, textAlign: 'center', padding: '24px' }}>
-                <div style={{ fontSize: '48px', marginBottom: '12px' }}>🤝</div>
+                <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
                 <h3 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Match Found!</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
                   You&apos;re paired with{' '}
                   <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
-                    {match.partner_name || match.users?.full_name || 'a Peer Candidate'}
+                    {match.partner_name || (match.users as Record<string, any>)?.full_name || 'a Peer Candidate'}
                   </span>
                 </p>
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
@@ -182,7 +184,7 @@ export default function PeerPracticePage() {
                   >
                     Enter Session →
                   </button>
-                  <button onClick={() => setMatch(null)} className="btn-secondary" style={{ padding: '10px' }}>✕</button>
+                  <button onClick={() => setMatch(null)} className="btn-secondary" style={{ padding: '10px' }}></button>
                 </div>
               </motion.div>
             )}
@@ -193,11 +195,11 @@ export default function PeerPracticePage() {
           <div className="card" style={{ padding: '20px' }}>
             <h3 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>Session Features</h3>
             {[
-              ['💻', 'Shared Code Editor (Monaco + Y.js CRDT)'],
-              ['🖼️', 'Shared Whiteboard (Excalidraw)'],
-              ['📹', 'P2P Video (WebRTC — no server)'],
-              ['🔄', 'Auto role swap at midpoint'],
-              ['🤖', 'AI question cards for the interviewer'],
+              ['', 'Shared Code Editor (Monaco + Y.js CRDT)'],
+              ['️', 'Shared Whiteboard (Excalidraw)'],
+              ['', 'P2P Video (WebRTC — no server)'],
+              ['', 'Auto role swap at midpoint'],
+              ['', 'AI question cards for the interviewer'],
               ['⭐', 'Dual scoring + AI supplemental analysis'],
             ].map(([icon, text]) => (
               <div key={text as string} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '8px 0', borderBottom: '1px solid var(--border)' }}>

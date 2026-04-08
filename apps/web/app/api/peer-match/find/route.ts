@@ -32,7 +32,7 @@ export async function GET(req: Request) {
     .gte('available_until', new Date().toISOString())
     .limit(1);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   
   if (!matches || matches.length === 0) {
     return NextResponse.json({ match: null });
