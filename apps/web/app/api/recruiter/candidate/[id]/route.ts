@@ -9,7 +9,8 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const supabase = await createAdminClient();
 
   const { data: candidate, error } = await supabase
     .from('pipeline_candidates')
@@ -21,7 +22,7 @@ export async function GET(
       )
     `)
     .eq('id', id)
-    .single();
+    .maybeSingle();
 
   if (error || !candidate) {
     return NextResponse.json({ error: 'Invite not found' }, { status: 404 });
@@ -36,13 +37,18 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const supabase = await createClient();
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const supabase = await createAdminClient();
   const body = await request.json();
-  const { stage } = body;
+  const { stage, email } = body;
+
+  const updateData: any = {};
+  if (stage) updateData.stage = stage;
+  if (email) updateData.email = email;
 
   const { error } = await supabase
     .from('pipeline_candidates')
-    .update({ stage })
+    .update(updateData)
     .eq('id', id);
 
   if (error) {

@@ -66,7 +66,7 @@ export default function InvitePage({ params }: { params: Promise<{ id: string }>
     return (
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '24px' }}>
         <div style={{ textAlign: 'center', maxWidth: '440px' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>🔍</div>
+          <div style={{ fontSize: '64px', marginBottom: '20px' }}></div>
           <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '12px' }}>Invite Not Found</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '24px' }}>
             This interview invitation link is invalid, expired, or has already been used. Please contact your recruiter if you believe this is an error.
@@ -174,7 +174,7 @@ export default function InvitePage({ params }: { params: Promise<{ id: string }>
                 >
                   {/* Round number */}
                   <div style={{ width: '36px', height: '36px', borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '14px', background: hasScore ? (isPassed ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)') : 'var(--bg-elevated)', color: hasScore ? (isPassed ? 'var(--accent-primary)' : '#FFB547') : 'var(--text-muted)', border: `1px solid ${hasScore ? (isPassed ? 'rgba(77,255,160,0.3)' : 'rgba(255,181,71,0.3)') : 'var(--border)'}` }}>
-                    {hasScore ? (isPassed ? '✓' : '—') : i + 1}
+                    {hasScore ? (isPassed ? '' : '—') : i + 1}
                   </div>
 
                   <div style={{ flex: 1 }}>
@@ -214,7 +214,7 @@ export default function InvitePage({ params }: { params: Promise<{ id: string }>
             animate={{ opacity: 1 }}
             style={{ padding: '24px', background: candidate.composite_score >= (pipeline?.pass_threshold || 70) ? 'rgba(77,255,160,0.08)' : 'rgba(255,77,106,0.06)', border: `1px solid ${candidate.composite_score >= (pipeline?.pass_threshold || 70) ? 'rgba(77,255,160,0.25)' : 'rgba(255,77,106,0.2)'}`, borderRadius: '12px', textAlign: 'center' }}
           >
-            <div style={{ fontSize: '40px', marginBottom: '8px' }}>{candidate.composite_score >= (pipeline?.pass_threshold || 70) ? '🎉' : '📋'}</div>
+            <div style={{ fontSize: '40px', marginBottom: '8px' }}>{candidate.composite_score >= (pipeline?.pass_threshold || 70) ? '' : ''}</div>
             <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
               {candidate.composite_score >= (pipeline?.pass_threshold || 70) ? 'Assessment Passed!' : 'Assessment Complete'}
             </h2>

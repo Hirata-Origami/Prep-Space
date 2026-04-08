@@ -154,7 +154,7 @@ export default function FacultyPortal() {
                     <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{selectedCohort.name}</h2>
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Individual student breakdown</p>
                   </div>
-                  <button onClick={() => setSelectedCohort(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>✕ Close</button>
+                  <button onClick={() => setSelectedCohort(null)} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '6px', padding: '4px 10px', fontSize: '12px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}> Close</button>
                 </div>
 
                 {membersLoading ? (

@@ -83,28 +83,50 @@ ${text}`;
         try {
           await sendEmail({
             to: candidate.email,
-            subject: `Interview Invitation: ${pipeline_role || 'PrepSpace Assessment'}`,
+            subject: `Action Required: Assessment for ${pipeline_role || 'Technical Position'}`,
             html: `
-              <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #1A1C1E; line-height: 1.6; border: 1px solid #E1E3E5; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
-                <div style="background-color: #f7f9fc; padding: 32px; text-align: center; border-bottom: 1px solid #E1E3E5;">
-                  <h1 style="margin: 0; font-size: 24px; color: #080C14; font-weight: 700;">You're Invited! 🎉</h1>
+              <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; color: #1A1C1E; line-height: 1.6; border: 1px solid #E1E3E5; border-radius: 16px; overflow: hidden; background-color: #ffffff; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+                <div style="background-color: #080C14; padding: 40px 32px; text-align: center;">
+                  <div style="color: #4DFFA0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.15em; margin-bottom: 12px;">PrepSpace Talent Portal</div>
+                  <h1 style="margin: 0; font-size: 26px; color: #ffffff; font-weight: 700; letter-spacing: -0.02em;">Technical Assessment Invitation</h1>
                 </div>
-                <div style="padding: 40px 32px;">
-                  <p style="font-size: 16px; margin-top: 0;">Hi there,</p>
-                  <p style="font-size: 16px;">We're thrilled to invite you to the next step of the interview process for the <strong>${pipeline_role || 'open position'}</strong>.</p>
-                  <p style="font-size: 16px; color: #4A5568;">Your background really stood out to us, and we'd love for you to complete a brief technical assessment. This is your chance to showcase your skills in a comfortable environment.</p>
+                <div style="padding: 48px 40px;">
+                  <p style="font-size: 16px; margin-top: 0; color: #1A1C1E;">Dear Candidate,</p>
+                  <p style="font-size: 16px; color: #4A5568;">We are pleased to invite you to the next stage of our selection process for the <strong>${pipeline_role || 'open position'}</strong>. At this stage, we use PrepSpace to facilitate an AI-driven technical conversation that helps us better understand your expertise and approach to problem-solving.</p>
+                  
+                  <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 24px; margin: 32px 0;">
+                    <h3 style="margin: 0 0 16px 0; font-size: 14px; text-transform: uppercase; color: #64748B; letter-spacing: 0.05em;">Assessment Details</h3>
+                    <ul style="margin: 0; padding: 0; list-style: none;">
+                      <li style="margin-bottom: 10px; display: flex; align-items: center; font-size: 14px; color: #334155;">
+                        <span style="color: #4DFFA0; margin-right: 10px;">•</span> <strong>Role:</strong> ${pipeline_role || 'Technical Staff'}
+                      </li>
+                      <li style="margin-bottom: 10px; display: flex; align-items: center; font-size: 14px; color: #334155;">
+                        <span style="color: #4DFFA0; margin-right: 10px;">•</span> <strong>Format:</strong> Interactive Voice & Video Interview
+                      </li>
+                      <li style="margin-bottom: 10px; display: flex; align-items: center; font-size: 14px; color: #334155;">
+                        <span style="color: #4DFFA0; margin-right: 10px;">•</span> <strong>Platform:</strong> PrepSpace Portal
+                      </li>
+                    </ul>
+                  </div>
+
+                  <p style="font-size: 15px; color: #4A5568; margin-bottom: 24px;">Please ensure you are in a quiet environment with a stable internet connection before beginning. The assessment will require camera and microphone access.</p>
+
                   <div style="text-align: center; margin: 40px 0;">
-                    <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}" 
-                       style="display: inline-block; padding: 14px 32px; background-color: #080C14; color: #ffffff; text-decoration: none; font-weight: 600; font-size: 16px; border-radius: 8px;">
-                      Start Your Assessment
+                    <a href="${process.env.NEXT_PUBLIC_SITE_URL || 'https://prep-space.vercel.app'}/interview/invite/${candidate.id}" 
+                       style="display: inline-block; padding: 16px 40px; background-color: #080C14; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 16px; border-radius: 10px;">
+                      Access Interview Portal
                     </a>
                   </div>
-                  <p style="font-size: 16px; color: #4A5568;">We wish you the best of luck!</p>
-                  <p style="font-size: 15px; margin-bottom: 0; font-weight: 600; color: #080C14;">Warmly,</p>
-                  <p style="font-size: 14px; margin-top: 4px; color: #6B7A99;">The Hiring Team</p>
+                  
+                  <p style="font-size: 15px; color: #4A5568;">This session is your opportunity to demonstrate your technical depth in a comfortable environment. We look forward to reviewing your performance report.</p>
+                  
+                  <div style="margin-top: 48px; border-top: 1px solid #E2E8F0; padding-top: 24px;">
+                    <p style="font-size: 14px; margin-bottom: 4px; font-weight: 700; color: #080C14;">Best Regards,</p>
+                    <p style="font-size: 14px; margin-top: 0; color: #64748B;">Hiring Excellence Team</p>
+                  </div>
                 </div>
-                <div style="background-color: #f7f9fc; padding: 20px 32px; border-top: 1px solid #E1E3E5;">
-                  <p style="font-size: 13px; color: #888; margin: 0; text-align: center;">If the button doesn't work, copy and paste this link into your browser:<br/><span style="color: #4A5568;">${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/interview/invite/${candidate.id}</span></p>
+                <div style="background-color: #F8FAFC; padding: 24px 40px; border-top: 1px solid #E1E3E5; text-align: center;">
+                  <p style="font-size: 12px; color: #94A3B8; margin: 0;">If you experience technical difficulties, please copy and paste the following link into your browser:<br/><span style="color: #64748B; word-break: break-all;">${process.env.NEXT_PUBLIC_SITE_URL || 'https://prep-space.vercel.app'}/interview/invite/${candidate.id}</span></p>
                 </div>
               </div>
             `
@@ -117,7 +139,7 @@ ${text}`;
 
       return NextResponse.json({ success: true, count: inserted?.length || 0 });
     } catch (e: unknown) {
-    return NextResponse.json({ error: (e instanceof Error ? e.message : "Unknown error") }, { status: 500 });
+      return NextResponse.json({ error: (e instanceof Error ? e.message : "Unknown error") }, { status: 500 });
     }
   }
 

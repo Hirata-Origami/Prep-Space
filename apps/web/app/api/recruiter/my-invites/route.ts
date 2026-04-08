@@ -8,12 +8,12 @@ export async function GET() {
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  // Find candidate entries that match this user's email
-  const { data: authUserData } = await supabase.auth.getUser();
-  const email = authUserData.user?.email;
+  const { createAdminClient } = await import('@/lib/supabase/server');
+  const adminSupabase = await createAdminClient();
+  const email = user.email;
   if (!email) return NextResponse.json({ invites: [] });
 
-  const { data: invites, error } = await supabase
+  const { data: invites, error } = await adminSupabase
     .from('pipeline_candidates')
     .select(`
       id, name, email, stage, composite_score, round_scores, invited_at, completed_at,

@@ -38,7 +38,7 @@ export async function POST(request: Request) {
         html = `
           <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #1A1C1E; line-height: 1.6; border: 1px solid #E1E3E5; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
             <div style="background-color: #f7f9fc; padding: 32px; text-align: center; border-bottom: 1px solid #E1E3E5;">
-              <h1 style="margin: 0; color: #080C14; font-size: 26px; font-weight: 700;">Amazing news! ✨</h1>
+              <h1 style="margin: 0; color: #080C14; font-size: 26px; font-weight: 700;">Amazing news! </h1>
             </div>
             <div style="padding: 40px 32px;">
               <h2 style="color: #080C14; margin-top: 0; font-size: 20px;">Hi ${name},</h2>
@@ -56,7 +56,7 @@ export async function POST(request: Request) {
         html = `
           <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; color: #1A1C1E; line-height: 1.6; border: 1px solid #E1E3E5; border-radius: 12px; overflow: hidden; background-color: #ffffff;">
             <div style="background-color: #f7f9fc; padding: 32px; text-align: center; border-bottom: 1px solid #E1E3E5;">
-              <h1 style="margin: 0; color: #080C14; font-size: 24px; font-weight: 700;">Next Step: Interview 🗓️</h1>
+              <h1 style="margin: 0; color: #080C14; font-size: 24px; font-weight: 700;">Next Step: Interview ️</h1>
             </div>
             <div style="padding: 40px 32px;">
               <h2 style="color: #080C14; margin-top: 0; font-size: 20px;">Hi ${name},</h2>

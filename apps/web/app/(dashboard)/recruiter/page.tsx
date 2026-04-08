@@ -316,7 +316,7 @@ export default function RecruiterDashboard() {
 
               {currentCandidates.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px dashed var(--border)' }}>
-                  <div style={{ fontSize: '40px', marginBottom: '12px' }}>📬</div>
+                  <div style={{ fontSize: '40px', marginBottom: '12px' }}></div>
                   <p style={{ fontSize: '14px', marginBottom: '8px', fontWeight: 600, color: 'var(--text-primary)' }}>No candidates yet</p>
                   <p style={{ fontSize: '13px' }}>Paste emails above and click Invite to send assessment links.</p>
                 </div>
@@ -385,18 +385,33 @@ export default function RecruiterDashboard() {
                             )}
 
                             {/* View Report button */}
-                            {c.stage === 'completed' || score != null ? (
-                              <Link
-                                href={`/reports`}
-                                style={{ padding: '6px 14px', fontSize: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
-                              >
-                                View Reports
-                              </Link>
-                            ) : (
-                              <span style={{ padding: '6px 14px', fontSize: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', whiteSpace: 'nowrap', opacity: 0.5 }}>
-                                Pending
-                              </span>
-                            )}
+                            {(() => {
+                              const firstReportId = c.interview_sessions?.[0]?.interview_reports?.[0]?.id;
+                              if (firstReportId) {
+                                return (
+                                  <Link
+                                    href={`/reports/${firstReportId}`}
+                                    style={{ padding: '6px 14px', fontSize: '12px', background: 'rgba(77,255,160,0.1)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '8px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600, whiteSpace: 'nowrap' }}
+                                  >
+                                    View Analytic
+                                  </Link>
+                                );
+                              }
+                              return (
+                                <span style={{ padding: '6px 14px', fontSize: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', whiteSpace: 'nowrap', opacity: 0.5 }}>
+                                  {c.stage === 'completed' ? 'Processing...' : 'No Report'}
+                                </span>
+                              );
+                            })()}
+
+                            {/* Edit email button */}
+                            <button
+                              onClick={() => setEditingEmail({ id: c.id, email: c.email })}
+                              style={{ width: '30px', height: '30px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border)', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                              title="Edit candidate email"
+                            >
+                              ✎
+                            </button>
 
                             {/* Remove candidate */}
                             <button
@@ -512,6 +527,48 @@ export default function RecruiterDashboard() {
             </motion.div>
           );
         })()}
+      </AnimatePresence>
+      {/* Edit Email Modal */}
+      <AnimatePresence>
+        {editingEmail && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setEditingEmail(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+            <motion.div initial={{ scale: 0.9 }} animate={{ scale: 1 }} exit={{ scale: 0.9 }} onClick={e => e.stopPropagation()} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px', maxWidth: '400px', width: '100%' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 800, color: '#fff', marginBottom: '16px' }}>Edit Candidate Email</h3>
+              <input 
+                className="input" 
+                value={editingEmail.email} 
+                onChange={e => setEditingEmail({ ...editingEmail, email: e.target.value })}
+                style={{ width: '100%', marginBottom: '20px' }}
+                placeholder="candidate@email.com"
+              />
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={async () => {
+                    const tid = toast.loading('Updating email...');
+                    try {
+                      const res = await fetch(`/api/recruiter/candidate/${editingEmail.id}`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ email: editingEmail.email })
+                      });
+                      if (!res.ok) throw new Error('Failed to update');
+                      toast.success('Email updated', { id: tid });
+                      await loadPipelines();
+                      setEditingEmail(null);
+                    } catch (err: any) {
+                      toast.error(err.message, { id: tid });
+                    }
+                  }}
+                  className="btn-primary" 
+                  style={{ flex: 1, padding: '10px' }}
+                >
+                  Save Changes
+                </button>
+                <button onClick={() => setEditingEmail(null)} className="btn-secondary" style={{ padding: '10px 16px' }}>Cancel</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

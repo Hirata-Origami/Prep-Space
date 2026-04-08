@@ -118,6 +118,11 @@ export default function NewRoadmapPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
+      
+      // Mutate the roadmaps cache to ensure the new roadmap shows up instantly
+      const { mutate } = await import('swr');
+      mutate('/api/roadmaps');
+      
       toast.success('Roadmap saved!');
       router.push('/roadmap');
     } catch (e: any) {

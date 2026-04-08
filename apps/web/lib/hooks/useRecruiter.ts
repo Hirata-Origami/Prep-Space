@@ -11,7 +11,11 @@ export interface Candidate {
   round_scores?: Record<string, number>;
   invited_at?: string;
   completed_at?: string;
-  users?: { full_name: string; email: string; avatar_url?: string };
+  users?: { id?: string; full_name: string; email: string; avatar_url?: string };
+  interview_sessions?: Array<{
+    id: string;
+    interview_reports: Array<{ id: string }>;
+  }>;
 }
 
 export interface Pipeline {

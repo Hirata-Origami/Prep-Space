@@ -9,58 +9,72 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const { createAdminClient, createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
+  const adminSupabase = await createAdminClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
-  const { data: dbUser } = await supabase
-    .from('users')
-    .select('id, gemini_api_key')
-    .eq('supabase_uid', user.id)
-    .single();
-
-  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
-
-  const body = await request.json();
-  const { message, chat_history } = body;
-
-  if (!message) return NextResponse.json({ error: 'message is required' }, { status: 400 });
-
-  // Fetch the report first
-  const { data: report, error: reportError } = await supabase
+  // Fetch report via admin client
+  const { data: report, error: reportError } = await adminSupabase
     .from('interview_reports')
     .select('*')
     .eq('id', id)
     .maybeSingle();
 
   if (reportError || !report) {
-    if (reportError) console.error('[Chat API] Supabase error:', reportError);
     return NextResponse.json({ error: 'Report not found' }, { status: 404 });
   }
 
-  // Fetch session separately (handles partitioning more reliably)
-  let session = null;
-  if (report.session_id) {
-    const { data } = await supabase
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('id, role, gemini_api_key')
+    .eq('supabase_uid', user.id)
+    .single();
+
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+  // Ownership Check
+  const isOwner = report.user_id === dbUser.id || report.user_id === user.id;
+  
+  let isRecruiterAuthor = false;
+  if (dbUser.role === 'recruiter') {
+    const { data: session } = await adminSupabase
       .from('interview_sessions')
-      .select('id, created_at, interview_type, plan')
+      .select('invite_candidate_id')
       .eq('id', report.session_id)
       .maybeSingle();
-    session = data;
+      
+    if (session?.invite_candidate_id) {
+       const { data: candidate } = await adminSupabase
+         .from('pipeline_candidates')
+         .select('pipeline_id')
+         .eq('id', session.invite_candidate_id)
+         .maybeSingle();
+         
+       if (candidate?.pipeline_id) {
+         const { data: pipeline } = await adminSupabase
+           .from('hiring_pipelines')
+           .select('created_by')
+           .eq('id', candidate.pipeline_id)
+           .maybeSingle();
+           
+         if (pipeline?.created_by === dbUser.id) isRecruiterAuthor = true;
+       }
+    }
   }
-  (report as Record<string, unknown>).interview_sessions = session;
 
-  // Check ownership
-  const ownershipOk =
-    report.user_id === dbUser.id ||
-    report.user_id === user.id;
-
-  if (!ownershipOk) {
+  if (!isOwner && !isRecruiterAuthor) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+
+  const body = await request.json();
+  const { message, chat_history } = body;
+
+  if (!message) return NextResponse.json({ error: 'message is required' }, { status: 400 });
 
   let model;
   try {

@@ -171,36 +171,54 @@ export async function POST(request: Request) {
         
         await sendEmail({
           to: user.email,
-          subject: `Interview Report Ready: ${role || 'Assessment'}`,
+          subject: `Interview Evaluation Report: ${role || 'Technical Assessment'}`,
           html: `
-            <div style="font-family: 'Inter', sans-serif; max-width: 600px; margin: 0 auto; background-color: #f7f9fc; border-radius: 16px; overflow: hidden; border: 1px solid #e1e3e5;">
-              <div style="background-color: #ffffff; padding: 40px 32px; text-align: center; border-bottom: 1px solid #e1e3e5;">
-                <h1 style="color: #080C14; font-size: 24px; font-weight: 700; margin: 0;">You finished! 🎉</h1>
-                <p style="color: #4A5568; font-size: 16px; margin-top: 12px; margin-bottom: 0;">We've prepared your comprehensive feedback report.</p>
+            <div style="font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e1e3e5; box-shadow: 0 4px 12px rgba(0,0,0,0.05);">
+              <div style="background-color: #080C14; padding: 48px 32px; text-align: center;">
+                <div style="color: #4DFFA0; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.2em; margin-bottom: 12px;">PrepSpace Performance Insights</div>
+                <h1 style="color: #ffffff; font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.02em;">Assessment Results Ready</h1>
+                <p style="color: #94A3B8; font-size: 16px; margin-top: 12px; margin-bottom: 0;">Your comprehensive evaluation for the <strong>${role || 'Technical'}</strong> role is now available.</p>
               </div>
 
-              <div style="padding: 40px 32px; background-color: #ffffff;">
-                <div style="text-align: center; margin-bottom: 32px;">
-                  <div style="font-size: 13px; color: #6B7A99; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 8px;">Overall Performance</div>
-                  <div style="font-size: 56px; font-weight: 800; color: #4DFFA0; line-height: 1;">${finalScore}<span style="font-size: 24px;">%</span></div>
-                  <div style="font-size: 16px; font-weight: 600; color: #080C14; margin-top: 12px; background-color: #f7f9fc; display: inline-block; padding: 6px 16px; border-radius: 100px;">Recommendation: ${finalRecommendation}</div>
+              <div style="padding: 48px 40px;">
+                <div style="display: flex; justify-content: center; gap: 40px; margin-bottom: 48px; text-align: center;">
+                  <div style="flex: 1;">
+                    <div style="font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 8px;">Overall Score</div>
+                    <div style="font-size: 48px; font-weight: 800; color: #080C14; line-height: 1;">${finalScore}%</div>
+                  </div>
+                  <div style="flex: 1; border-left: 1px solid #E2E8F0; padding-left: 20px;">
+                    <div style="font-size: 11px; color: #64748B; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 8px;">Recommendation</div>
+                    <div style="font-size: 18px; font-weight: 700; color: #080C14; margin-top: 12px;">${finalRecommendation}</div>
+                  </div>
                 </div>
 
-                <div style="border-top: 1px solid #e1e3e5; padding-top: 32px; margin-bottom: 40px;">
-                  <h3 style="color: #080C14; font-size: 18px; margin: 0 0 16px 0;">Executive Summary</h3>
-                  <p style="color: #4A5568; line-height: 1.6; margin: 0; font-size: 15px;">${reportData.summary}</p>
+                <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 32px; margin-bottom: 40px;">
+                  <h3 style="color: #080C14; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 16px 0;">Executive Summary</h3>
+                  <p style="color: #4A5568; line-height: 1.7; margin: 0; font-size: 15px;">${reportData.summary}</p>
+                </div>
+
+                <div style="margin-bottom: 48px;">
+                  <h3 style="color: #080C14; font-size: 15px; text-transform: uppercase; letter-spacing: 0.05em; margin: 0 0 20px 0;">Competency Breakdown</h3>
+                  <div style="display: flex; flex-direction: column; gap: 12px;">
+                    ${Object.entries(reportData.scores || {}).map(([key, val]) => `
+                      <div style="display: flex; justify-content: space-between; align-items: center; font-size: 14px;">
+                        <span style="color: #64748B; text-transform: capitalize;">${key.replace('_', ' ')}</span>
+                        <span style="font-weight: 700; color: #080C14;">${val}%</span>
+                      </div>
+                    `).join('')}
+                  </div>
                 </div>
 
                 <div style="text-align: center;">
                   <a href="${reportUrl}" 
-                     style="display: inline-block; background-color: #080C14; color: #ffffff; padding: 14px 36px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 16px;">
-                    View Detailed Feedback
+                     style="display: inline-block; background-color: #080C14; color: #ffffff; padding: 16px 48px; border-radius: 10px; text-decoration: none; font-weight: 700; font-size: 16px; box-shadow: 0 4px 12px rgba(8,12,20,0.15);">
+                    View Full Analysis & Evidence
                   </a>
                 </div>
               </div>
 
-              <div style="background-color: #f7f9fc; padding: 24px 32px; text-align: center; border-top: 1px solid #e1e3e5;">
-                <p style="color: #6B7A99; font-size: 13px; margin: 0;">We're rooting for you!<br/><strong>PrepSpace Team</strong></p>
+              <div style="background-color: #F8FAFC; padding: 32px 40px; text-align: center; border-top: 1px solid #e1e3e5;">
+                <p style="color: #94A3B8; font-size: 13px; margin: 0;">This report was automatically generated after your interview session.<br/><strong>PrepSpace Engineering Team</strong></p>
               </div>
             </div>
           `

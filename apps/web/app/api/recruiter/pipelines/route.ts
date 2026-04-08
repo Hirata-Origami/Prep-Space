@@ -18,7 +18,11 @@ export async function GET() {
       *,
       pipeline_candidates (
         id, name, email, stage, composite_score, round_scores, invited_at, completed_at,
-        users ( full_name, email, avatar_url )
+        users ( id, full_name, email, avatar_url ),
+        interview_sessions (
+          id,
+          interview_reports ( id )
+        )
       )
     `)
     .order('created_at', { ascending: false });

@@ -76,32 +76,30 @@ export async function GET(request: Request) {
       <body style="margin: 0; padding: 0; background-color: #05070A; font-family: 'Inter', -apple-system, sans-serif;">
         <div style="max-width: 600px; margin: 0 auto; background: #080C14; border: 1px solid rgba(77,255,160,0.15); border-radius: 16px; overflow: hidden; margin-top: 40px; margin-bottom: 40px;">
           <!-- Header -->
-          <div style="padding: 40px 32px; text-align: center; background: linear-gradient(135deg, rgba(77,255,160,0.1) 0%, rgba(123,97,255,0.1) 100%);">
-            <div style="font-size: 12px; font-weight: 800; color: #4DFFA0; letter-spacing: 0.2em; text-transform: uppercase; margin-bottom: 12px;">Exclusive Daily Insight</div>
-            <h1 style="color: #FFFFFF; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.02em;">PrepSpace Intelligence</h1>
+          <div style="padding: 48px 32px; text-align: center; background: linear-gradient(135deg, rgba(77,255,160,0.12) 0%, rgba(123,97,255,0.12) 100%);">
+            <div style="font-size: 11px; font-weight: 800; color: #4DFFA0; letter-spacing: 0.25em; text-transform: uppercase; margin-bottom: 12px;">Exclusive Daily Intelligence</div>
+            <h1 style="color: #FFFFFF; margin: 0; font-size: 26px; font-weight: 800; letter-spacing: -0.02em;">PrepSpace Insights</h1>
           </div>
 
-          <div style="padding: 32px;">
+          <div style="padding: 40px 32px;">
             <p style="font-size: 16px; color: #B8C4E0; margin-bottom: 32px;">Hello ${name},</p>
             
             <!-- Tip Section -->
-            <div style="background: rgba(123,97,255,0.08); border-left: 4px solid #7B61FF; padding: 24px; border-radius: 8px; margin-bottom: 24px;">
-              <h3 style="color: #7B61FF; margin: 0 0 12px 0; font-size: 18px;">
-                Tip: ${insights.tip_title}
-              </h3>
-              <p style="margin: 0; line-height: 1.7; color: #F0F4FF; font-size: 15px;">${insights.tip_content}</p>
+            <div style="background: rgba(123,97,255,0.06); border-left: 3px solid #7B61FF; padding: 28px; border-radius: 12px; margin-bottom: 24px;">
+              <h3 style="color: #7B61FF; margin: 0 0 14px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Career Strategy</h3>
+              <p style="margin: 0; line-height: 1.8; color: #F0F4FF; font-size: 15px; font-weight: 600;">${insights.tip_title}</p>
+              <p style="margin: 12px 0 0 0; line-height: 1.7; color: #B8C4E0; font-size: 15px;">${insights.tip_content}</p>
             </div>
 
             <!-- Company Section -->
-            <div style="background: rgba(77,255,160,0.05); border: 1px solid rgba(77,255,160,0.15); padding: 24px; border-radius: 12px; margin-bottom: 32px;">
-              <h3 style="color: #4DFFA0; margin: 0 0 12px 0; font-size: 18px;">Spotlight: ${insights.company_name}</h3>
-              <p style="margin: 0; line-height: 1.7; color: #D1D9E6; font-size: 14px;">${insights.company_insight}</p>
+            <div style="background: rgba(77,255,160,0.04); border: 1px solid rgba(77,255,160,0.1); padding: 28px; border-radius: 12px; margin-bottom: 32px;">
+              <h3 style="color: #4DFFA0; margin: 0 0 14px 0; font-size: 14px; text-transform: uppercase; letter-spacing: 0.05em;">Culture Spotlight: ${insights.company_name}</h3>
+              <p style="margin: 0; line-height: 1.7; color: #B8C4E0; font-size: 15px;">${insights.company_insight}</p>
             </div>
 
             <!-- Quote -->
-            <div style="text-align: center; margin: 40px 0; padding: 24px; border-top: 1px solid rgba(255,181,71,0.1);">
-              <div style="font-size: 32px; color: rgba(255,181,71,0.3); margin-bottom: 8px;">&ldquo;</div>
-              <div style="font-style: italic; color: #FFB547; font-size: 17px; line-height: 1.6;">${insights.quote}</div>
+            <div style="text-align: center; margin: 48px 0; padding: 32px; border-top: 1px solid rgba(255,255,255,0.05);">
+              <div style="font-style: italic; color: #FFB547; font-size: 16px; line-height: 1.8; font-weight: 500;">"${insights.quote}"</div>
             </div>
 
             <!-- CTA -->
