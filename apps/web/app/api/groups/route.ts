@@ -57,7 +57,7 @@ export async function GET(req: Request) {
       },
       ttl
     );
-  } catch {
+  } catch (err: unknown) {
     return NextResponse.json({ error: (err instanceof Error ? err.message : "Unknown error") }, { status: 500 });
   }
 
