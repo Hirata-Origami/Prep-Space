@@ -32,6 +32,8 @@ export default function RecruiterDashboard() {
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviting, setInviting] = useState(false);
   const [expandedCandidate, setExpandedCandidate] = useState<string | null>(null);
+  const [roundModal, setRoundModal] = useState<{ candidate: Candidate; round: string; roundIndex: number } | null>(null);
+  const [editingEmail, setEditingEmail] = useState<{ id: string; email: string } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-select first pipeline
@@ -122,6 +124,19 @@ export default function RecruiterDashboard() {
     };
     reader.readAsText(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const handleRemoveCandidate = async (c: Candidate) => {
+    if (!confirm(`Remove ${c.users?.full_name || c.name || c.email} from this pipeline?`)) return;
+    toast.loading('Removing candidate...', { id: `remove-${c.id}` });
+    try {
+      const res = await fetch(`/api/recruiter/candidate/${c.id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Failed to remove');
+      toast.success('Candidate removed', { id: `remove-${c.id}` });
+      await loadPipelines();
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Remove failed', { id: `remove-${c.id}` });
+    }
   };
 
   const handleStageChange = async (candidate: Candidate, newStage: string) => {
@@ -357,14 +372,16 @@ export default function RecruiterDashboard() {
                               <option value="rejected" style={{ color: '#000' }}>Reject (Email)</option>
                             </select>
 
-                            {/* Expand button to see round breakdown */}
-                            {Object.keys(roundScores).length > 0 && (
+                            {/* Expand button or rounds indicator */}
+                            {Object.keys(roundScores).length > 0 ? (
                               <button
                                 onClick={() => setExpandedCandidate(isExpanded ? null : c.id)}
                                 style={{ padding: '5px 10px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '11px', color: 'var(--text-muted)', cursor: 'pointer' }}
                               >
                                 {isExpanded ? '▲ Hide' : '▼ Rounds'}
                               </button>
+                            ) : (
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>No scores yet</span>
                             )}
 
                             {/* View Report button */}
@@ -380,6 +397,15 @@ export default function RecruiterDashboard() {
                                 Pending
                               </span>
                             )}
+
+                            {/* Remove candidate */}
+                            <button
+                              onClick={() => handleRemoveCandidate(c)}
+                              title="Remove candidate"
+                              style={{ width: '30px', height: '30px', borderRadius: '6px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.2)', color: '#FF4D6A', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', flexShrink: 0 }}
+                            >
+                              ✕
+                            </button>
                           </div>
                         </div>
 
@@ -393,16 +419,23 @@ export default function RecruiterDashboard() {
                               style={{ overflow: 'hidden', borderTop: '1px solid var(--border)', background: 'var(--bg-base)' }}
                             >
                               <div style={{ padding: '16px 20px', display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '100%', marginBottom: '4px' }}>Round Scores</div>
+                                <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', width: '100%', marginBottom: '4px' }}>Round Scores (click for details)</div>
                                 {selectedPipeline.rounds?.map((round, idx) => {
                                   const roundScore = roundScores[round] ?? roundScores[idx.toString()];
                                   const passed = roundScore != null && roundScore >= selectedPipeline.pass_threshold;
                                   return (
-                                    <div key={round} style={{ padding: '8px 14px', background: roundScore != null ? (passed ? 'rgba(77,255,160,0.08)' : 'rgba(255,181,71,0.08)') : 'var(--bg-elevated)', border: `1px solid ${roundScore != null ? (passed ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)') : 'var(--border)'}`, borderRadius: '8px', minWidth: '120px' }}>
+                                    <div
+                                      key={round}
+                                      onClick={() => setRoundModal({ candidate: c, round, roundIndex: idx })}
+                                      style={{ padding: '8px 14px', background: roundScore != null ? (passed ? 'rgba(77,255,160,0.08)' : 'rgba(255,181,71,0.08)') : 'var(--bg-elevated)', border: `1px solid ${roundScore != null ? (passed ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)') : 'var(--border)'}`, borderRadius: '8px', minWidth: '120px', cursor: 'pointer', transition: 'opacity 0.15s' }}
+                                      onMouseEnter={e => (e.currentTarget.style.opacity = '0.75')}
+                                      onMouseLeave={e => (e.currentTarget.style.opacity = '1')}
+                                    >
                                       <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '2px' }}>{round}</div>
                                       <div style={{ fontSize: '18px', fontWeight: 800, color: roundScore != null ? (passed ? 'var(--accent-primary)' : '#FFB547') : 'var(--text-muted)' }}>
                                         {roundScore != null ? `${roundScore}%` : '—'}
                                       </div>
+                                      {roundScore != null && <div style={{ fontSize: '10px', color: passed ? 'var(--accent-primary)' : '#FFB547' }}>{passed ? 'Passed' : 'Below threshold'}</div>}
                                     </div>
                                   );
                                 })}
@@ -419,6 +452,67 @@ export default function RecruiterDashboard() {
           )}
         </div>
       )}
+
+      {/* Round Detail Modal */}
+      <AnimatePresence>
+        {roundModal && (() => {
+          const { candidate: mc, round, roundIndex } = roundModal;
+          const rs = mc.round_scores || {};
+          const roundScore = rs[round] ?? rs[roundIndex.toString()];
+          const passed = roundScore != null && roundScore >= (selectedPipeline?.pass_threshold ?? 70);
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setRoundModal(null)}
+              style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 200, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+            >
+              <motion.div
+                initial={{ scale: 0.9, y: 20 }}
+                animate={{ scale: 1, y: 0 }}
+                exit={{ scale: 0.9, y: 20 }}
+                onClick={e => e.stopPropagation()}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '32px', maxWidth: '480px', width: '100%', boxShadow: '0 25px 80px rgba(0,0,0,0.5)' }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '20px' }}>
+                  <div>
+                    <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 700, textTransform: 'uppercase', marginBottom: '4px' }}>Round Report</div>
+                    <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>{round}</h2>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{mc.users?.full_name || mc.name || mc.email}</div>
+                  </div>
+                  {roundScore != null ? (
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontSize: '42px', fontWeight: 900, color: passed ? 'var(--accent-primary)' : '#FFB547', lineHeight: 1 }}>{roundScore}%</div>
+                      <div style={{ fontSize: '12px', color: passed ? 'var(--accent-primary)' : '#FFB547', fontWeight: 700 }}>{passed ? 'PASSED' : 'BELOW THRESHOLD'}</div>
+                    </div>
+                  ) : (
+                    <div style={{ fontSize: '20px', color: 'var(--text-muted)' }}>Not attempted</div>
+                  )}
+                </div>
+                <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '16px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Pass threshold</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{selectedPipeline?.pass_threshold ?? 70}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Candidate email</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)' }}>{mc.email}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Overall stage</span>
+                    <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', textTransform: 'capitalize' }}>{mc.stage.replace('_', ' ')}</span>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <Link href="/reports" style={{ flex: 1, padding: '10px', textAlign: 'center', background: 'var(--accent-primary)', color: '#080C14', borderRadius: '8px', fontSize: '13px', fontWeight: 700, textDecoration: 'none' }}>View Full Reports</Link>
+                  <button onClick={() => setRoundModal(null)} style={{ padding: '10px 18px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', fontSize: '13px', color: 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>Close</button>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
     </div>
   );
 }

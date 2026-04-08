@@ -152,6 +152,22 @@ export default function GroupDashboardPage() {
     }
   };
 
+  const handleLeaveGroup = async () => {
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    try {
+      const res = await fetch(`/api/groups/${id}/members`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('You have left the group');
+        router.push('/groups');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to leave group');
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
   const handleAssignRoadmap = async (roadmapId: string, action: 'add' | 'remove') => {
     if (!roadmapId) return;
     try {
@@ -192,6 +208,14 @@ export default function GroupDashboardPage() {
           </div>
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>{group.description}</p>
         </div>
+        {myRole !== 'admin' && (
+          <button
+            onClick={handleLeaveGroup}
+            style={{ padding: '8px 18px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.25)', color: '#FF4D6A', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-body)' }}
+          >
+            Leave Group
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>

@@ -405,9 +405,19 @@ export default function ReportDetailPage() {
               </div>
 
               <div style={{ padding: '16px', background: 'rgba(77,255,160,0.05)', borderRadius: '12px', border: '1px solid rgba(77,255,160,0.1)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 800, marginBottom: '4px' }}>ROLE PERCENTILE</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 12% globally</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>for {report.interview_sessions?.plan?.role || 'Software Engineer'}</div>
+                <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 800, marginBottom: '4px' }}>ROLE PERCENTILE (ESTIMATED)</div>
+                {report.overall_score >= 90 ? (
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 5% globally</div>
+                ) : report.overall_score >= 80 ? (
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 20% globally</div>
+                ) : report.overall_score >= 70 ? (
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 40% globally</div>
+                ) : report.overall_score >= 60 ? (
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 60% globally</div>
+                ) : (
+                  <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Below median</div>
+                )}
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>for {report.interview_sessions?.plan?.role || 'Software Engineer'} based on score</div>
               </div>
             </section>
           )}
