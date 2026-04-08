@@ -3,8 +3,10 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import useSWR from 'swr';
 import { useUser } from '@/lib/hooks/useUser';
 import { useRoadmaps, useSessions } from '@/lib/hooks/useRoadmaps';
+
 
 function StatCard({ label, value, icon, color }: { label: string; value: string | number; icon: string; color: string }) {
   return (
@@ -55,6 +57,18 @@ export default function DashboardPage() {
   const { roadmaps, isLoading: roadmapsLoading } = useRoadmaps();
   const { sessions, isLoading: sessionsLoading } = useSessions();
   const router = useRouter();
+
+  const { data: invitesData } = useSWR<{ invites: Array<{
+    id: string;
+    email: string;
+    stage: string;
+    composite_score?: number;
+    invited_at?: string;
+    pipeline_id: string;
+    hiring_pipelines: { id: string; role_name: string; rounds: string[]; pass_threshold: number; } | Array<{ id: string; role_name: string; rounds: string[]; pass_threshold: number; }>;
+  }> }>('/api/recruiter/my-invites', (url: string) => fetch(url).then(r => r.json()), { revalidateOnFocus: false });
+  const assignedInterviews = invitesData?.invites ?? [];
+
 
   useEffect(() => {
     if (!userLoading && user && (!user.target_role || !user.target_company)) {
@@ -256,6 +270,59 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* Assigned Interviews (from Recruiters) */}
+      {assignedInterviews.length > 0 && (
+        <div style={{ marginTop: '28px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>Assigned Interviews</h2>
+            <span style={{ fontSize: '12px', padding: '4px 10px', background: 'rgba(255,181,71,0.1)', color: '#FFB547', borderRadius: '100px', fontWeight: 700 }}>{assignedInterviews.length} assigned</span>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {assignedInterviews.map(invite => {
+              const pipeline = Array.isArray(invite.hiring_pipelines) ? invite.hiring_pipelines[0] : invite.hiring_pipelines;
+              const isCompleted = invite.stage === 'completed';
+              const stageColors: Record<string, string> = { invited: '#FFB547', in_progress: '#7B61FF', completed: 'var(--accent-primary)', shortlisted: '#00D4FF' };
+              return (
+                <div key={invite.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '12px', gap: '16px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '6px' }}>
+                      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: stageColors[invite.stage] || '#FFB547', flexShrink: 0 }} />
+                      <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{pipeline?.role_name || 'Assessment'}</div>
+                    </div>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {pipeline?.rounds?.map((r, i) => (
+                        <span key={i} style={{ fontSize: '11px', padding: '2px 8px', background: 'var(--bg-elevated)', borderRadius: '100px', color: 'var(--text-muted)', border: '1px solid var(--border)' }}>{r}</span>
+                      ))}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                    {invite.composite_score != null && (
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontSize: '22px', fontWeight: 900, color: invite.composite_score >= (pipeline?.pass_threshold ?? 70) ? 'var(--accent-primary)' : '#FFB547' }}>{invite.composite_score}%</div>
+                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Score</div>
+                      </div>
+                    )}
+                    <span style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '100px', fontWeight: 700, color: stageColors[invite.stage] || '#FFB547', background: (stageColors[invite.stage] || '#FFB547') + '18', textTransform: 'capitalize' }}>
+                      {invite.stage.replace('_', ' ')}
+                    </span>
+                    {!isCompleted ? (
+                      <Link href={`/interview/invite/${invite.id}`} style={{ padding: '8px 18px', background: 'var(--accent-primary)', color: '#080C14', borderRadius: '8px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        Start Assessment →
+                      </Link>
+                    ) : (
+                      <Link href="/reports" style={{ padding: '8px 18px', background: 'transparent', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', borderRadius: '8px', fontSize: '13px', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+                        View Report
+                      </Link>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
