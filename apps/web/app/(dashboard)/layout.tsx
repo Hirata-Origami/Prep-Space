@@ -77,11 +77,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   }, []);
 
   useEffect(() => {
-    if (!isLoading && user) {
-      const isIncomplete = !user.target_role || !user.target_company || !user.has_gemini_key;
-      if (isIncomplete && pathname !== '/onboarding') {
-        router.push('/onboarding');
-      }
+    // Only fire when loading is definitively complete (not just cache-miss loading)
+    // to prevent blocking navigation for up to 60 seconds.
+    if (isLoading) return;
+    if (!user) {
+      // No user at all — send to login
+      router.push('/auth/login');
+      return;
+    }
+    const isIncomplete = !user.target_role || !user.target_company || !user.has_gemini_key;
+    if (isIncomplete && pathname !== '/onboarding') {
+      router.push('/onboarding');
     }
   }, [user, isLoading, pathname, router]);
 

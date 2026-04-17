@@ -12,10 +12,12 @@ export default function LoginPage() {
 
   const handleGoogle = async () => {
     setLoading(true);
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin;
+    // Always use the current origin so local dev stays on localhost:3000
+    // and production stays on the prod domain — never hardcode SITE_URL here.
+    const redirectOrigin = window.location.origin;
     await supabase.auth.signInWithOAuth({
       provider: 'google',
-      options: { redirectTo: `${siteUrl}/auth/callback` }
+      options: { redirectTo: `${redirectOrigin}/auth/callback` }
     });
   };
 

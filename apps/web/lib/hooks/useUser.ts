@@ -27,33 +27,36 @@ export interface UserProfile {
   level: string;
 }
 
+function readCache(): { profile: UserProfile } | undefined {
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const raw = localStorage.getItem('user_profile_cache');
+    if (raw) return { profile: JSON.parse(raw) };
+  } catch {}
+  return undefined;
+}
+
 export function useUser() {
-  const getCachedProfile = () => {
-    if (typeof window !== 'undefined') {
-      const cached = localStorage.getItem('user_profile_cache');
-      if (cached) {
-        try {
-          return { profile: JSON.parse(cached) };
-        } catch (e) {
-          return undefined;
-        }
-      }
-    }
-    return undefined;
-  };
+  const cachedFallback = readCache();
 
   const { data, error, isLoading, mutate } = useSWR<{ profile: UserProfile }>(
     '/api/user/profile',
     fetcher,
-    { 
+    {
       revalidateOnFocus: false,
-      fallbackData: getCachedProfile()
+      fallbackData: cachedFallback,
+      // Don't treat background revalidation as "loading" when we have cache
+      keepPreviousData: true,
     }
   );
 
+  // If we have fallback data from cache, never block the UI with isLoading=true.
+  // SWR will still silently revalidate in the background.
+  const effectivelyLoading = isLoading && !cachedFallback;
+
   return {
     user: data?.profile ?? null,
-    isLoading,
+    isLoading: effectivelyLoading,
     isError: !!error,
     mutate,
   };

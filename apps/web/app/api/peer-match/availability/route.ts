@@ -42,3 +42,30 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ availability: data }, { status: 201 });
 }
+
+export async function DELETE() {
+  const supabase = await createClient();
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+
+  if (authError || !user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const { data: dbUser } = await supabase
+    .from('users')
+    .select('id')
+    .eq('supabase_uid', user.id)
+    .single();
+
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+  const { error } = await supabase
+    .from('peer_availability')
+    .update({ is_active: false })
+    .eq('user_id', dbUser.id)
+    .eq('is_active', true);
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  return NextResponse.json({ message: 'Availability cancelled' });
+}

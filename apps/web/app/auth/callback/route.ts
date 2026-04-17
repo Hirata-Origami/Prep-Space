@@ -8,8 +8,9 @@ export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get('code');
 
-  // Use NEXT_PUBLIC_SITE_URL for production (Vercel), fallback to request origin
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || origin;
+  // Always use the request's own origin so local dev stays on localhost:3000
+  // and production stays on the prod domain. Never redirect cross-environment.
+  const siteUrl = origin;
 
   if (code) {
     const cookieStore = await cookies();

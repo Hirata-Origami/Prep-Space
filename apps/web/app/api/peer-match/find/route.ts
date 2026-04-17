@@ -4,25 +4,18 @@ import { createClient } from '@/lib/supabase/server';
 export async function GET(req: Request) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
-
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (authError || !user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const { searchParams } = new URL(req.url);
-  const topic = searchParams.get('topic');
-  const skill_level = searchParams.get('skill_level');
+  const topic = searchParams.get('topic') ?? 'General';
+  const skill_level = searchParams.get('skill_level') ?? 'Intermediate';
 
   const { data: dbUser } = await supabase
-    .from('users')
-    .select('id')
-    .eq('supabase_uid', user.id)
-    .single();
-
+    .from('users').select('id').eq('supabase_uid', user.id).single();
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  // 1. Find other active availabilities matching topic and level
-  const { data: matches, error } = await supabase
+  // 1. Find someone waiting (no self-match, active, not expired)
+  const { data: matches } = await supabase
     .from('peer_availability')
     .select('id, user_id, topic, skill_level, users(full_name, avatar_url)')
     .eq('topic', topic)
@@ -30,43 +23,40 @@ export async function GET(req: Request) {
     .eq('is_active', true)
     .neq('user_id', dbUser.id)
     .gte('available_until', new Date().toISOString())
+    .order('created_at', { ascending: true })
     .limit(1);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  
-  if (!matches || matches.length === 0) {
-    return NextResponse.json({ match: null });
-  }
+  if (!matches || matches.length === 0) return NextResponse.json({ match: null });
 
   const match = matches[0];
 
-  // 2. Create a peer session (auto-match)
-  // In a real app, this would notify both users.
-  const { data: session, error: sessionError } = await supabase
-    .from('peer_sessions')
-    .insert({
-      user1_id: dbUser.id,
-      user2_id: match.user_id,
-      topic,
-      status: 'established',
-      room_id: `peer_${Math.random().toString(36).substring(7)}`
-    })
-    .select()
-    .single();
+  // 2. Mark both users inactive immediately (narrows any remaining window)
+  await supabase.from('peer_availability').update({ is_active: false })
+    .or(`user_id.eq.${dbUser.id},user_id.eq.${match.user_id}`);
 
-  if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 });
+  // 3. Atomically get-or-create session via DB function (NO race condition possible)
+  //    The function stores users sorted by LEAST/GREATEST so both callers
+  //    always look up the same row key regardless of call order.
+  const { data: rpcResult, error: rpcError } = await supabase.rpc('get_or_create_peer_session', {
+    p_user1_id: dbUser.id,
+    p_user2_id: match.user_id,
+    p_topic: topic,
+  });
 
-  // 3. Mark availabilities as inactive since matched
-  await supabase
-    .from('peer_availability')
-    .update({ is_active: false })
-    .in('id', [match.id]);
+  if (rpcError || !rpcResult || rpcResult.length === 0) {
+    console.error('[find] RPC failed:', rpcError?.message);
+    return NextResponse.json({ error: rpcError?.message ?? 'Failed to create session' }, { status: 500 });
+  }
 
-  return NextResponse.json({ 
+  const sessionId = rpcResult[0].session_id;
+  const isNew = rpcResult[0].is_new;
+  console.log(`[find] Session ${isNew ? 'CREATED' : 'EXISTING'}: ${sessionId}`);
+
+  return NextResponse.json({
     match: {
       ...match,
-      session_id: session.id,
-      room_id: session.room_id
+      session_id: sessionId,
+      room_id: sessionId,
     }
   });
 }
