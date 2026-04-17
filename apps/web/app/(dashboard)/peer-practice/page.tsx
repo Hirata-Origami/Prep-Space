@@ -42,6 +42,7 @@ export default function PeerPracticePage() {
         .single();
       if (dbUser) setDbUserId(dbUser.id);
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Subscribe to peer_sessions: listen on BOTH user1_id and user2_id
@@ -160,9 +161,9 @@ export default function PeerPracticePage() {
       {/* How it works */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', marginBottom: '32px' }}>
         {[
-          { step: '1', title: 'Set Your Preferences', desc: 'Choose topic and skill level. We match you with the best available partner.', icon: '📅' },
-          { step: '2', title: 'AI Matches You', desc: 'Matched by role, skill level, topic, and availability window in real-time.', icon: '🤖' },
-          { step: '3', title: 'Practice Together', desc: 'Live P2P session: take turns interviewing each other. Both provide AI-backed scores.', icon: '🤝' },
+          { step: '1', title: 'Set Your Preferences', desc: 'Choose topic and skill level. We match you with the best available partner.', icon: '' },
+          { step: '2', title: 'AI Matches You', desc: 'Matched by role, skill level, topic, and availability window in real-time.', icon: '' },
+          { step: '3', title: 'Practice Together', desc: 'Live P2P session: take turns interviewing each other. Both provide AI-backed scores.', icon: '' },
         ].map(({ step, title, desc, icon }) => (
           <div key={step} className="card" style={{ padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '36px', marginBottom: '10px' }}>{icon}</div>
@@ -190,7 +191,7 @@ export default function PeerPracticePage() {
               </select>
             </div>
             <button onClick={searching ? cancelSearch : startMatching} className={searching ? 'btn-secondary' : 'btn-primary'} style={{ width: '100%', justifyContent: 'center', padding: '12px', marginTop: '4px' }}>
-              {searching ? `⏱ ${formatTime(searchTime)} — Cancel Search` : '🔍 Find My Match'}
+              {searching ? `⏱ ${formatTime(searchTime)} — Cancel Search` : ' Find My Match'}
             </button>
           </div>
 
@@ -223,7 +224,7 @@ export default function PeerPracticePage() {
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '6px' }}>
                   You&apos;re paired with{' '}
                   <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>
-                    {match.partner_name || match.users?.full_name || 'a Peer Candidate'}
+                    {match.partner_name || (match.users as Record<string, any>)?.full_name || 'a Peer Candidate'}
                   </span>
                 </p>
                 <div style={{ display: 'flex', gap: '6px', marginBottom: '20px' }}>
@@ -238,7 +239,7 @@ export default function PeerPracticePage() {
                   >
                     Enter Session →
                   </button>
-                  <button onClick={() => setMatch(null)} className="btn-secondary" style={{ padding: '10px' }}>✕</button>
+                  <button onClick={() => setMatch(null)} className="btn-secondary" style={{ padding: '10px' }}></button>
                 </div>
               </motion.div>
             )}

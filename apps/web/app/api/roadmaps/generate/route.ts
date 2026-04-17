@@ -59,7 +59,7 @@ export async function POST(request: Request) {
   try {
     model = getModel(profile?.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'No Gemini API key configured';
+    const msg = e instanceof Error ? (e instanceof Error ? e.message : "Unknown error") : 'No Gemini API key configured';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
     // Refinement mode: update based on user comments
     const selectedModulesText = selected_module_ids?.length
       ? `The user has specifically selected these modules to update: ${JSON.stringify(
-          current_roadmap.modules?.filter((m: any, i: number) => selected_module_ids.includes(i.toString()))?.map((m: any) => m.title)
+          current_roadmap.modules?.filter((_m: unknown, i: number) => selected_module_ids.includes(i.toString()))?.map((m: { title: string }) => m.title)
         )}.`
       : 'The user wants to refine the overall roadmap.';
 

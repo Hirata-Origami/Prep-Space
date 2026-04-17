@@ -15,7 +15,6 @@ interface LeaderboardUser {
   target_role?: string;
 }
 
-const MEDAL = ['🥇', '🥈', '🥉'];
 const PERIODS = ['Weekly', 'Monthly', 'All Time'];
 
 export default function LeaderboardPage() {

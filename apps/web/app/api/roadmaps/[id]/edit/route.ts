@@ -42,7 +42,7 @@ export async function POST(
   try {
     model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'No Gemini API key configured';
+    const msg = e instanceof Error ? (e instanceof Error ? e.message : "Unknown error") : 'No Gemini API key configured';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 

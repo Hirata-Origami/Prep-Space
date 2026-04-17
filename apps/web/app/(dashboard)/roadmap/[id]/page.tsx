@@ -66,10 +66,10 @@ export default function RoadmapDetailPage() {
         body: JSON.stringify({ status: 'completed' }),
       });
       if (!res.ok) throw new Error('Failed to mark complete');
-      toast.success('Module marked as complete! 🎉');
+      toast.success('Module marked as complete! ');
       await fetchRoadmap();
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'An error occurred');
     } finally {
       setCompletingModule(null);
     }
@@ -122,7 +122,7 @@ export default function RoadmapDetailPage() {
   if (!roadmap) {
     return (
       <div style={{ padding: '80px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>🗺️</div>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>️</div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Roadmap not found</h2>
         <Link href="/roadmap" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Roadmaps</Link>
       </div>
@@ -179,7 +179,7 @@ export default function RoadmapDetailPage() {
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', flex: 1 }}>
                         {i + 1}. {mod.title}
                       </span>
-                      {mod.status === 'completed' && <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 700 }}>✓ DONE</span>}
+                      {mod.status === 'completed' && <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 700 }}> DONE</span>}
                     </label>
                   ))}
                 </div>
@@ -219,7 +219,7 @@ export default function RoadmapDetailPage() {
                       <span style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                       Updating with AI…
                     </span>
-                  ) : '✨ Update Roadmap'}
+                  ) : ' Update Roadmap'}
                 </button>
               </div>
             </motion.div>
@@ -255,7 +255,7 @@ export default function RoadmapDetailPage() {
             </div>
           </div>
           <button onClick={() => setShowEditModal(true)} className="btn-secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>
-            ✏️ Edit Plan
+            ️ Edit Plan
           </button>
         </div>
 
@@ -316,7 +316,7 @@ export default function RoadmapDetailPage() {
                   flexShrink: 0,
                   transition: 'all 0.3s'
                 }}>
-                  {isCompleted ? '✓' : index + 1}
+                  {isCompleted ? '' : index + 1}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '12px' }}>
@@ -365,7 +365,7 @@ export default function RoadmapDetailPage() {
                         className="btn-primary"
                         style={{ padding: '7px 20px', fontSize: '12px', textDecoration: 'none', fontWeight: 700 }}
                       >
-                        🎙 Start Interview
+                         Start Interview
                       </Link>
                     )}
                     {!isCompleted ? (
@@ -380,7 +380,7 @@ export default function RoadmapDetailPage() {
                             <span style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                             Marking…
                           </>
-                        ) : '✓ Mark Complete'}
+                        ) : ' Mark Complete'}
                       </button>
                     ) : (
                       <button
@@ -414,11 +414,11 @@ export default function RoadmapDetailPage() {
           animate={{ opacity: 1, y: 0 }}
           style={{ marginTop: '32px', padding: '32px', background: 'rgba(77,255,160,0.05)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '16px', textAlign: 'center' }}
         >
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}>🎉</div>
+          <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '20px' }}>You&apos;ve mastered all modules. Time to ace that interview.</p>
           <Link href="/interview/new" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
-            🎙 Take Full Mock Interview →
+             Take Full Mock Interview →
           </Link>
         </motion.div>
       )}

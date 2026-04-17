@@ -26,7 +26,7 @@ export async function GET() {
         let profile = profileData?.[0];
 
         if (error) {
-          throw new Error(error.message);
+          throw new Error((error instanceof Error ? error.message : "Unknown error"));
         }
 
         // Create profile if it doesn't exist
@@ -62,8 +62,8 @@ export async function GET() {
       },
       300 // cache for 5 minutes
     );
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: error instanceof Error ? (error instanceof Error ? error.message : "Unknown error") : 'Unknown error' }, { status: 500 });
   }
 
   return NextResponse.json({ profile: safeProfile });
@@ -99,7 +99,7 @@ export async function PATCH(request: Request) {
   const profile = updatedData?.[0]; // Get the first element
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   try {

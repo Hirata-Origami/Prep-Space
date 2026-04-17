@@ -64,7 +64,7 @@ export default function MockCompanyPage() {
             style={{ width: '200px' }}
           />
           <Link href="/mock-company/new" className="btn-primary" style={{ textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '13px' }}>
-            ➕ Add Company
+             Add Company
           </Link>
         </div>
       </div>
@@ -127,7 +127,7 @@ export default function MockCompanyPage() {
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
                 <span>Pass rate: <strong style={{ color: company.community_pass_rate > 65 ? 'var(--accent-primary)' : company.community_pass_rate > 55 ? '#FFB547' : '#FF4D6A' }}>{company.community_pass_rate}%</strong></span>
-                {selected?.id === company.id ? <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}>✓ Selected</span> : <span style={{ color: 'var(--text-muted)' }}>Click to select</span>}
+                {selected?.id === company.id ? <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}> Selected</span> : <span style={{ color: 'var(--text-muted)' }}>Click to select</span>}
               </div>
             </motion.div>
           ))}
@@ -203,7 +203,7 @@ export default function MockCompanyPage() {
                 )}
 
                 <button onClick={handleStartInterview} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '15px', fontWeight: 700 }}>
-                  🎙 Start {selected.name} Interview
+                   Start {selected.name} Interview
                 </button>
               </div>
             </div>

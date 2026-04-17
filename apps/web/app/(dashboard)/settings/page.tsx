@@ -74,7 +74,7 @@ export default function SettingsPage() {
           {TABS.map(tab => (
             <button key={tab} onClick={() => setActiveTab(tab)}
               style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', borderRadius: '8px', fontSize: '14px', fontWeight: 500, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.15s', background: activeTab === tab ? 'var(--accent-primary-dim)' : 'transparent', color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-muted)' }}>
-              {tab === 'AI API Key' && '🤖 '}{tab}
+              {tab === 'AI API Key' && ' '}{tab}
               {tab === 'AI API Key' && !user?.has_gemini_key && (
                 <span style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#FFB547', flexShrink: 0 }} />
               )}
@@ -120,7 +120,7 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ padding: '16px', background: user?.has_gemini_key ? 'rgba(77,255,160,0.06)' : 'rgba(255,181,71,0.06)', border: `1px solid ${user?.has_gemini_key ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)'}`, borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <span style={{ fontSize: '24px' }}>{user?.has_gemini_key ? '✅' : '⚠️'}</span>
+                <span style={{ fontSize: '24px' }}>{user?.has_gemini_key ? '' : '️'}</span>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: user?.has_gemini_key ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>
                     {user?.has_gemini_key ? 'AI API key is configured' : 'No AI API key set'}
@@ -145,7 +145,7 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ padding: '14px', background: 'var(--bg-elevated)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                🔒 <strong style={{ color: 'var(--text-secondary)' }}>Your key is encrypted at rest</strong> and never exposed to the browser. It is only used server-side for AI calls.
+                 <strong style={{ color: 'var(--text-secondary)' }}>Your key is encrypted at rest</strong> and never exposed to the browser. It is only used server-side for AI calls.
               </div>
             </div>
           )}
@@ -183,7 +183,7 @@ export default function SettingsPage() {
                   <div key={t} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', borderRadius: '8px', border: `1px solid ${i === 0 ? 'var(--accent-primary)' : 'var(--border)'}`, background: i === 0 ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)', cursor: 'pointer', marginBottom: '8px' }}>
                     <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: i === 0 ? '#080C14' : i === 1 ? '#000' : '#f5f5f5', border: '1px solid var(--border)' }} />
                     <span style={{ fontSize: '14px', fontWeight: 600, color: i === 0 ? 'var(--accent-primary)' : 'var(--text-secondary)' }}>{t}</span>
-                    {i === 0 && <span style={{ marginLeft: 'auto', color: 'var(--accent-primary)' }}>✓</span>}
+                    {i === 0 && <span style={{ marginLeft: 'auto', color: 'var(--accent-primary)' }}></span>}
                   </div>
                 ))}
               </div>

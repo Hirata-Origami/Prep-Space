@@ -9,52 +9,78 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
+  const { createAdminClient, createClient } = await import('@/lib/supabase/server');
   const supabase = await createClient();
+  const adminSupabase = await createAdminClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
 
   if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  // Fetch report via admin client
+  const { data: report, error: reportError } = await adminSupabase
+    .from('interview_reports')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (reportError || !report) {
+    return NextResponse.json({ error: 'Report not found' }, { status: 404 });
+  }
+
   const { data: dbUser } = await supabase
     .from('users')
-    .select('id, gemini_api_key')
+    .select('id, role, gemini_api_key')
     .eq('supabase_uid', user.id)
     .single();
 
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+  // Ownership Check
+  const isOwner = report.user_id === dbUser.id || report.user_id === user.id;
+  
+  let isRecruiterAuthor = false;
+  if (dbUser.role === 'recruiter') {
+    const { data: session } = await adminSupabase
+      .from('interview_sessions')
+      .select('invite_candidate_id')
+      .eq('id', report.session_id)
+      .maybeSingle();
+      
+    if (session?.invite_candidate_id) {
+       const { data: candidate } = await adminSupabase
+         .from('pipeline_candidates')
+         .select('pipeline_id')
+         .eq('id', session.invite_candidate_id)
+         .maybeSingle();
+         
+       if (candidate?.pipeline_id) {
+         const { data: pipeline } = await adminSupabase
+           .from('hiring_pipelines')
+           .select('created_by')
+           .eq('id', candidate.pipeline_id)
+           .maybeSingle();
+           
+         if (pipeline?.created_by === dbUser.id) isRecruiterAuthor = true;
+       }
+    }
+  }
+
+  if (!isOwner && !isRecruiterAuthor) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
   const body = await request.json();
   const { message, chat_history } = body;
 
   if (!message) return NextResponse.json({ error: 'message is required' }, { status: 400 });
 
-  // Fetch the report — just by ID first, then check ownership (handles int vs uuid user_id mismatch)
-  const { data: report } = await supabase
-    .from('interview_reports')
-    .select('*, interview_sessions(id, created_at, interview_type, plan)')
-    .eq('id', id)
-    .maybeSingle();
-
-  if (!report) {
-    return NextResponse.json({ error: 'Report not found' }, { status: 404 });
-  }
-
-  // Check ownership — user_id may be the internal DB user id (int) or supabase_uid
-  // Try both patterns
-  const ownershipOk =
-    report.user_id === dbUser.id ||
-    report.user_id === user.id;
-
-  if (!ownershipOk) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
   let model;
   try {
     model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
   } catch (e: unknown) {
-    const msg = e instanceof Error ? e.message : 'No Gemini API key configured';
+    const msg = e instanceof Error ? (e instanceof Error ? e.message : "Unknown error") : 'No Gemini API key configured';
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 

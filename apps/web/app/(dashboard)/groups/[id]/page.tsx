@@ -5,13 +5,33 @@ import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
 
+interface GroupInfo {
+  id: string;
+  name: string;
+  access_type: string;
+  description: string;
+}
+
+interface GroupRoadmap {
+  id: string;
+  title: string;
+  target_role?: string;
+}
+
+interface GroupMember {
+  id: string;
+  email: string;
+  full_name?: string;
+  role: 'admin' | 'member' | 'visitor';
+}
+
 export default function GroupDashboardPage() {
   const { id } = useParams();
   const router = useRouter();
 
-  const [group, setGroup] = useState<any>(null);
-  const [groupRoadmaps, setGroupRoadmaps] = useState<any[]>([]); // New state
-  const [members, setMembers] = useState<any[]>([]);
+  const [group, setGroup] = useState<GroupInfo | null>(null);
+  const [groupRoadmaps, setGroupRoadmaps] = useState<GroupRoadmap[]>([]); // New state
+  const [members, setMembers] = useState<GroupMember[]>([]);
   const [myRole, setMyRole] = useState<'admin' | 'member' | 'visitor'>('visitor');
   const [loading, setLoading] = useState(true);
 
@@ -20,7 +40,7 @@ export default function GroupDashboardPage() {
   const [inviting, setInviting] = useState(false);
 
   // Roadmap assign state
-  const [allRoadmaps, setAllRoadmaps] = useState<any[]>([]);
+  const [allRoadmaps, setAllRoadmaps] = useState<GroupRoadmap[]>([]);
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(false);
 
   const fetchGroupData = async () => {
@@ -88,8 +108,8 @@ export default function GroupDashboardPage() {
         const data = await res.json();
         toast.error(data.error || 'Failed to invite member');
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setInviting(false);
     }
@@ -109,8 +129,8 @@ export default function GroupDashboardPage() {
         const data = await res.json();
         toast.error(data.error);
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -127,8 +147,24 @@ export default function GroupDashboardPage() {
         const data = await res.json();
         toast.error(data.error);
       }
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!confirm('Are you sure you want to leave this group?')) return;
+    try {
+      const res = await fetch(`/api/groups/${id}/members`, { method: 'DELETE' });
+      if (res.ok) {
+        toast.success('You have left the group');
+        router.push('/groups');
+      } else {
+        const data = await res.json();
+        toast.error(data.error || 'Failed to leave group');
+      }
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     }
   };
 
@@ -172,6 +208,14 @@ export default function GroupDashboardPage() {
           </div>
           <p style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>{group.description}</p>
         </div>
+        {myRole !== 'admin' && (
+          <button
+            onClick={handleLeaveGroup}
+            style={{ padding: '8px 18px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.25)', color: '#FF4D6A', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-body)' }}
+          >
+            Leave Group
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
@@ -220,7 +264,7 @@ export default function GroupDashboardPage() {
                         if (e.target.value === 'remove') handleRemoveMember(m.id);
                         e.target.value = '';
                       }} style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer', outline: 'none', appearance: 'none' }}>
-                        <option value="">⚙️</option>
+                        <option value="">️</option>
                         <option value="make_admin">Make Admin</option>
                         <option value="remove">Remove User</option>
                       </select>

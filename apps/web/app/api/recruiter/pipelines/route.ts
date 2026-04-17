@@ -18,12 +18,16 @@ export async function GET() {
       *,
       pipeline_candidates (
         id, name, email, stage, composite_score, round_scores, invited_at, completed_at,
-        users ( full_name, email, avatar_url )
+        users ( id, full_name, email, avatar_url ),
+        interview_sessions (
+          id,
+          interview_reports ( id )
+        )
       )
     `)
     .order('created_at', { ascending: false });
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ pipelines: pipelines || [] });
 }
@@ -46,7 +50,7 @@ export async function POST(request: Request) {
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ pipeline: data }, { status: 201 });
 }

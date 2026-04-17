@@ -50,8 +50,8 @@ export default function OnboardingPage() {
       await mutate();
       toast.success('Profile created successfully! Welcome to PrepSpace.');
       router.push('/dashboard');
-    } catch (e: any) {
-      toast.error(e.message || 'An error occurred');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
     }

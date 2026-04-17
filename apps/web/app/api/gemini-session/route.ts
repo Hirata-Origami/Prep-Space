@@ -38,9 +38,9 @@ export async function GET() {
     });
     const response = await ai.authTokens.create({});
     return NextResponse.json({ apiKey: response.name });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
-      { error: err.message || 'Failed to generate ephemeral token' },
+      { error: (err instanceof Error ? err.message : "Unknown error") || 'Failed to generate ephemeral token' },
       { status: 500 }
     );
   }

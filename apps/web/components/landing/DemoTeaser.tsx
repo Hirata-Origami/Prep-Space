@@ -16,11 +16,11 @@ const DEMO_PANELS = [
           { name: 'System Design Fundamentals', score: 41, status: 'TO_LEARN', color: '#FFB547' },
           { name: 'TypeScript', score: 35, status: 'TO_LEARN', color: '#FFB547' },
           { name: 'Performance Optimization', score: 0, status: 'LOCKED', color: 'var(--text-muted)' },
-        ].map((m, i) => (
+        ].map((m) => (
           <div key={m.name} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px 16px', border: `1px solid ${m.status === 'LOCKED' ? 'var(--border)' : m.color + '33'}`, opacity: m.status === 'LOCKED' ? 0.5 : 1 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
               <span style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</span>
-              <span style={{ fontSize: '12px', color: m.color, fontWeight: 600 }}>{m.status === 'LOCKED' ? '🔒' : `${m.score}%`}</span>
+              <span style={{ fontSize: '12px', color: m.color, fontWeight: 600 }}>{m.status === 'LOCKED' ? '' : `${m.score}%`}</span>
             </div>
             {m.status !== 'LOCKED' && (
               <div className="progress-bar">
@@ -30,7 +30,7 @@ const DEMO_PANELS = [
           </div>
         ))}
         <div style={{ marginTop: 'auto', background: 'rgba(77,255,160,0.08)', borderRadius: '8px', padding: '12px', border: '1px solid rgba(77,255,160,0.2)' }}>
-          <div style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>🎯 AI Recommendation</div>
+          <div style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}> AI Recommendation</div>
           <div style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>Focus on System Design this week — 37% gap vs. target role requirements</div>
         </div>
       </div>
@@ -48,7 +48,7 @@ const DEMO_PANELS = [
             <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>● Speaking…</div>
           </div>
           <div style={{ marginLeft: 'auto' }}>
-            <span className="badge badge-mint" style={{ fontSize: '11px' }}>🛡 Verified</span>
+            <span className="badge badge-mint" style={{ fontSize: '11px' }}> Verified</span>
           </div>
         </div>
         {/* AI waveform */}
@@ -70,7 +70,7 @@ const DEMO_PANELS = [
           </div>
         </div>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <div style={{ flex: 1, height: '44px', background: 'var(--accent-primary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#080C14', cursor: 'pointer' }}>🎙 Recording…</div>
+          <div style={{ flex: 1, height: '44px', background: 'var(--accent-primary)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: '#080C14', cursor: 'pointer' }}> Recording…</div>
           <div style={{ width: '44px', height: '44px', background: 'var(--bg-elevated)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', border: '1px solid var(--border)' }}>⏸</div>
         </div>
       </div>
@@ -85,7 +85,7 @@ const DEMO_PANELS = [
           <div>
             <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Overall Score</div>
             <div style={{ fontSize: '52px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1 }}>84<span style={{ fontSize: '22px', color: 'var(--text-muted)' }}>/100</span></div>
-            <span className="badge badge-mint" style={{ marginTop: '8px', display: 'inline-flex' }}>Strong Hire ✓</span>
+            <span className="badge badge-mint" style={{ marginTop: '8px', display: 'inline-flex' }}>Strong Hire </span>
           </div>
           {/* Mini radar */}
           <svg width="100" height="100" viewBox="0 0 100 100">

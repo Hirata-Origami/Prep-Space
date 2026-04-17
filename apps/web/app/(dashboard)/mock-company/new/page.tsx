@@ -7,6 +7,18 @@ import Link from 'next/link';
 import { toast } from 'sonner';
 import { useRef } from 'react';
 
+interface GeneratedCompany {
+  name: string;
+  logo_emoji: string;
+  industry: string;
+  size: string;
+  difficulty_rating: number;
+  interview_culture: string;
+  rounds: string[];
+  round_topics?: Record<string, string[]>;
+  known_patterns: string[];
+}
+
 export default function NewCompanyPage() {
   const router = useRouter();
   const [step, setStep] = useState<'form' | 'preview' | 'saved'>('form');
@@ -18,7 +30,7 @@ export default function NewCompanyPage() {
   const [generating, setGenerating] = useState(false);
   const [saving, setSaving] = useState(false);
   const [parsingJd, setParsingJd] = useState(false);
-  const [generatedCompany, setGeneratedCompany] = useState<any>(null);
+  const [generatedCompany, setGeneratedCompany] = useState<GeneratedCompany | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,8 +51,8 @@ export default function NewCompanyPage() {
       
       setJd(data.text);
       toast.success('Job description extracted!');
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setParsingJd(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
@@ -70,8 +82,8 @@ export default function NewCompanyPage() {
       setGeneratedCompany(data.company);
       setStep('preview');
       toast.success('Company profile generated!');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setGenerating(false);
     }
@@ -90,8 +102,8 @@ export default function NewCompanyPage() {
       if (!res.ok) throw new Error(data.error || 'Save failed');
       toast.success('Company added to the platform!');
       router.push('/mock-company');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
     }
@@ -157,7 +169,7 @@ export default function NewCompanyPage() {
                     disabled={parsingJd}
                     style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', opacity: parsingJd ? 0.7 : 1 }}
                   >
-                    {parsingJd ? 'Extracting...' : '📄 Upload PDF/DOCX'}
+                    {parsingJd ? 'Extracting...' : ' Upload PDF/DOCX'}
                   </button>
                   <input 
                     type="file" 
@@ -190,7 +202,7 @@ export default function NewCompanyPage() {
               </div>
 
               <div style={{ padding: '12px 14px', background: 'rgba(77,255,160,0.04)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                ✨ AI will research known interview patterns at <strong style={{ color: 'var(--accent-primary)' }}>{companyName || 'this company'}</strong> and create a realistic interview format with per-round topic coverage.
+                 AI will research known interview patterns at <strong style={{ color: 'var(--accent-primary)' }}>{companyName || 'this company'}</strong> and create a realistic interview format with per-round topic coverage.
               </div>
 
               <button
@@ -204,7 +216,7 @@ export default function NewCompanyPage() {
                     <span style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                     Researching interview patterns…
                   </span>
-                ) : '🔍 Generate Company Profile'}
+                ) : ' Generate Company Profile'}
               </button>
             </div>
           </motion.div>
@@ -216,7 +228,7 @@ export default function NewCompanyPage() {
               <div style={{ display: 'flex', gap: '10px' }}>
                 <button onClick={() => setStep('form')} className="btn-secondary">← Regenerate</button>
                 <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '10px 24px' }}>
-                  {saving ? 'Saving…' : '✅ Add to Platform'}
+                  {saving ? 'Saving…' : ' Add to Platform'}
                 </button>
               </div>
             </div>
@@ -239,7 +251,7 @@ export default function NewCompanyPage() {
                   const topics = generatedCompany.round_topics?.[roundName] || [];
                   return (
                     <div key={roundName} style={{ padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', fontSize: '15px' }}>📋 {roundName}</div>
+                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', fontSize: '15px' }}> {roundName}</div>
                       {topics.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                           {topics.map((t: string) => (

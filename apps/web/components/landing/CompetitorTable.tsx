@@ -60,7 +60,7 @@ export function CompetitorTable() {
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
                   <th style={{ padding: '12px 16px', textAlign: 'left', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Feature</th>
-                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 700, background: 'rgba(77,255,160,0.04)', borderLeft: '2px solid var(--accent-primary)', borderRight: '2px solid var(--accent-primary)' }}>PrepSpace ✦</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 700, background: 'rgba(77,255,160,0.04)', borderLeft: '2px solid var(--accent-primary)', borderRight: '2px solid var(--accent-primary)' }}>PrepSpace </th>
                   <th style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>{PLATFORMS[active]}</th>
                 </tr>
               </thead>
@@ -74,10 +74,10 @@ export function CompetitorTable() {
                       style={{ borderBottom: '1px solid var(--border)' }}>
                       <td style={{ padding: '13px 16px', fontSize: '14px', color: 'var(--text-secondary)' }}>{row.feature}</td>
                       <td style={{ padding: '13px 16px', textAlign: 'center', background: 'rgba(77,255,160,0.04)', borderLeft: '2px solid rgba(77,255,160,0.3)', borderRight: '2px solid rgba(77,255,160,0.3)' }}>
-                        <span style={{ fontSize: '18px' }}>{row.us ? '✅' : '✗'}</span>
+                        <span style={{ fontSize: '18px' }}>{row.us ? '' : ''}</span>
                       </td>
                       <td style={{ padding: '13px 16px', textAlign: 'center' }}>
-                        <span style={{ fontSize: '18px', color: competitor ? 'var(--accent-primary)' : 'var(--accent-red)' }}>{competitor ? '✅' : '✗'}</span>
+                        <span style={{ fontSize: '18px', color: competitor ? 'var(--accent-primary)' : 'var(--accent-red)' }}>{competitor ? '' : ''}</span>
                       </td>
                     </motion.tr>
                   );

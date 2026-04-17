@@ -36,7 +36,7 @@ export async function GET(req: Request) {
             .from('group_members')
             .select('group_id, groups!inner(*)')
             .eq('user_id', dbUser.id);
-          if (error) throw new Error(error.message);
+          if (error) throw new Error((error instanceof Error ? error.message : "Unknown error"));
           return data.map(d => d.groups);
         } else {
           const { data: myGroupIds } = await supabase
@@ -57,8 +57,8 @@ export async function GET(req: Request) {
       },
       ttl
     );
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 });
+  } catch (err: unknown) {
+    return NextResponse.json({ error: (err instanceof Error ? err.message : "Unknown error") }, { status: 500 });
   }
 
   return NextResponse.json({ groups });

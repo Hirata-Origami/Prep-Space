@@ -77,7 +77,7 @@ Give an extremely concise, professional, actionable response (max 3 sentences). 
 
     const result = await model.generateContent([{ text: prompt }]);
     return NextResponse.json({ reply: result.response.text() });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+  } catch (error: unknown) {
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 }

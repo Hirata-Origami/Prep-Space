@@ -58,7 +58,7 @@ export async function DELETE(
     .eq('user_id', dbUser.id);
 
   if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   return NextResponse.json({ message: 'Roadmap deleted' });

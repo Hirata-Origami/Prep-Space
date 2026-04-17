@@ -101,13 +101,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       .delete()
       .eq('group_id', id)
       .eq('roadmap_id', roadmap_id);
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   } else if (action === 'add' || action === 'assign' || roadmap_id) {
     // Upsert to join table
     const { error } = await supabase
       .from('group_roadmaps')
       .upsert({ group_id: id, roadmap_id });
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
   }
 
   return NextResponse.json({ success: true });

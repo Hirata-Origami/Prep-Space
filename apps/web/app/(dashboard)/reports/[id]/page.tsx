@@ -82,7 +82,7 @@ export default function ReportDetailPage() {
     return (
       <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
         <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
-        Analysing your interview data...
+        Analyzing your interview data...
       </div>
     );
   }
@@ -90,7 +90,7 @@ export default function ReportDetailPage() {
   if (!report) {
     return (
       <div style={{ padding: '80px', textAlign: 'center' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>⚠️</div>
+        <div style={{ fontSize: '48px', marginBottom: '20px' }}>!</div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Report not found</h2>
         <Link href="/reports" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Reports</Link>
       </div>
@@ -114,232 +114,129 @@ export default function ReportDetailPage() {
     <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }} className="report-container">
       <style>{`
         @media print {
-          .no-print, nav, aside, .btn-primary, .btn-secondary, header, #chat-widget-container { display: none !important; }
-          @page { margin: 15mm; }
-          body { 
-            background: white !important; 
-            color: black !important; 
+          html, body, main, 
+          #__next, [data-nextjs-scroll-focus-boundary],
+          .report-container {
             overflow: visible !important;
             height: auto !important;
-          }
-          /* Ensure text is black for readability */
-          * {
-            color: black !important;
-          }
-          /* Except for explicitly colored text like scores */
-          .print-keep-color * {
-            color: inherit !important;
-          }
-          .surface, .card { 
-            border: 1px solid #ddd !important; 
-            background: white !important; 
-            box-shadow: none !important; 
-            page-break-inside: avoid;
-            color: black !important;
-            margin-bottom: 20px !important;
-          }
-          .report-container { padding: 0 !important; max-width: 100% !important; margin: 0 !important; }
-          .progress-bar-fill, .waveform-bar { 
-            print-color-adjust: exact; 
-            -webkit-print-color-adjust: exact; 
-          }
-          main {
-            overflow: visible !important;
-            height: auto !important;
+            min-height: auto !important;
+            position: static !important;
             background: white !important;
+            color: #000 !important;
           }
-          /* Force page breaks gracefully */
-          h2 { page-break-after: avoid; }
-        }
-        .waveform-bar {
-          height: 100%;
-          border-radius: 2px;
-          transition: transform 0.2s ease;
-        }
-        .waveform-bar:hover {
-          transform: scaleY(1.3);
+
+          .no-print, .chat-widget, #chat-widget-container, aside, nav, header button { 
+             display: none !important; 
+          }
+          
+          @page { margin: 15mm; size: A4; }
+
+          * {
+            color: #000 !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+          }
+
+          .surface, .card { 
+            border: 1px solid #E2E8F0 !important;
+            background: #ffffff !important;
+            page-break-inside: avoid !important;
+            margin-bottom: 24px !important;
+          }
+
+          h2 { page-break-after: avoid !important; margin-bottom: 12px !important; }
         }
       `}</style>
 
-      <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600 }}>
-          ← Back to Reports
-        </Link>
-        <button onClick={handleDownloadPDF} className="btn-secondary" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <span>📥</span> Download PDF Report
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }} className="no-print">
+        <div>
+          <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600, marginBottom: '16px' }}>
+            ← Back to Reports
+          </Link>
+          <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Performance Report</h1>
+          <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>{report.interview_sessions?.plan?.role || 'Software Engineer'}</p>
+        </div>
+        <button onClick={handleDownloadPDF} className="btn-secondary" style={{ padding: '10px 24px', fontWeight: 800 }}>
+          Export PDF
         </button>
       </div>
 
-      {/* Header Card */}
-      <div className="surface" style={{ padding: '32px', display: 'flex', gap: '32px', alignItems: 'center', marginBottom: '32px', position: 'relative' }}>
-        <div style={{ 
-          width: '120px', 
-          height: '120px', 
-          borderRadius: '24px', 
-          background: 'rgba(77,255,160,0.05)', 
-          border: '1px solid rgba(77,255,160,0.15)',
-          display: 'flex', 
-          flexDirection: 'column',
-          alignItems: 'center', 
-          justifyContent: 'center',
-          boxShadow: '0 0 20px rgba(77,255,160,0.05)'
-        }}>
-          <div style={{ fontSize: '36px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
-          <div style={{ fontSize: '11px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Overall</div>
+      {/* Main Score Card */}
+      <div className="surface" style={{ padding: '40px', display: 'flex', gap: '40px', alignItems: 'center', marginBottom: '32px' }}>
+        <div style={{ width: '120px', height: '120px', borderRadius: '30px', background: 'rgba(77,255,160,0.06)', border: '1px solid rgba(77,255,160,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+          <div style={{ fontSize: '38px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
+          <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Overall</div>
         </div>
-
         <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)' }}>
-              {report.interview_sessions?.plan?.role || 'Technical Interview'}
-            </h1>
-            <span style={{ 
-              padding: '4px 12px', 
-              borderRadius: '100px', 
-              fontSize: '11px', 
-              fontWeight: 700, 
-              background: report.hire_recommendation === 'Strong Hire' ? 'var(--accent-primary)' : 'rgba(77,255,160,0.1)', 
-              color: report.hire_recommendation === 'Strong Hire' ? '#000' : 'var(--accent-primary)',
-              textTransform: 'uppercase'
-            }}>
-              {report.hire_recommendation || 'Hire'}
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+             <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '100px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-primary)' }}>Recommendation</span>
+             <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{report.hire_recommendation}</span>
           </div>
-          <p style={{ fontSize: '16px', color: 'var(--text-secondary)', lineHeight: 1.6, maxWidth: '650px' }}>
-            {analysis.summary || 'Successful session with strong technical depth and clear communication.'}
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
+            {analysis.summary}
           </p>
         </div>
       </div>
 
-      {/* Visual Analytics Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', marginBottom: '32px' }}>
-        <div className="surface" style={{ padding: '24px' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px', letterSpacing: '0.05em' }}>Competency Radar</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            {Object.entries(scores).map(([label, score]: [string, any]) => (
-              <div key={label}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
-                  <span style={{ color: 'var(--text-secondary)', fontWeight: 600, textTransform: 'capitalize' }}>{label.replace('_', ' ')}</span>
-                  <span style={{ color: 'var(--text-primary)', fontWeight: 700 }}>{score}%</span>
-                </div>
-                <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
-                  <motion.div initial={{ width: 0 }} animate={{ width: `${score}%` }} transition={{ duration: 1.2, ease: 'easeOut' }}
-                    style={{ height: '100%', background: score > 80 ? 'var(--accent-primary)' : score > 60 ? 'var(--accent-amber)' : '#FF4D6A', borderRadius: '100px' }} />
-                </div>
-              </div>
-            ))}
+      {/* Competency Grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '40px' }}>
+        {Object.entries(scores).map(([key, val]: [string, any]) => (
+          <div key={key} className="surface" style={{ padding: '20px', textAlign: 'center' }}>
+            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>{key.replace('_', ' ')}</div>
           </div>
-        </div>
-
-        <div className="surface" style={{ padding: '24px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-          <h3 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '0.05em' }}>Deep Analysis Waveform</h3>
-          <div className="no-print" style={{ height: '80px', display: 'flex', alignItems: 'flex-end', gap: '2px', marginBottom: '16px' }}>
-            {Array.from({ length: 80 }).map((_, i) => {
-              const height = 20 + Math.random() * 60;
-              const totalDuration = report.duration_seconds || audioRef.current?.duration || 300;
-              const pos = (i / 80) * totalDuration;
-              
-              const mMatch = markers.find((m: any) => {
-                const start = parseTime(m.start_time);
-                return pos >= start && pos <= start + (totalDuration * 0.05); // highlight ~5% of waveform
-              });
-
-              const type = mMatch?.type;
-
-              return (
-                <div key={i} className="waveform-bar" style={{ 
-                  flex: 1, 
-                  height: `${height}%`, 
-                  background: type === 'strong' ? 'var(--accent-primary)' : type === 'missed' ? '#FF4D6A' : 'rgba(255,255,255,0.1)',
-                  opacity: type ? 1 : 0.4
-                }} />
-              );
-            })}
-          </div>
-          <div className="no-print" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-muted)' }}>
-            <span>0:00</span>
-            <span>Audio Transcript Timeline</span>
-            <span>{report.duration_seconds ? `${Math.floor(report.duration_seconds/60)}:${(report.duration_seconds%60).toString().padStart(2, '0')}` : '5:00'}</span>
-          </div>
-          <div className="print-keep-color" style={{ display: 'none', color: 'black' }} dangerouslySetInnerHTML={{ __html: `<style>@media print { .print-keep-color { display: block !important; } }</style>Time Analyzed: ${report.duration_seconds ? `${Math.floor(report.duration_seconds/60)}:${(report.duration_seconds%60).toString().padStart(2, '0')}` : '5:00'} min` }} />
-        </div>
+        ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '32px' }}>
-        {/* Left Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {/* Audio Evidence (if available) */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px', alignItems: 'flex-start' }}>
+        {/* Left: Transcript & Answers */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
+          {/* Audio Evidence */}
           {audioUrl && (
             <section className="surface" style={{ padding: '24px' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>🎙️</span> Playback & Evidence
-              </h2>
-              <audio ref={audioRef} controls src={audioUrl} className="no-print" style={{ width: '100%', marginBottom: '16px', borderRadius: '8px', outline: 'none' }} />
+              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '20px' }}>Technical Evidence</h2>
+              <audio ref={audioRef} controls src={audioUrl} style={{ width: '100%', marginBottom: '20px' }} className="no-print" />
               
-              {markers.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                  <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
-                    {markers.map((m: any, i: number) => {
-                      const color = m.type === 'strong' ? '#4DFFA0' : m.type === 'missed' ? '#FF4D6A' : '#FFB547';
-                      return (
-                        <div 
-                          key={i} 
-                          onClick={() => {
-                            if (audioRef.current) {
-                              audioRef.current.currentTime = parseTime(m.start_time);
-                              audioRef.current.play();
-                            }
-                          }}
-                          style={{
-                            background: `rgba(255,255,255,0.02)`,
-                            border: `1px solid var(--border)`,
-                            borderTop: `3px solid ${color}`,
-                            borderRadius: '8px',
-                            padding: '16px',
-                            cursor: 'pointer',
-                            minWidth: '240px',
-                            flexShrink: 0
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                            <div style={{ fontSize: '11px', color, fontWeight: 800, textTransform: 'uppercase' }}>
-                              {m.type === 'strong' ? 'Strong Moment' : m.type === 'missed' ? 'Critical Gap' : 'Partial Match'}
-                            </div>
-                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{m.start_time}</div>
-                          </div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            {m.annotation}
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
+              <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
+                {markers.map((m: any, i: number) => {
+                  const color = m.type === 'strong' ? 'var(--accent-primary)' : m.type === 'missed' ? '#FF4D6A' : '#FFB547';
+                  return (
+                    <div key={i} onClick={() => { if(audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }} 
+                      style={{ minWidth: '220px', padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderTop: `4px solid ${color}`, borderRadius: '12px', cursor: 'pointer' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                        <span style={{ fontSize: '10px', fontWeight: 800, color, textTransform: 'uppercase' }}>{m.type}</span>
+                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{m.start_time}</span>
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{m.annotation}</div>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
           )}
 
-          {/* Answer Analysis */}
+          {/* Detailed Breakdown */}
           <section>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <span style={{ fontSize: '20px' }}>📝</span> Detailed Question Analysis
-            </h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '24px' }}>Technical Breakdown</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {sampleAnswers.map((item: any, i: number) => (
                 <div key={i} className="surface" style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', flex: 1, lineHeight: 1.4 }}>{i + 1}. {item.question}</div>
-                    <div style={{ fontSize: '14px', fontWeight: 800, color: item.score > 80 ? 'var(--accent-primary)' : '#FFB547', marginLeft: '12px' }}>{item.score}%</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>{i + 1}. {item.question}</div>
+                    <div style={{ fontWeight: 800, color: item.score > 80 ? 'var(--accent-primary)' : '#FFB547' }}>{item.score}%</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Candidate Response</div>
-                      <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.user_answer}</div>
+                    <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
+                      <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Candidate Response</div>
+                      <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.user_answer}</div>
                     </div>
                     {item.ideal_answer && (
-                      <div style={{ background: 'rgba(77,255,160,0.03)', padding: '16px', borderRadius: '12px', border: '1px solid rgba(77,255,160,0.1)' }}>
-                        <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '6px' }}>Interviewer Note</div>
-                        <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6 }}>{item.ideal_answer}</div>
+                      <div style={{ padding: '16px', background: 'rgba(77,255,160,0.03)', borderRadius: '10px', border: '1px solid rgba(77,255,160,0.1)' }}>
+                        <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Model Feedback</div>
+                        <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.ideal_answer}</div>
                       </div>
                     )}
                   </div>
@@ -349,192 +246,76 @@ export default function ReportDetailPage() {
           </section>
         </div>
 
-        {/* Right Column */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
-          {/* Speaking Analytics */}
-          {metrics && Object.keys(metrics).length > 0 && (
-            <section className="surface" style={{ padding: '24px' }}>
-              <h2 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--text-muted)', marginBottom: '16px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Speaking Analytics</h2>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>WPM</div>
-                  <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-primary)' }}>{metrics.wpm || '--'}</div>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler Words</div>
-                  <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--accent-amber)' }}>{metrics.filler_words_count ?? '--'}</div>
-                </div>
+        {/* Right: Insights */}
+        <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          {/* Analytics */}
+          <section className="surface" style={{ padding: '24px' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px' }}>Communication</h3>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
+              <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Words/min</div>
+                <div style={{ fontSize: '20px', fontWeight: 800 }}>{metrics.wpm || '--'}</div>
               </div>
-
-              <div style={{ marginBottom: '20px' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '10px', fontWeight: 600 }}>Answer Length Distribution</div>
-                <div style={{ height: '40px', display: 'flex', gap: '2px', alignItems: 'flex-end' }}>
-                  {sampleAnswers.map((a: any, i: number) => (
-                    <div key={i} style={{ 
-                      flex: 1, 
-                      height: `${Math.min(100, (a.user_answer?.length || 0) / 5)}%`, 
-                      background: 'var(--accent-primary)', 
-                      opacity: 0.3 + (i / sampleAnswers.length) * 0.7,
-                      borderRadius: '2px' 
-                    }} title={`Q${i+1}: ${a.user_answer?.length || 0} chars`} />
-                  ))}
-                </div>
+              <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
+                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler words</div>
+                <div style={{ fontSize: '20px', fontWeight: 800 }}>{metrics.filler_words_count ?? '--'}</div>
               </div>
-
-              <div style={{ padding: '16px', background: 'rgba(77,255,160,0.05)', borderRadius: '12px', border: '1px solid rgba(77,255,160,0.1)' }}>
-                <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 800, marginBottom: '4px' }}>ROLE PERCENTILE</div>
-                <div style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Top 12% globally</div>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>for {report.interview_sessions?.plan?.role || 'Software Engineer'}</div>
+            </div>
+            
+            <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px' }}>
+              <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Global Percentile</div>
+              <div style={{ fontSize: '18px', fontWeight: 800 }}>
+                 {report.overall_score >= 90 ? 'Top 5%' : report.overall_score >= 80 ? 'Top 20%' : report.overall_score >= 70 ? 'Top 40%' : 'Standard'}
               </div>
-            </section>
-          )}
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Based on peer performance</div>
+            </div>
+          </section>
 
-          {/* Strengths */}
+          {/* Lists */}
           <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-primary)' }}>
-            <h2 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-primary)', marginBottom: '16px', textTransform: 'uppercase' }}>Key Strengths</h2>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '16px' }}>Core Strengths</h3>
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {strengths.map((s: string, i: number) => (
-                <li key={i} style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '12px', lineHeight: 1.4 }}>
-                  <span style={{ color: 'var(--accent-primary)', fontWeight: 900 }}>✓</span> {s}
+                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                  <span style={{ color: 'var(--accent-primary)' }}>●</span> {s}
                 </li>
               ))}
             </ul>
           </section>
 
-          {/* Improvements */}
-          <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-amber)' }}>
-            <h2 style={{ fontSize: '13px', fontWeight: 800, color: 'var(--accent-amber)', marginBottom: '16px', textTransform: 'uppercase' }}>Areas to Improve</h2>
+          <section className="surface" style={{ padding: '24px', borderTop: '4px solid #FFB547' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: '#FFB547', textTransform: 'uppercase', marginBottom: '16px' }}>Next Focus Areas</h3>
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {improvements.map((im: string, i: number) => (
-                <li key={i} style={{ fontSize: '14px', color: 'var(--text-secondary)', display: 'flex', gap: '12px', lineHeight: 1.4 }}>
-                  <span style={{ color: 'var(--accent-amber)', fontWeight: 900 }}>⚡</span> {im}
+              {improvements.map((s: string, i: number) => (
+                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
+                  <span style={{ color: '#FFB547' }}>●</span> {s}
                 </li>
               ))}
             </ul>
           </section>
-        </div>
+        </aside>
       </div>
 
-      {/* Floating Chat Button */}
-      <button
-        onClick={() => setChatOpen(v => !v)}
-        className="no-print"
-        style={{
-          position: 'fixed',
-          bottom: '24px',
-          right: '24px',
-          width: '56px',
-          height: '56px',
-          borderRadius: '50%',
-          background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)',
-          border: 'none',
-          cursor: 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '22px',
-          boxShadow: '0 4px 20px rgba(77,255,160,0.4)',
-          zIndex: 100,
-          transition: 'transform 0.2s',
-        }}
-        onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.1)'}
-        onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
-        title="Chat with AI Coach"
-      >
-        {chatOpen ? '✕' : '💬'}
-      </button>
+      {/* Floating Chat */}
+      <button onClick={() => setChatOpen(!chatOpen)} className="no-print chat-trigger" style={{ position: 'fixed', bottom: '32px', right: '32px', width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', color: '#080C14', border: 'none', cursor: 'pointer', zIndex: 100, boxShadow: '0 4px 20px rgba(77,255,160,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 }}>?</button>
 
-      {/* Chat Panel */}
       <AnimatePresence>
         {chatOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="no-print"
-            style={{
-              position: 'fixed',
-              bottom: '92px',
-              right: '24px',
-              width: '380px',
-              maxHeight: '500px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '20px',
-              boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-              display: 'flex',
-              flexDirection: 'column',
-              zIndex: 99,
-              overflow: 'hidden',
-            }}
-          >
-            {/* Chat Header */}
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px', background: 'rgba(77,255,160,0.03)' }}>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0 }}>🧑‍🏫</div>
-              <div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>AI Interview Coach</div>
-                <div style={{ fontSize: '11px', color: 'var(--accent-primary)' }}>● Analyzing your report</div>
-              </div>
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="no-print chat-widget" style={{ position: 'fixed', bottom: '100px', right: '32px', width: '360px', height: '480px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 100 }}>
+            <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: '#080C14' }}>A</div>
+              <div style={{ fontSize: '14px', fontWeight: 700 }}>Career Coach</div>
             </div>
-
-            {/* Messages */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chatMessages.length === 0 && (
-                <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>
-                  <div style={{ fontSize: '32px', marginBottom: '8px' }}>💬</div>
-                  <div>Ask me anything about your interview performance!</div>
-                  <div style={{ marginTop: '12px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {['What should I focus on first?', 'How do I improve my system design score?', 'What resources do you recommend?'].map(q => (
-                      <button key={q} onClick={() => { setChatInput(q); }} style={{ padding: '6px 12px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer', fontFamily: 'var(--font-body)', textAlign: 'left', transition: 'all 0.15s' }}>
-                        {q}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {chatMessages.map((msg, i) => (
-                <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'user' ? 'flex-end' : 'flex-start' }}>
-                  <div style={{
-                    maxWidth: '85%',
-                    padding: '10px 14px',
-                    borderRadius: msg.role === 'user' ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
-                    background: msg.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                    color: msg.role === 'user' ? '#080C14' : 'var(--text-primary)',
-                    fontSize: '13px',
-                    lineHeight: 1.5,
-                    border: msg.role === 'coach' ? '1px solid var(--border)' : 'none',
-                    fontWeight: msg.role === 'user' ? 700 : 400,
-                  }}>
-                    {msg.content}
-                  </div>
-                </div>
+              {chatMessages.map((m, i) => (
+                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: m.role === 'coach' ? '1px solid var(--border)' : 'none', color: m.role === 'user' ? '#080C14' : 'var(--text-primary)', padding: '10px 14px', borderRadius: '12px', maxWidth: '85%', fontSize: '13px' }}>{m.content}</div>
               ))}
-              {chatLoading && (
-                <div style={{ display: 'flex', gap: '4px', padding: '8px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '16px 16px 16px 4px', width: 'fit-content' }}>
-                  {[0, 1, 2].map(i => (
-                    <div key={i} style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', animation: `bounce ${0.6 + i * 0.15}s ease infinite alternate` }} />
-                  ))}
-                </div>
-              )}
+              {chatLoading && <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Thinking...</div>}
               <div ref={chatEndRef} />
             </div>
-
-            {/* Input */}
-            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
-              <input
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); } }}
-                placeholder="Ask your coach…"
-                style={{ flex: 1, padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '13px', outline: 'none', fontFamily: 'var(--font-body)' }}
-              />
-              <button
-                onClick={sendChat}
-                disabled={chatLoading || !chatInput.trim()}
-                style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'var(--accent-primary)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', flexShrink: 0, opacity: chatLoading || !chatInput.trim() ? 0.5 : 1, transition: 'opacity 0.2s' }}
-              >
-                →
-              </button>
+            <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
+              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Ask something..." style={{ flex: 1, padding: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff' }} />
+              <button onClick={sendChat} style={{ padding: '8px 16px', background: 'var(--accent-primary)', borderRadius: '8px', border: 'none', fontWeight: 800 }}>Send</button>
             </div>
           </motion.div>
         )}

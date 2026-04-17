@@ -108,8 +108,8 @@ Rule: Return ONLY a valid JSON array, do not include markdown \`\`\`json wrapper
     const projects = JSON.parse(responseText);
 
     return NextResponse.json({ projects });
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('GitHub indexing error:', error);
-    return NextResponse.json({ error: error.message || 'Failed to index GitHub' }, { status: 500 });
+    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") || 'Failed to index GitHub' }, { status: 500 });
   }
 }

@@ -8,7 +8,7 @@ export function createClient() {
     // During build time without env vars, return a stub that won't be used
     // In production, env vars must be set
     if (typeof window === 'undefined') {
-      return null as any;
+      return null as unknown as ReturnType<typeof createBrowserClient>;
     }
     throw new Error(
       'Missing NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY. ' +
@@ -24,7 +24,7 @@ let client: ReturnType<typeof createBrowserClient> | null = null;
 export function getSupabaseClient() {
   if (!client) {
     const c = createClient();
-    if (!c) return null as any;
+    if (!c) return null as unknown as ReturnType<typeof createBrowserClient>;
     client = c;
   }
   return client;

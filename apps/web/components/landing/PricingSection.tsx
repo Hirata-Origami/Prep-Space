@@ -20,7 +20,7 @@ const PLANS = [
     cta: 'Start Pro — 14-day free trial',
     ctaStyle: 'primary',
     features: ['Unlimited AI interviews', 'All 10 modules + Mock Companies', 'Full audio reports with waveform', 'AI Live voice interviews', 'Resume builder + ATS scoring', 'Groups + leaderboards', 'Priority AI processing'],
-    badge: '🔥 Most Popular',
+    badge: ' Most Popular',
   },
   {
     name: 'Elite',
@@ -38,7 +38,7 @@ const PLANS = [
     cta: 'Book a Demo',
     ctaStyle: 'secondary',
     features: ['Smart Hire pipeline builder', '50 candidate slots/month', 'Full recruiter Kanban dashboard', 'Bias mitigation tools', 'ATS webhooks (Greenhouse, Lever)', 'Custom branding', 'Admin analytics'],
-    badge: '🏢 B2B',
+    badge: ' B2B',
   },
 ];
 
@@ -102,7 +102,7 @@ export function PricingSection() {
               <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px', flex: 1 }}>
                 {plan.features.map(f => (
                   <li key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                    <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
+                    <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}></span>
                     {f}
                   </li>
                 ))}

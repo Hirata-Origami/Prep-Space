@@ -12,10 +12,10 @@ type InterviewType = 'conceptual' | 'behavioral' | 'system_design' | 'coding_wal
 type SessionState = 'setup' | 'connecting' | 'live' | 'complete';
 
 const INTERVIEW_TYPES: { id: InterviewType; label: string; icon: string; desc: string }[] = [
-  { id: 'conceptual', label: 'Conceptual', icon: '🧠', desc: 'Knowledge-based Q&A' },
-  { id: 'behavioral', label: 'Behavioral (STAR)', icon: '🌟', desc: 'Situation/Task/Action/Result' },
-  { id: 'system_design', label: 'System Design', icon: '🏗️', desc: 'Design distributed systems' },
-  { id: 'coding_walkthrough', label: 'Coding Walkthrough', icon: '💻', desc: 'Explain your approach verbally' },
+  { id: 'conceptual', label: 'Conceptual', icon: '', desc: 'Knowledge-based Q&A' },
+  { id: 'behavioral', label: 'Behavioral (STAR)', icon: '', desc: 'Situation/Task/Action/Result' },
+  { id: 'system_design', label: 'System Design', icon: '️', desc: 'Design distributed systems' },
+  { id: 'coding_walkthrough', label: 'Coding Walkthrough', icon: '', desc: 'Explain your approach verbally' },
 ];
 
 interface TranscriptEntry {
@@ -85,8 +85,8 @@ function LiveInterviewPage() {
   // Refs for media / WebSocket
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioCtxRef = useRef<AudioContext | null>(null);
-  const userAnalyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const sessionRef = useRef<any>(null);
   const videoIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
@@ -234,7 +234,7 @@ function LiveInterviewPage() {
   // Stop all audio playback (e.g., on interruption)
   const stopAudioPlayback = useCallback(() => {
     activeSourcesRef.current.forEach(source => {
-      try { source.stop(); } catch (e) { }
+      try { source.stop(); } catch { }
     });
     activeSourcesRef.current = [];
     lastAudioTimeRef.current = 0;
@@ -285,6 +285,7 @@ function LiveInterviewPage() {
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }
     });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const session = await (ai.live as any).connect({
       model: MODEL,
       config: {
@@ -302,16 +303,19 @@ function LiveInterviewPage() {
         proactiveAudio: true,
         inputAudioTranscription: {},
         outputAudioTranscription: {},
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
       } as any,
       callbacks: {
         onopen: () => {
           console.log("WebSocket opened successfully");
           toast.success("Connected to Gemini Live");
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onsetup: (data: any) => {
           console.log("Session connected (onsetup):", data);
           setSessionState('live');
           if (!audioCtxRef.current) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             const AudioContext = (window as any).AudioContext || (window as any).webkitAudioContext;
             audioCtxRef.current = new AudioContext({ sampleRate: 24000 });
           }
@@ -319,6 +323,7 @@ function LiveInterviewPage() {
             // Setup for user audio analyser if needed here
           }
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onmessage: (data: any) => {
           try {
             // DEEP DEBUG LOGGING
@@ -409,10 +414,11 @@ function LiveInterviewPage() {
             console.error("Error in onmessage handler:", err);
           }
         },
-        onerror: (e: any) => {
+        onerror: () => {
           toast.error('Connection error. Check your Gemini API key in Settings.');
           setSessionState('setup');
         },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         onclose: (e: any) => {
           console.log("WebSocket closed:", e);
           if (sessionState === 'live') {
@@ -431,7 +437,7 @@ function LiveInterviewPage() {
     });
 
     console.log("Session connected and initial trigger sent.");
-  }, [interviewType, targetRole, animateWave, playPCMChunk, stopAudioPlayback, sessionState]);
+  }, [animateWave, playPCMChunk, stopAudioPlayback, sessionState]);
 
   // === SEND AUDIO to Gemini (PCM16 @ 16kHz) ===
   const sendAudioChunk = useCallback((pcm16: Int16Array) => {
@@ -609,6 +615,7 @@ function LiveInterviewPage() {
       directStartedRef.current = true;
       startSession();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, sessionState]);
 
   // === END SESSION ===
@@ -632,7 +639,7 @@ function LiveInterviewPage() {
 
       try {
         toast.loading('Saving session evidence...', { id: 'upload-audio' });
-        // 1. Get Presigned URL
+        // 1. Get Upload Instructions
         const presignRes = await fetch('/api/upload-audio', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -640,24 +647,35 @@ function LiveInterviewPage() {
         });
         const uploadData = await presignRes.json();
 
-        if (presignRes.ok && uploadData.url) {
-          // 2. Upload to S3
-          const s3Res = await fetch(uploadData.url, {
-            method: 'PUT',
-            body: audioBlob,
-            headers: { 'Content-Type': 'audio/webm' }
-          });
+        if (presignRes.ok) {
+          let s3Res;
+          if (uploadData.useFormData) {
+            // 2a. Server-side proxy upload (FormData)
+            const formData = new FormData();
+            formData.append('file', audioBlob, fileName);
+            s3Res = await fetch(uploadData.url || '/api/upload-audio', {
+              method: 'POST',
+              body: formData,
+            });
+          } else {
+            // 2b. Direct S3 Upload (Legacy/Presigned - may fail CORS)
+            s3Res = await fetch(uploadData.url, {
+              method: 'PUT',
+              body: audioBlob,
+              headers: { 'Content-Type': 'audio/webm' }
+            });
+          }
 
           if (s3Res.ok) {
             audioUrl = uploadData.publicUrl;
             toast.success('Evidence saved securely', { id: 'upload-audio' });
           } else {
-            console.error('Failed to PUT to S3:', await s3Res.text());
-            toast.error('Failed to upload audio to S3', { id: 'upload-audio' });
+            console.error('Upload failed:', await s3Res.text());
+            toast.error('Failed to save audio evidence', { id: 'upload-audio' });
           }
         } else {
-          console.error('Presign error:', uploadData.error);
-          toast.error('Failed to prepare S3 upload', { id: 'upload-audio' });
+          console.error('Upload prepare error:', uploadData.error);
+          toast.error('Failed to prepare audio upload', { id: 'upload-audio' });
         }
       } catch (err) {
         console.error('Failed to upload audio:', err);
@@ -711,12 +729,9 @@ function LiveInterviewPage() {
 
         if (res.ok) {
           const { report } = await res.json();
-          // If successful, we can redirect or show the link
-          toast.success("Report generated successfully!");
-          // Optional: automatic redirect after 2s
-          setTimeout(() => {
-            window.location.href = `/reports/${report.id}`;
-          }, 1500);
+          // Store report ID but don't redirect yet - let user click "Take to Report"
+          setGeneratedReportId(report.id);
+          toast.success("Analysis complete, your report is ready.");
         }
       } catch (err) {
         console.error("Report error:", err);
@@ -725,9 +740,25 @@ function LiveInterviewPage() {
         setIsGeneratingReport(false);
       }
     }
-  }, [sessionId, transcript, targetRole, interviewType, sessionStartTime]);
+  }, [sessionId, transcript, targetRole, interviewType, sessionStartTime, sessionTime]);
+
+  const [generatedReportId, setGeneratedReportId] = useState<string | null>(null);
+  const [takeToReportLoading, setTakeToReportLoading] = useState(false);
+
+  const handleTakeToReport = () => {
+    if (!generatedReportId) {
+      toast.info("Still analyzing... please wait a moment.");
+      return;
+    }
+    setTakeToReportLoading(true);
+    // Simulate a bit of "finalizing" for UX feel
+    setTimeout(() => {
+      window.location.href = `/reports/${generatedReportId}`;
+    }, 1200);
+  };
 
   // === TOGGLE MIC ===
+  /*
   const toggleMic = useCallback(() => {
     const audioTrack = streamRef.current?.getAudioTracks()[0];
     if (audioTrack) {
@@ -735,15 +766,13 @@ function LiveInterviewPage() {
       audioTrack.enabled = !newMutedState;
       setIsMuted(newMutedState);
 
-      // If we are muting, signal the end of the audio stream to Gemini
       if (newMutedState && sessionRef.current) {
         console.log("Mic muted - sending audioStreamEnd");
-        sessionRef.current.sendRealtimeInput({ audioStreamEnd: true });
+        (sessionRef.current as any).sendRealtimeInput({ audioStreamEnd: true });
       }
     }
   }, [isMuted]);
 
-  // === TOGGLE CAMERA ===
   const toggleCamera = useCallback(() => {
     const videoTrack = streamRef.current?.getVideoTracks()[0];
     if (videoTrack) {
@@ -751,6 +780,7 @@ function LiveInterviewPage() {
       setIsCameraOff(!isCameraOff);
     }
   }, [isCameraOff]);
+  */
 
   // Cleanup on unmount
   useEffect(() => {
@@ -801,12 +831,12 @@ function LiveInterviewPage() {
 
               {/* Device check */}
               <div style={{ padding: '14px 16px', background: 'var(--bg-surface)', borderRadius: '10px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <span style={{ fontSize: '20px' }}>📹</span>
+                <span style={{ fontSize: '20px' }}></span>
                 <div style={{ flex: 1, fontSize: '13px', color: 'var(--text-secondary)' }}>Camera & microphone will be requested when you start. Video helps Alex read your body language and confidence.</div>
               </div>
 
               <button onClick={startSession} className="btn-primary" style={{ width: '100%', justifyContent: 'center', fontSize: '16px', padding: '15px' }}>
-                🎙 Start Interview
+                 Start Interview
               </button>
             </div>
           </motion.div>
@@ -896,11 +926,11 @@ function LiveInterviewPage() {
                 <video ref={videoRef} autoPlay muted playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOff ? 'none' : 'block', transform: 'scaleX(-1)' }} />
                 {isCameraOff && (
                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}>👤</div>
+                    <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px' }}></div>
                   </div>
                 )}
                 <div style={{ position: 'absolute', bottom: '12px', left: '16px', fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>You</div>
-                {isMuted && <div style={{ position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px', background: '#FF4D6A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}>🔇</div>}
+                {isMuted && <div style={{ position: 'absolute', top: '12px', right: '12px', width: '28px', height: '28px', background: '#FF4D6A', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px' }}></div>}
               </div>
             </div>
 
@@ -943,24 +973,76 @@ function LiveInterviewPage() {
       {/* COMPLETE SCREEN */}
       {sessionState === 'complete' && (
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-          <div style={{ textAlign: 'center', maxWidth: '500px' }}>
-            <div style={{ fontSize: '72px', marginBottom: '24px' }}>✅</div>
-            <h2 style={{ fontSize: '28px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '12px' }}>Interview Complete!</h2>
-            <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '32px' }}>
-              Great job! Your interview lasted {formatTime(sessionTime)}.
-              {isGeneratingReport ? (
-                <span style={{ display: 'block', marginTop: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                  <span style={{ display: 'inline-block', width: '12px', height: '12px', border: '2px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', marginRight: '8px' }} />
-                  Alex is analyzing your performance and generating a detailed report...
-                </span>
-              ) : sessionId ? ' Your AI report has been generated and you are being redirected.' : ''}
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-              <Link href="/reports" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>View Reports →</Link>
-              <Link href="/dashboard" className="btn-secondary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>Dashboard</Link>
-            </div>
-          </div>
+          style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px', background: '#080C14' }}>
+          
+          <AnimatePresence mode="wait">
+            {takeToReportLoading ? (
+              <motion.div 
+                key="loading"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 1.1 }}
+                style={{ textAlign: 'center' }}
+              >
+                <div style={{ position: 'relative', width: '120px', height: '120px', margin: '0 auto 40px' }}>
+                   <div style={{ position: 'absolute', inset: 0, border: '4px solid rgba(77,255,160,0.1)', borderRadius: '50%' }} />
+                   <motion.div 
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
+                    style={{ position: 'absolute', inset: 0, border: '4px solid transparent', borderTopColor: 'var(--accent-primary)', borderRadius: '50%' }} 
+                   />
+                   <div style={{ position: 'absolute', inset: '10px', border: '2px dashed rgba(123,97,255,0.3)', borderRadius: '50%', animation: 'spin 4s linear infinite reverse' }} />
+                   <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: 900, color: 'var(--accent-primary)' }}>
+                    {Math.min(99, Math.floor(Date.now() % 100))}%
+                   </div>
+                </div>
+                <h2 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '12px', letterSpacing: '-0.02em' }}>Finalizing Analysis</h2>
+                <p style={{ fontSize: '15px', color: 'rgba(255,255,255,0.5)' }}>Redirecting you to your comprehensive performance report...</p>
+              </motion.div>
+            ) : (
+              <motion.div 
+                key="complete"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                style={{ textAlign: 'center', maxWidth: '500px' }}
+              >
+                <div style={{ width: '80px', height: '80px', background: 'rgba(77,255,160,0.1)', borderRadius: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 32px' }}>
+                  <div style={{ fontSize: '32px', color: 'var(--accent-primary)' }}></div>
+                </div>
+                <h2 style={{ fontSize: '32px', fontWeight: 900, color: '#fff', marginBottom: '16px', letterSpacing: '-0.02em' }}>Interview Sessions Concluded</h2>
+                <p style={{ fontSize: '16px', color: 'rgba(255,255,255,0.6)', lineHeight: 1.8, marginBottom: '40px' }}>
+                  Your technical assessment has been recorded and is being analyzed. 
+                  The session lasted {formatTime(sessionTime)}.
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', alignItems: 'center' }}>
+                  <button 
+                    disabled={isGeneratingReport || !generatedReportId}
+                    onClick={handleTakeToReport} 
+                    className="btn-primary" 
+                    style={{ 
+                      padding: '16px 48px', 
+                      fontSize: '16px', 
+                      fontWeight: 800,
+                      width: '100%',
+                      background: !generatedReportId ? 'rgba(255,255,255,0.05)' : 'var(--accent-primary)',
+                      color: !generatedReportId ? 'rgba(255,255,255,0.3)' : '#080C14',
+                      opacity: isGeneratingReport ? 0.7 : 1,
+                      cursor: !generatedReportId ? 'not-allowed' : 'pointer'
+                    }}
+                  >
+                    {isGeneratingReport ? 'Alex is Thinking...' : generatedReportId ? 'Take to Report →' : 'Generating Report...'}
+                  </button>
+                  
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <Link href="/dashboard" style={{ textDecoration: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontWeight: 600 }}>Exit to Dashboard</Link>
+                    <span style={{ color: 'rgba(255,255,255,0.1)' }}>|</span>
+                    <button onClick={() => window.location.reload()} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.4)', fontSize: '14px', fontWeight: 600, cursor: 'pointer' }}>Start New Sessions</button>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
       )}
     </div>

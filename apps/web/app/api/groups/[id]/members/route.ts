@@ -98,7 +98,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     .eq('group_id', id)
     .eq('user_id', targetUserId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
@@ -115,9 +115,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
   const { searchParams } = new URL(req.url);
   const targetUserId = searchParams.get('user_id');
 
-  if (!targetUserId) return NextResponse.json({ error: 'User ID required' }, { status: 400 });
-
-  // 1. Check if user is admin
+  // Get current user's db id
   const { data: dbUser } = await supabase
     .from('users')
     .select('id')
@@ -126,6 +124,19 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
 
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
+  // Self-leave: no user_id provided = leave myself
+  if (!targetUserId) {
+    const { error } = await supabase
+      .from('group_members')
+      .delete()
+      .eq('group_id', id)
+      .eq('user_id', dbUser.id);
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, action: 'left' });
+  }
+
+  // Admin removing someone else
   const { data: adminMem } = await supabase
     .from('group_members')
     .select('role')
@@ -137,14 +148,14 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     return NextResponse.json({ error: 'Unauthorized: Only admins can remove members' }, { status: 403 });
   }
 
-  // 2. Remove member
   const { error } = await supabase
     .from('group_members')
     .delete()
     .eq('group_id', id)
     .eq('user_id', targetUserId);
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
 
   return NextResponse.json({ success: true });
 }
+
