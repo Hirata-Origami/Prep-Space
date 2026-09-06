@@ -8,8 +8,10 @@ export interface ResumeProfile {
   phone: string;
   linkedin: string;
   github: string;
-  targetRole: string;
-  targetCompany: string;
+  location?: string;
+  summary?: string;
+  targetRole?: string;
+  targetCompany?: string;
 }
 
 export interface Experience {
@@ -17,20 +19,48 @@ export interface Experience {
   role: string;
   start: string;
   end: string;
+  location?: string;
+  bullets: string;
+  type?: 'work' | 'project';
+}
+
+export interface ProjectItem {
+  title: string;
+  repo_url?: string;
+  demo_url?: string;
+  context?: string;
   bullets: string;
 }
 
-export interface Education {
+export interface EducationItem {
   degree: string;
   institution: string;
   year: string;
+  score?: string; // e.g. "CGPA: 8.31/10.00" or "Percentage: 96.33%"
 }
 
+// Backward compatibility alias
+export type Education = EducationItem;
+
+export interface SkillCategories {
+  languages: string;
+  frameworks: string;
+  cloud_and_databases: string;
+  tools_and_architecture: string;
+  area_of_interest: string;
+}
+
+export type ResumeTemplateId = 'modern-two-column' | 'classic-single' | 'minimal-tech';
+
 export interface ResumeData {
+  templateId?: ResumeTemplateId;
   profile: ResumeProfile;
   experience: Experience[];
-  education: Education;
-  skills: string;
+  projects?: ProjectItem[];
+  education: EducationItem | EducationItem[];
+  skills: string; // flat string for quick editing
+  skills_categorized?: SkillCategories;
+  achievements?: string;
   latex_code: string;
 }
 

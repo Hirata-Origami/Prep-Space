@@ -43,24 +43,37 @@ export function HeroSection() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = canvas.offsetWidth;
-    canvas.height = canvas.offsetHeight;
+    const resize = () => {
+      if (!canvas) return;
+      canvas.width = canvas.offsetWidth;
+      canvas.height = canvas.offsetHeight;
+    };
+    resize();
+    window.addEventListener('resize', resize);
 
     const particles: { x: number; y: number; vx: number; vy: number; size: number; alpha: number }[] = [];
-    for (let i = 0; i < 120; i++) {
+
+    for (let i = 0; i < 130; i++) {
       particles.push({
-        x: Math.random() * canvas.width,
-        y: Math.random() * canvas.height,
-        vx: (Math.random() - 0.5) * 0.4,
-        vy: (Math.random() - 0.5) * 0.4,
-        size: Math.random() * 1.5 + 0.5,
-        alpha: Math.random() * 0.5 + 0.15,
+        x: Math.random() * (canvas.width || 1200),
+        y: Math.random() * (canvas.height || 800),
+        vx: (Math.random() - 0.5) * 0.45,
+        vy: (Math.random() - 0.5) * 0.45,
+        size: Math.random() * 2.8 + 2.4,
+        alpha: Math.random() * 0.45 + 0.35,
       });
     }
 
     let animId: number;
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const isLight = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
+      // High contrast emerald/teal in light mode, neon mint in dark mode
+      const pRgb = isLight ? '4, 120, 87' : '77, 255, 160';
+      const alphaBoost = isLight ? 1.55 : 1.0;
+      const lineOpacityFactor = isLight ? 0.28 : 0.15;
+      const lineWidth = isLight ? 0.9 : 0.6;
+
       particles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -69,20 +82,21 @@ export function HeroSection() {
         if (p.y < 0) p.y = canvas.height;
         if (p.y > canvas.height) p.y = 0;
         ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(77,255,160,${p.alpha})`;
+        ctx.arc(p.x, p.y, isLight ? p.size * 1.1 : p.size, 0, Math.PI * 2);
+        const finalAlpha = Math.min(0.92, p.alpha * alphaBoost);
+        ctx.fillStyle = `rgba(${pRgb},${finalAlpha})`;
         ctx.fill();
       });
       // Draw connection lines
       particles.forEach((a, i) => {
         particles.slice(i + 1).forEach(b => {
           const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 100) {
+          if (dist < 130) {
             ctx.beginPath();
             ctx.moveTo(a.x, a.y);
             ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(77,255,160,${0.06 * (1 - dist / 100)})`;
-            ctx.lineWidth = 0.5;
+            ctx.strokeStyle = `rgba(${pRgb},${lineOpacityFactor * (1 - dist / 130)})`;
+            ctx.lineWidth = lineWidth;
             ctx.stroke();
           }
         });
@@ -90,7 +104,10 @@ export function HeroSection() {
       animId = requestAnimationFrame(draw);
     };
     draw();
-    return () => cancelAnimationFrame(animId);
+    return () => {
+      cancelAnimationFrame(animId);
+      window.removeEventListener('resize', resize);
+    };
   }, [mounted]);
 
   // Typewriter effect
@@ -127,10 +144,10 @@ export function HeroSection() {
       alignItems: 'center',
       justifyContent: 'center',
       overflow: 'hidden',
-      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, rgba(77,255,160,0.08) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 80%, rgba(123,97,255,0.06) 0%, transparent 60%), var(--bg-base)',
+      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, var(--hero-glow-1) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 80%, var(--hero-glow-2) 0%, transparent 60%), var(--bg-base)',
     }}>
       {/* Particle canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 0.7 }} />
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 1 }} />
 
       {/* Orbital rings - purely decorative */}
       <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
@@ -140,7 +157,8 @@ export function HeroSection() {
             width: size,
             height: size,
             borderRadius: '50%',
-            border: `1px solid rgba(77,255,160,${0.04 - i * 0.01})`,
+            border: `1px solid var(--border)`,
+            opacity: 0.6 - i * 0.15,
             animation: `spin-slow ${20 + i * 8}s linear infinite ${i % 2 === 1 ? 'reverse' : ''}`,
           }} />
         ))}
@@ -150,8 +168,9 @@ export function HeroSection() {
       <div style={{
         position: 'absolute',
         inset: 0,
-        backgroundImage: 'linear-gradient(rgba(77,255,160,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(77,255,160,0.03) 1px, transparent 1px)',
+        backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
         backgroundSize: '60px 60px',
+        opacity: 0.4,
         maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%)',
         WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%)',
       }} />
@@ -159,7 +178,7 @@ export function HeroSection() {
       {/* Content */}
       <div style={{ position: 'relative', zIndex: 2, maxWidth: '900px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'rgba(77,255,160,0.08)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '100px', marginBottom: '32px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', borderRadius: '100px', marginBottom: '32px' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block', animation: 'pulse-mint 2s infinite' }} />
             <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>AI-Native Engineering Interviews</span>
           </div>
@@ -170,32 +189,37 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
           style={{
-            fontSize: 'clamp(44px, 7vw, 88px)',
+            fontSize: 'clamp(40px, 6.5vw, 82px)',
             fontWeight: 900,
             fontFamily: 'var(--font-display)',
-            lineHeight: 1.05,
-            letterSpacing: '-0.03em',
-            marginBottom: '16px',
+            lineHeight: 1.2,
+            letterSpacing: '-0.025em',
+            marginBottom: '20px',
             color: 'var(--text-primary)',
+            paddingBottom: '12px',
           }}
         >
           Ace your interview
           <br />
           <span style={{
-            background: 'linear-gradient(135deg, #4DFFA0 0%, #00D4FF 50%, #7B61FF 100%)',
+            background: 'var(--hero-title-gradient)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
+            display: 'inline-block',
+            paddingBottom: '4px',
           }}>as a&nbsp;</span>
           <span style={{
-            background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)',
+            background: 'var(--hero-typewriter-gradient)',
             WebkitBackgroundClip: 'text',
             WebkitTextFillColor: 'transparent',
             backgroundClip: 'text',
             borderRight: mounted ? '3px solid var(--accent-primary)' : 'none',
-            paddingRight: '4px',
+            paddingRight: '6px',
+            paddingBottom: '6px',
             minWidth: '20px',
             display: 'inline-block',
+            verticalAlign: 'bottom',
           }}>
             {displayText}
           </span>
@@ -205,9 +229,9 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--text-muted)', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 40px' }}
+          style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--hero-subtext, var(--text-secondary))', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 40px', fontWeight: 500 }}
         >
-          The first AI interview platform with <strong style={{ color: 'var(--text-secondary)' }}>real-time voice interaction</strong>, adaptive skill graphs, and evidence-backed scoring — not just flashcards.
+          The first AI interview platform with <strong style={{ color: 'var(--text-primary)' }}>real-time voice interaction</strong>, adaptive skill graphs, and evidence-backed scoring — not just flashcards.
         </motion.p>
 
         <motion.div
@@ -222,33 +246,16 @@ export function HeroSection() {
             gap: '8px',
             padding: '14px 32px',
             background: 'var(--accent-primary)',
-            color: '#080C14',
+            color: 'var(--text-on-accent)',
             borderRadius: '12px',
             fontSize: '16px',
             fontWeight: 800,
             textDecoration: 'none',
-            boxShadow: '0 0 32px rgba(77,255,160,0.3)',
+            boxShadow: '0 4px 24px var(--accent-primary-glow)',
             transition: 'all 0.2s',
           }}>
             Start Now →
           </Link>
-          <a href="#demo" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '14px 32px',
-            background: 'rgba(255,255,255,0.05)',
-            color: 'var(--text-secondary)',
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: 600,
-            textDecoration: 'none',
-            border: '1px solid rgba(255,255,255,0.1)',
-            backdropFilter: 'blur(8px)',
-            transition: 'all 0.2s',
-          }}>
-            ▶ Watch Demo
-          </a>
         </motion.div>
 
         {/* Stats */}
@@ -259,7 +266,7 @@ export function HeroSection() {
           style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--border)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
         >
           {STATS.map(({ value, suffix, label }) => (
-            <div key={label} style={{ padding: '24px 16px', background: 'rgba(255,255,255,0.02)', textAlign: 'center' }}>
+            <div key={label} style={{ padding: '24px 16px', background: 'var(--bg-surface)', textAlign: 'center' }}>
               <div style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1, marginBottom: '6px' }}>
                 {mounted ? <AnimatedCounter target={value} suffix={suffix} /> : `${value}${suffix}`}
               </div>

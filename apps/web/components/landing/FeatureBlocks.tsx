@@ -14,15 +14,15 @@ const FEATURES = [
       <div style={{ padding: '28px' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Backend Engineer — Meta</div>
         {[
-          { name: 'Data Structures & Algorithms', pct: 91, status: ' Mastered' },
-          { name: 'System Design at Scale', pct: 52, status: ' In Progress', active: true },
-          { name: 'Distributed Databases', pct: 28, status: ' Priority Gap' },
-          { name: 'API Design & REST', pct: 0, status: ' Locked' },
+          { name: 'Data Structures & Algorithms', pct: 91, status: 'Mastered' },
+          { name: 'System Design at Scale', pct: 52, status: 'In Progress', active: true },
+          { name: 'Distributed Databases', pct: 28, status: 'Priority Gap' },
+          { name: 'API Design & REST', pct: 0, status: 'Locked' },
         ].map((m) => (
-          <div key={m.name} style={{ marginBottom: '14px', opacity: m.status.includes('') ? 0.45 : 1, border: m.active ? '1px solid rgba(77,255,160,0.3)' : '1px solid var(--border)', borderRadius: '10px', padding: '12px 14px', background: m.active ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)' }}>
+          <div key={m.name} style={{ marginBottom: '14px', opacity: m.status === 'Locked' ? 0.5 : 1, border: m.active ? '1.5px solid var(--accent-primary)' : '1px solid var(--border)', borderRadius: '10px', padding: '12px 14px', background: m.active ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
               <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{m.name}</span>
-              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.status}</span>
+              <span style={{ fontSize: '12px', color: m.active ? 'var(--accent-primary)' : 'var(--text-muted)', fontWeight: 600 }}>{m.status}</span>
             </div>
             {m.pct > 0 && <div className="progress-bar"><div className="progress-bar-fill" style={{ width: `${m.pct}%` }} /></div>}
           </div>
@@ -40,18 +40,18 @@ const FEATURES = [
       <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, #7B61FF, #C961FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff' }}>A</div>
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff' }}>A</div>
             <div>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Alex · AI Interviewer</div>
-              <div style={{ fontSize: '12px', color: 'var(--accent-primary)' }}>● Live — 42ms latency</div>
+              <div style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>● Live — 42ms latency</div>
             </div>
           </div>
-          <span className="badge badge-mint" style={{ fontSize: '11px' }}> Verified</span>
+          <span className="badge badge-mint" style={{ fontSize: '11px' }}>Verified</span>
         </div>
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: '2px solid #7B61FF' }}>
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: '3px solid var(--accent-violet)', border: '1px solid var(--border)' }}>
           &quot;Design a URL shortener that handles 100M redirects per day. Walk me through your approach.&quot;
         </div>
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: `2px solid var(--accent-primary)` }}>
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, borderLeft: '3px solid var(--accent-primary)', border: '1px solid var(--border)' }}>
           You: &quot;I&apos;d start with the API layer — a simple REST endpoint POST /shorten. For storage I&apos;d use Redis for hot URLs and PostgreSQL for the full dataset…&quot;
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -92,8 +92,8 @@ const FEATURES = [
     tag: 'Reports',
     tagColor: 'badge-mint',
     title: 'Timestamped Audio Evidence',
-    description: 'Every score is backed by a replayable audio moment. Click any weakness on your report and hear exactly what you said — and what you should have said instead. First platform to do this.',
-    bullets: ['Colored waveform markers:  strong ·  partial ·  missed', 'Click any marker → seek + AI annotation overlay', 'Speaking analytics: WPM, filler words, answer length distribution', 'D3.js radar chart vs. previous session + role percentile'],
+    description: 'Every score is backed by a replayable audio moment. Click any weakness on your report and hear exactly what you said — and what you should have said instead.',
+    bullets: ['Colored waveform markers: strong · partial · missed', 'Click any marker → seek + AI annotation overlay', 'Speaking analytics: WPM, filler words, answer length distribution', 'D3.js radar chart vs. previous session + role percentile'],
     visual: (
       <div style={{ padding: '28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -111,65 +111,18 @@ const FEATURES = [
           </div>
         </div>
         {/* Waveform */}
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '10px', position: 'relative', height: '52px', display: 'flex', gap: '2px', alignItems: 'center' }}>
+        <div style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '10px', position: 'relative', height: '52px', display: 'flex', gap: '2px', alignItems: 'center', border: '1px solid var(--border)' }}>
           {Array.from({ length: 70 }).map((_, i) => {
             const isGreen = (i >= 8 && i <= 18) || (i >= 45 && i <= 55);
             const isRed = i >= 28 && i <= 36;
-            return <div key={i} style={{ flex: 1, background: isGreen ? '#4DFFA0' : isRed ? '#FF4D6A' : 'rgba(255,255,255,0.12)', borderRadius: '1px', height: `${8 + Math.abs(Math.sin(i * 0.7)) * 22}px` }} />;
+            return <div key={i} style={{ flex: 1, background: isGreen ? 'var(--accent-primary)' : isRed ? 'var(--accent-red)' : 'var(--border-hover)', borderRadius: '1px', height: `${8 + Math.abs(Math.sin(i * 0.7)) * 22}px` }} />;
           })}
         </div>
         <div style={{ display: 'flex', gap: '10px', marginTop: '10px', fontSize: '11px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: '#4DFFA0', borderRadius: '2px' }} />Strong</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: '#FF4D6A', borderRadius: '2px' }} />Missed concept</div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: 'rgba(255,255,255,0.12)', borderRadius: '2px' }} />Neutral</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: 'var(--accent-primary)', borderRadius: '2px' }} />Strong</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: 'var(--accent-red)', borderRadius: '2px' }} />Missed concept</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}><div style={{ width: '8px', height: '8px', background: 'var(--border-hover)', borderRadius: '2px' }} />Neutral</div>
         </div>
-      </div>
-    ),
-  },
-  {
-    tag: 'B2B',
-    tagColor: 'badge-violet',
-    title: 'Smart Hire for Recruiters',
-    description: 'Build AI-evaluated hiring pipelines. Candidates complete AI interviews; you get ranked shortlists with full audio evidence, proctoring reports, and bias mitigation — no resume sifting required.',
-    bullets: ['Kanban pipeline: Invited → Completed → Shortlisted → Offer', 'Composite score = Σ(competency × weight) × integrity multiplier', 'Anonymization toggle for bias mitigation', 'ATS webhooks (Greenhouse, Lever) on status change'],
-    visual: (
-      <div style={{ padding: '20px', display: 'flex', gap: '10px', overflowX: 'auto' }}>
-        {[
-          { stage: 'Invited', count: 48, color: 'var(--text-muted)' },
-          { stage: 'Completed', count: 31, color: '#7B61FF' },
-          { stage: 'Shortlisted', count: 12, color: 'var(--accent-primary)' },
-          { stage: 'Offer', count: 3, color: '#FFB547' },
-        ].map(({ stage, count, color }) => (
-          <div key={stage} style={{ background: 'var(--bg-elevated)', borderRadius: '10px', padding: '14px', minWidth: '110px', border: '1px solid var(--border)' }}>
-            <div style={{ fontSize: '11px', color, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>{stage}</div>
-            <div style={{ fontSize: '28px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--text-primary)' }}>{count}</div>
-            <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              {Array.from({ length: Math.min(count, 3) }).map((_, i) => (
-                <div key={i} style={{ background: `${color}22`, borderRadius: '4px', height: '24px', display: 'flex', alignItems: 'center', paddingLeft: '8px', fontSize: '11px', color }}>
-                  Candidate {count - i}
-                </div>
-              ))}
-            </div>
-          </div>
-        ))}
-      </div>
-    ),
-  },
-  {
-    tag: 'Education',
-    tagColor: 'badge-amber',
-    title: 'Edu Bundle for Institutions',
-    description: 'Universities and bootcamps get full placement readiness infrastructure. Track cohort progress, identify at-risk students, and export placement reports for visiting companies.',
-    bullets: ['Faculty dashboard with cohort heatmaps', 'LTI 1.3 grade sync (Moodle, Canvas, Blackboard)', 'Filter top students by tech stack + readiness score', 'Year-over-year batch comparison analytics'],
-    visual: (
-      <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 600 }}>Batch 2026 — CS Engineering</div>
-        {[['Batch Health Score', '74%', 'var(--accent-amber)'], ['Placement Ready', '42 / 180', 'var(--accent-primary)'], ['At-Risk Students', '23', 'var(--accent-red)'], ['Avg. Readiness', '61%', 'var(--text-secondary)']].map(([l, v, c]) => (
-          <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', background: 'var(--bg-elevated)', borderRadius: '8px' }}>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{l as string}</span>
-            <span style={{ fontSize: '15px', fontWeight: 700, fontFamily: 'var(--font-mono)', color: c as string }}>{v as string}</span>
-          </div>
-        ))}
       </div>
     ),
   },
@@ -195,7 +148,7 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {feature.bullets.map(b => (
             <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--text-secondary)' }}>
-              <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}></span>
+              <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
               {b}
             </li>
           ))}
@@ -218,7 +171,7 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
 
 export function FeatureBlocks() {
   return (
-    <section style={{ padding: '80px 24px', background: 'var(--bg-base)' }}>
+    <section id="features" style={{ padding: '80px 24px', background: 'var(--bg-base)' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '80px' }}>
         {FEATURES.map((feature, i) => (
           <FeatureBlock key={feature.title} feature={feature} index={i} />

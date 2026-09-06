@@ -1,11 +1,18 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Toaster } from 'sonner';
 import { SWRConfig } from 'swr';
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    try {
+      const savedTheme = localStorage.getItem('prepspace_theme') || 'light';
+      document.documentElement.dataset.theme = savedTheme;
+    } catch {}
+  }, []);
+
   const [queryClient] = useState(
     () =>
       new QueryClient({

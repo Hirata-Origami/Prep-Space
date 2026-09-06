@@ -39,7 +39,7 @@ export default function MockCompanyPage() {
     if (roundTopics?.length) {
       params.set('module_topics', JSON.stringify(roundTopics));
     }
-    router.push(`/interview/new?${params.toString()}`);
+    router.push(`/interview?${params.toString()}`);
   };
 
   const difficultyColor = (d: number) => {

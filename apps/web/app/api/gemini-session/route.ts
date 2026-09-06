@@ -5,8 +5,9 @@ import { GoogleGenAI } from '@google/genai';
 export const dynamic = 'force-dynamic';
 
 /**
- * Returns a short-lived ephemeral token for client-side use in the Gemini Live API.
- * The token is generated using the user's configured API key.
+ * Returns a short-lived ephemeral token for client-side Gemini Live API usage.
+ * ONLY uses the user's own Gemini API key stored in their profile.
+ * No environment-level fallback key is used — each user brings their own.
  */
 export async function GET() {
   const supabase = await createClient();
@@ -22,7 +23,7 @@ export async function GET() {
     .eq('supabase_uid', user.id)
     .single();
 
-  const apiKey = profile?.gemini_api_key;
+  const apiKey = profile?.gemini_api_key?.trim();
 
   if (!apiKey) {
     return NextResponse.json(
@@ -31,17 +32,25 @@ export async function GET() {
     );
   }
 
+  // Try to get an ephemeral token (reduces client-side key exposure)
   try {
-    const ai = new GoogleGenAI({ 
+    const ai = new GoogleGenAI({
       apiKey,
       httpOptions: { apiVersion: 'v1alpha' }
     });
     const response = await ai.authTokens.create({});
-    return NextResponse.json({ apiKey: response.name });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { error: (err instanceof Error ? err.message : "Unknown error") || 'Failed to generate ephemeral token' },
-      { status: 500 }
-    );
+    return NextResponse.json({
+      apiKey: response.name,
+      token: response.name,
+      key: response.name,
+    });
+  } catch {
+    // authTokens.create may not be supported for all key tiers.
+    // Fall back to returning the user's own key directly for the client to use.
+    return NextResponse.json({
+      apiKey,
+      token: apiKey,
+      key: apiKey,
+    });
   }
 }

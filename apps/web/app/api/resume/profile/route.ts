@@ -11,18 +11,32 @@ export async function GET() {
   const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-  const { data: resume } = await supabase
-    .from('resumes')
-    .select('profile_sections, raw_profile')
-    .eq('user_id', dbUser.id)
-    .order('created_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const { fetchWithRedis } = await import('@/lib/redis');
 
-  return NextResponse.json({
-    profile_sections: resume?.profile_sections || null,
-    raw_profile: resume?.raw_profile || null,
-  });
+  try {
+    const resumeData = await fetchWithRedis(
+      `api_resume_${dbUser.id}`,
+      async () => {
+        const { data: resume } = await supabase
+          .from('resumes')
+          .select('profile_sections, raw_profile')
+          .eq('user_id', dbUser.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        return {
+          profile_sections: resume?.profile_sections || null,
+          raw_profile: resume?.raw_profile || null,
+        };
+      },
+      600 // 10 minutes cache
+    );
+
+    return NextResponse.json(resumeData);
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
+  }
 }
 
 export async function PATCH(request: Request) {
@@ -59,6 +73,16 @@ export async function PATCH(request: Request) {
         target_company,
         version: 1,
       });
+  }
+
+  // Invalidate Redis cache
+  try {
+    const { redis } = await import('@/lib/redis');
+    if (redis) {
+      await redis.del(`api_resume_${dbUser.id}`);
+    }
+  } catch (err) {
+    console.warn("Redis invalidation failed for resume profile", err);
   }
 
   return NextResponse.json({ success: true });

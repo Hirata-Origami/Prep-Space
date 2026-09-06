@@ -1,9 +1,8 @@
 import { HeroSection } from '@/components/landing/HeroSection';
-import { ProblemSection } from '@/components/landing/ProblemSection';
 import { DemoTeaser } from '@/components/landing/DemoTeaser';
 import { FeatureBlocks } from '@/components/landing/FeatureBlocks';
-import { CompetitorTable } from '@/components/landing/CompetitorTable';
 import { Testimonials } from '@/components/landing/Testimonials';
+import { SubscribeSection } from '@/components/landing/SubscribeSection';
 import { FooterSection } from '@/components/landing/FooterSection';
 import { Navbar } from '@/components/landing/Navbar';
 
@@ -22,11 +21,10 @@ export default async function LandingPage() {
     <main style={{ background: 'var(--bg-base)', overflowX: 'hidden' }}>
       <Navbar />
       <HeroSection />
-      <ProblemSection />
       <DemoTeaser />
       <FeatureBlocks />
-      <CompetitorTable />
       <Testimonials />
+      <SubscribeSection />
       <FooterSection />
     </main>
   );

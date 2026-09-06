@@ -9,14 +9,35 @@ export async function GET(request: Request) {
   const period = searchParams.get('period') || 'weekly';
   const limit = Math.min(parseInt(searchParams.get('limit') ?? '25'), 100);
 
-  const { data: users, error } = await supabase
-    .from('users')
-    .select('id, full_name, avatar_url, xp, streak_days, created_at')
-    .order('xp', { ascending: false })
-    .limit(limit);
+  const { fetchWithRedis } = await import('@/lib/redis');
 
-  if (error) {
-    return NextResponse.json({ error: (error instanceof Error ? error.message : "Unknown error") }, { status: 500 });
+  let result;
+  try {
+    result = await fetchWithRedis(
+      `api_leaderboard_${period}_${limit}`,
+      async () => {
+        const { data: users, error } = await supabase
+          .from('users')
+          .select('id, full_name, avatar_url, xp, streak_days, created_at, target_role')
+          .order('xp', { ascending: false })
+          .limit(limit);
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const ranked = (users ?? []).map((u, idx) => ({
+          ...u,
+          rank: idx + 1,
+          avg_score: null,
+        }));
+
+        return ranked;
+      },
+      180 // Cache for 3 minutes
+    );
+  } catch (err: unknown) {
+    return NextResponse.json({ error: err instanceof Error ? err.message : 'Unknown error' }, { status: 500 });
   }
 
   // Get current user's position
@@ -32,13 +53,5 @@ export async function GET(request: Request) {
     userRank = (count ?? 0) + 1;
   }
 
-  const ranked = (users ?? []).map((u, idx) => ({
-    ...u,
-    rank: idx + 1,
-    // Compute average score from sessions (placeholder — full impl needs join)
-    avg_score: null,
-  }));
-
-  return NextResponse.json({ users: ranked, period, userRank });
+  return NextResponse.json({ users: result, period, userRank });
 }
-

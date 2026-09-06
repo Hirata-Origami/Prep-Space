@@ -30,7 +30,7 @@ export async function GET() {
         // Fetch sessions first
         const { data: sessionsData, error: sessionsError } = await supabase
           .from('interview_sessions')
-          .select(`id, created_at, state, duration_seconds, interview_type`)
+          .select(`id, created_at, state, duration_seconds, interview_type, plan, question_log`)
           .eq('user_id', dbUser.id)
           .order('created_at', { ascending: false })
           .limit(50);
@@ -95,7 +95,7 @@ export async function POST(request: Request) {
   }
 
   const body = await request.json();
-  const { interview_type, roadmap_id, role, company, round } = body;
+  const { interview_type, roadmap_id, role, company, round, mode, topic } = body;
 
   const { data: dbUser, error: dbUserError } = await supabase
     .from('users')
@@ -107,13 +107,15 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'User record not found' }, { status: 404 });
   }
 
+  const sessionType = interview_type || (mode === 'teach' ? 'teach' : 'general');
+
   const { data, error } = await supabase
     .from('interview_sessions')
     .insert({
       user_id: dbUser.id,
-      interview_type: interview_type || 'general',
+      interview_type: sessionType,
       state: 'IN_PROGRESS',
-      plan: { role: role || 'Software Engineer', roadmap_id, company, round },
+      plan: { role: role || 'Software Engineer', roadmap_id, company, round, mode: mode || (sessionType === 'teach' ? 'teach' : 'interview'), topic },
     })
     .select();
     

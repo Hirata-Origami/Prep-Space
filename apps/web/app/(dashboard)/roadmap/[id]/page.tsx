@@ -361,7 +361,7 @@ export default function RoadmapDetailPage() {
                   <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {!isCompleted && (
                       <Link
-                        href={`/interview/new?topic=conceptual&role=${encodeURIComponent(module.title)}&module_topics=${encodeURIComponent(JSON.stringify(topics))}&direct=true`}
+                        href={`/interview?topic=conceptual&role=${encodeURIComponent(module.title)}&module_topics=${encodeURIComponent(JSON.stringify(topics))}&direct=true`}
                         className="btn-primary"
                         style={{ padding: '7px 20px', fontSize: '12px', textDecoration: 'none', fontWeight: 700 }}
                       >
@@ -417,7 +417,7 @@ export default function RoadmapDetailPage() {
           <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
           <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '20px' }}>You&apos;ve mastered all modules. Time to ace that interview.</p>
-          <Link href="/interview/new" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
+          <Link href="/interview" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
              Take Full Mock Interview →
           </Link>
         </motion.div>

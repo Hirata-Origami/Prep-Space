@@ -1,6 +1,7 @@
 -- ============================================================
--- PrepSpace Platform: Consolidated Database Schema
--- Last Updated: 2026-04-03
+-- PrepSpace Platform: Consolidated Clean Database Schema
+-- Complete from-scratch setup script for all tables, indexes,
+-- triggers, functions, and Row-Level Security (RLS) policies.
 -- ============================================================
 
 -- Enable required extensions
@@ -15,14 +16,15 @@ CREATE TABLE IF NOT EXISTS tenants (
   id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   slug        VARCHAR(50) UNIQUE NOT NULL,
   name        VARCHAR(255) NOT NULL,
-  type        VARCHAR(20) NOT NULL CHECK (type IN ('individual','group','company','education','platform')),
+  type        VARCHAR(20) NOT NULL DEFAULT 'platform' CHECK (type IN ('individual','group','company','education','platform')),
   plan        VARCHAR(20) NOT NULL DEFAULT 'free',
   branding    JSONB NOT NULL DEFAULT '{}',
   features    JSONB NOT NULL DEFAULT '{}',
   created_at  TIMESTAMPTZ DEFAULT now()
 );
 
-INSERT INTO tenants (slug, name, type, plan) VALUES ('prepspace', 'PrepSpace', 'platform', 'platform')
+INSERT INTO tenants (slug, name, type, plan) 
+VALUES ('prepspace', 'PrepSpace', 'platform', 'platform')
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================
@@ -36,7 +38,7 @@ CREATE TABLE IF NOT EXISTS users (
   full_name           VARCHAR(255),
   avatar_url          TEXT,
   role                VARCHAR(30) NOT NULL DEFAULT 'candidate'
-                        CHECK (role IN ('candidate','recruiter','educator','group_admin','tenant_admin','platform_admin')),
+                        CHECK (role IN ('candidate','group_admin','tenant_admin','platform_admin')),
   xp                  INT DEFAULT 0,
   level               VARCHAR(30) DEFAULT 'novice',
   streak_days         INT DEFAULT 0,
@@ -46,14 +48,17 @@ CREATE TABLE IF NOT EXISTS users (
   target_role         VARCHAR(255),
   target_company      VARCHAR(255),
   onboarding_complete BOOLEAN DEFAULT FALSE,
-  is_recruiter        BOOLEAN DEFAULT FALSE,
   created_at          TIMESTAMPTZ DEFAULT now(),
   UNIQUE(tenant_id, email)
 );
 
+CREATE INDEX IF NOT EXISTS idx_users_supabase_uid ON users(supabase_uid);
+CREATE INDEX IF NOT EXISTS idx_users_xp ON users(xp DESC);
+
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "users_own_read" ON users FOR SELECT USING (supabase_uid = auth.uid());
-CREATE POLICY "users_own_gemini_key" ON users FOR SELECT USING (supabase_uid = auth.uid());
+CREATE POLICY "users_own_update" ON users FOR UPDATE USING (supabase_uid = auth.uid());
+CREATE POLICY "users_own_insert" ON users FOR INSERT WITH CHECK (supabase_uid = auth.uid());
 
 -- Function to safely increment XP
 CREATE OR REPLACE FUNCTION increment_xp(user_id UUID, amount INT)
@@ -73,7 +78,7 @@ CREATE TABLE IF NOT EXISTS roadmaps (
   tenant_id       UUID REFERENCES tenants(id),
   user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
   title           VARCHAR(255) NOT NULL,
-  source_type     VARCHAR(20) CHECK (source_type IN ('predefined','jd','custom')),
+  source_type     VARCHAR(20) DEFAULT 'custom' CHECK (source_type IN ('predefined','jd','custom')),
   raw_jd          TEXT,
   parsed_skills   JSONB,
   target_role     VARCHAR(255),
@@ -81,6 +86,8 @@ CREATE TABLE IF NOT EXISTS roadmaps (
   status          VARCHAR(20) DEFAULT 'active',
   created_at      TIMESTAMPTZ DEFAULT now()
 );
+
+CREATE INDEX IF NOT EXISTS idx_roadmaps_user_id ON roadmaps(user_id);
 
 ALTER TABLE roadmaps ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "roadmap_owner" ON roadmaps
@@ -105,37 +112,117 @@ CREATE TABLE IF NOT EXISTS modules (
   created_at          TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_modules_roadmap_id ON modules(roadmap_id);
+
+ALTER TABLE modules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "modules_owner" ON modules
+  FOR ALL USING (roadmap_id IN (SELECT id FROM roadmaps WHERE user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid())));
+
 -- ============================================================
--- 004 — INTERVIEW SESSIONS & REPORTS
+-- 004 — STUDY GROUPS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS groups (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID REFERENCES tenants(id),
+  name        VARCHAR(255) NOT NULL,
+  description TEXT,
+  access_type VARCHAR(20) DEFAULT 'public' CHECK (access_type IN ('public','private')),
+  roadmap_id  UUID REFERENCES roadmaps(id) ON DELETE SET NULL,
+  created_by  UUID REFERENCES users(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS group_members (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  group_id    UUID REFERENCES groups(id) ON DELETE CASCADE,
+  user_id     UUID REFERENCES users(id) ON DELETE CASCADE,
+  role        VARCHAR(20) DEFAULT 'member' CHECK (role IN ('admin','member')),
+  joined_at   TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(group_id, user_id)
+);
+
+CREATE TABLE IF NOT EXISTS group_roadmaps (
+  group_id    UUID REFERENCES groups(id) ON DELETE CASCADE,
+  roadmap_id  UUID REFERENCES roadmaps(id) ON DELETE CASCADE,
+  created_at  TIMESTAMPTZ DEFAULT now(),
+  PRIMARY KEY (group_id, roadmap_id)
+);
+
+ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "groups_read" ON groups FOR SELECT USING (true);
+CREATE POLICY "groups_manage" ON groups FOR ALL USING (created_by IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
+
+ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "group_members_read" ON group_members FOR SELECT USING (true);
+CREATE POLICY "group_members_manage" ON group_members FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
+
+ALTER TABLE group_roadmaps ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "group_roadmaps_read" ON group_roadmaps FOR SELECT USING (true);
+CREATE POLICY "group_roadmaps_manage" ON group_roadmaps FOR ALL USING (
+  group_id IN (SELECT id FROM groups WHERE created_by IN (SELECT id FROM users WHERE supabase_uid = auth.uid()))
+);
+
+-- ============================================================
+-- 005 — RESUMES & JD VERSIONS
+-- ============================================================
+CREATE TABLE IF NOT EXISTS resumes (
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id           UUID REFERENCES users(id) ON DELETE CASCADE,
+  profile_sections  JSONB NOT NULL DEFAULT '{}',
+  raw_profile       JSONB DEFAULT '{}',
+  target_role       VARCHAR(255),
+  target_company    VARCHAR(255),
+  version           INT DEFAULT 1,
+  latex_code        TEXT,
+  created_at        TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_resumes_user_id ON resumes(user_id);
+
+ALTER TABLE resumes ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "resumes_owner" ON resumes
+  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
+
+CREATE TABLE IF NOT EXISTS resume_versions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID REFERENCES users(id) ON DELETE CASCADE,
+  version_name  VARCHAR(255) NOT NULL,
+  company       VARCHAR(255),
+  role          VARCHAR(255),
+  jd_text       TEXT,
+  latex_code    TEXT NOT NULL,
+  created_at    TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_resume_versions_user_id ON resume_versions(user_id);
+
+ALTER TABLE resume_versions ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "resume_versions_owner" ON resume_versions
+  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
+
+-- ============================================================
+-- 006 — INTERVIEW SESSIONS & REPORTS
 -- ============================================================
 CREATE TABLE IF NOT EXISTS interview_sessions (
-  id              UUID NOT NULL DEFAULT gen_random_uuid(),
-  tenant_id       UUID REFERENCES tenants(id),
-  user_id         UUID REFERENCES users(id),
-  module_id       UUID REFERENCES modules(id),
-  pipeline_id     UUID,
-  session_type    VARCHAR(30) NOT NULL DEFAULT 'training',
-  interview_type  VARCHAR(30) NOT NULL DEFAULT 'conceptual',
-  state           VARCHAR(30) NOT NULL DEFAULT 'INITIALIZING',
-  plan            JSONB NOT NULL DEFAULT '{}',
-  question_log    JSONB DEFAULT '[]',
-  proctor_events  JSONB DEFAULT '[]',
-  audio_key       VARCHAR(500),
-  transcript_key  VARCHAR(500),
-  started_at      TIMESTAMPTZ,
-  completed_at    TIMESTAMPTZ,
-  duration_seconds INT,
-  created_at      TIMESTAMPTZ DEFAULT now(),
-  PRIMARY KEY (id, created_at)
-) PARTITION BY RANGE (created_at);
+  id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id         UUID REFERENCES tenants(id),
+  user_id           UUID REFERENCES users(id) ON DELETE CASCADE,
+  module_id         UUID REFERENCES modules(id) ON DELETE SET NULL,
+  session_type      VARCHAR(30) NOT NULL DEFAULT 'training',
+  interview_type    VARCHAR(30) NOT NULL DEFAULT 'conceptual',
+  state             VARCHAR(30) NOT NULL DEFAULT 'INITIALIZING',
+  plan              JSONB NOT NULL DEFAULT '{}',
+  question_log      JSONB DEFAULT '[]',
+  proctor_events    JSONB DEFAULT '[]',
+  transcript_key    VARCHAR(500),
+  started_at        TIMESTAMPTZ,
+  completed_at      TIMESTAMPTZ,
+  duration_seconds  INT,
+  created_at        TIMESTAMPTZ DEFAULT now()
+);
 
--- 2026 Partitions
-CREATE TABLE IF NOT EXISTS interview_sessions_2026_01 PARTITION OF interview_sessions FOR VALUES FROM ('2026-01-01') TO ('2026-02-01');
-CREATE TABLE IF NOT EXISTS interview_sessions_2026_02 PARTITION OF interview_sessions FOR VALUES FROM ('2026-02-01') TO ('2026-03-01');
-CREATE TABLE IF NOT EXISTS interview_sessions_2026_03 PARTITION OF interview_sessions FOR VALUES FROM ('2026-03-01') TO ('2026-04-01');
-CREATE TABLE IF NOT EXISTS interview_sessions_2026_04 PARTITION OF interview_sessions FOR VALUES FROM ('2026-04-01') TO ('2026-05-01');
-CREATE TABLE IF NOT EXISTS interview_sessions_2026_05 PARTITION OF interview_sessions FOR VALUES FROM ('2026-05-01') TO ('2026-06-01');
--- ... Additional months can be added here
+CREATE INDEX IF NOT EXISTS idx_sessions_user_id ON interview_sessions(user_id);
+CREATE INDEX IF NOT EXISTS idx_sessions_created_at ON interview_sessions(created_at DESC);
 
 ALTER TABLE interview_sessions ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "session_owner" ON interview_sessions
@@ -143,8 +230,8 @@ CREATE POLICY "session_owner" ON interview_sessions
 
 CREATE TABLE IF NOT EXISTS interview_reports (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id          UUID UNIQUE,
-  user_id             UUID REFERENCES users(id),
+  session_id          UUID UNIQUE REFERENCES interview_sessions(id) ON DELETE CASCADE,
+  user_id             UUID REFERENCES users(id) ON DELETE CASCADE,
   tenant_id           UUID REFERENCES tenants(id),
   overall_score       FLOAT,
   letter_grade        VARCHAR(3),
@@ -155,62 +242,12 @@ CREATE TABLE IF NOT EXISTS interview_reports (
   generated_at        TIMESTAMPTZ DEFAULT now()
 );
 
+CREATE INDEX IF NOT EXISTS idx_reports_session_id ON interview_reports(session_id);
+CREATE INDEX IF NOT EXISTS idx_reports_user_id ON interview_reports(user_id);
+
 ALTER TABLE interview_reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "report_owner" ON interview_reports
-  FOR SELECT USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
-
--- ============================================================
--- 005 — NETWORKING & PEER MATCHING
--- ============================================================
-CREATE TABLE IF NOT EXISTS peer_availability (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id         UUID REFERENCES users(id) ON DELETE CASCADE,
-  topic           VARCHAR(100) NOT NULL,
-  skill_level     VARCHAR(50) NOT NULL,
-  available_until TIMESTAMPTZ NOT NULL,
-  is_active       BOOLEAN DEFAULT TRUE,
-  created_at      TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS peer_sessions (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user1_id        UUID REFERENCES users(id),
-  user2_id        UUID REFERENCES users(id),
-  topic           VARCHAR(100),
-  status          VARCHAR(20) DEFAULT 'connecting',
-  room_id         TEXT,
-  created_at      TIMESTAMPTZ DEFAULT now()
-);
-
-ALTER TABLE peer_availability ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "manage_own_availability" ON peer_availability FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
-
--- ============================================================
--- 006 — HIRING & PIPELINES
--- ============================================================
-CREATE TABLE IF NOT EXISTS hiring_pipelines (
-  id                      UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id               UUID REFERENCES tenants(id),
-  role_name               VARCHAR(255) NOT NULL,
-  rounds                  JSONB NOT NULL DEFAULT '[]',
-  pass_threshold          FLOAT DEFAULT 70,
-  deadline                TIMESTAMPTZ,
-  status                  VARCHAR(20) DEFAULT 'active',
-  created_at              TIMESTAMPTZ DEFAULT now()
-);
-
-CREATE TABLE IF NOT EXISTS pipeline_candidates (
-  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  pipeline_id     UUID REFERENCES hiring_pipelines(id),
-  user_id         UUID REFERENCES users(id),
-  email           VARCHAR(255) NOT NULL,
-  name            VARCHAR(255),
-  stage           VARCHAR(20) DEFAULT 'invited',
-  composite_score FLOAT,
-  round_scores    JSONB DEFAULT '{}',
-  invited_at      TIMESTAMPTZ DEFAULT now(),
-  completed_at    TIMESTAMPTZ
-);
+  FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
 
 -- ============================================================
 -- 007 — COMPANY PROFILES
@@ -232,13 +269,57 @@ CREATE TABLE IF NOT EXISTS company_profiles (
   created_at          TIMESTAMPTZ DEFAULT now()
 );
 
--- ============================================================
--- 008 — STORAGE & BUCKETS
--- ============================================================
-INSERT INTO storage.buckets (id, name, public) VALUES ('interview_audio', 'interview_audio', true) ON CONFLICT (id) DO NOTHING;
+ALTER TABLE company_profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "company_profiles_public_read" ON company_profiles FOR SELECT USING (true);
 
-CREATE POLICY "Public Read Access" ON storage.objects FOR SELECT USING ( bucket_id = 'interview_audio' );
-CREATE POLICY "Authenticated Upload Access" ON storage.objects FOR INSERT TO authenticated WITH CHECK ( bucket_id = 'interview_audio' );
+-- Seed initial top companies if not exists
+INSERT INTO company_profiles (name, industry, size, logo_emoji, difficulty_rating, community_pass_rate, interview_culture, rounds, round_topics, known_patterns, is_active)
+VALUES 
+(
+  'Zepto',
+  'Hyper-local Delivery',
+  'hypergrowth',
+  '⚡',
+  8.5,
+  42,
+  'Extremely fast-paced. High focus on low-latency systems, concurrency, and shipping features under tight deadlines.',
+  '["Machine Coding", "DSA & Problem Solving", "System Design (LLD/HLD)", "Hiring Manager"]',
+  '{"Machine Coding": ["Concurrency", "Redis", "WebSockets", "Rate Limiting"], "DSA & Problem Solving": ["Graphs", "Dynamic Programming", "Heaps"], "System Design (LLD/HLD)": ["Microservices", "Database Sharding", "Message Queues", "Caching"], "Hiring Manager": ["Past Impact", "Conflict Resolution", "Ownership", "Ambiguity"]}',
+  '["Heavy focus on Redis and caching strategies", "Expect live coding of a mini-project in 90 mins", "HLD usually involves designing a delivery routing system"]',
+  true
+),
+(
+  'Stripe',
+  'FinTech / Infrastructure',
+  'enterprise',
+  '💳',
+  9.0,
+  38,
+  'World-class bar for API design, idempotency, distributed transactions, clean readable code, and testing.',
+  '["Coding & Bug Squashing", "System Design", "Integration / API Design", "Manager & Values"]',
+  '{"Coding & Bug Squashing": ["Live Debugging", "Refactoring", "Unit Testing"], "System Design": ["Idempotent Ledger", "Webhooks at Scale", "Payment Routing"]}',
+  '["Always tests idempotency in distributed workflows", "Code must be production-quality with tests"]',
+  true
+),
+(
+  'Google',
+  'Big Tech',
+  'enterprise',
+  '🌐',
+  9.2,
+  32,
+  'Algorithm optimization, complexity trade-offs, global distributed systems scalability, and Googleyness.',
+  '["Coding (DSA) 1", "Coding (DSA) 2", "System Design", "Googleyness & Leadership"]',
+  '{"Coding (DSA) 1": ["Graphs", "Trees", "Dynamic Programming"], "System Design": ["Global Storage", "CDN Architecture", "Consistent Hashing"]}',
+  '["Expect optimal time and space bounds", "Thorough edge-case and boundary testing"]',
+  true
+)
+ON CONFLICT DO NOTHING;
+
+-- ============================================================
+-- 008 — STORAGE & BUCKETS (RESERVED)
+-- ============================================================
+-- Real-time audio streaming via Gemini Live requires no permanent storage bucket.
 
 -- ============================================================
 -- 009 — AUTOMATION & CRONS
@@ -251,7 +332,7 @@ CREATE TABLE IF NOT EXISTS gemini_quota_tracker (
 );
 
 INSERT INTO gemini_quota_tracker (model, requests_today, daily_limit) VALUES
-  ('gemini-3.1-flash-lite-preview',       0, 250)
+  ('gemini-3.1-flash-lite-preview',       0, 1500)
 ON CONFLICT (model) DO NOTHING;
 
 SELECT cron.schedule('reset-gemini-quotas', '0 8 * * *', $$UPDATE gemini_quota_tracker SET requests_today = 0, last_reset_at = now()$$);

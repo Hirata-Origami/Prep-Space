@@ -8,24 +8,27 @@ export async function POST(req: Request) {
     if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
     const body = await req.json();
-    const { session_id, transcript_length } = body;
+    const { session_id, transcript_length, transcript, duration_seconds } = body;
 
-    if (!session_id || typeof transcript_length !== 'number') {
-      return NextResponse.json({ error: 'Missing params' }, { status: 400 });
+    if (!session_id) {
+      return NextResponse.json({ error: 'Missing session_id' }, { status: 400 });
     }
 
-    // We don't save the full transcript here repeatedly to ease DB load,
-    // we just mark the session with "progress_ticks" in the plan or simply 
-    // leave a breadcrumb so the cleanup cron knows it wasn't an empty session.
-    // If the transcript_length is substantial, we could even upsert a stub report.
+    const updatePayload: Record<string, unknown> = {};
+    if (typeof duration_seconds === 'number') {
+      updatePayload.duration_seconds = duration_seconds;
+    } else if (typeof transcript_length === 'number') {
+      updatePayload.duration_seconds = transcript_length;
+    }
+
+    if (Array.isArray(transcript) && transcript.length > 0) {
+      updatePayload.question_log = transcript;
+    }
 
     await supabase
       .from('interview_sessions')
-      .update({
-        duration_seconds: transcript_length // repurposing duration_seconds slightly to track activity drops
-      })
-      .eq('id', session_id)
-      .eq('state', 'IN_PROGRESS'); // only update if still live
+      .update(updatePayload)
+      .eq('id', session_id);
 
     return NextResponse.json({ success: true });
   } catch {

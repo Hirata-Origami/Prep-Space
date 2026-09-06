@@ -163,6 +163,24 @@ export async function POST(request: Request) {
 
     const report = savedReportData?.[0];
 
+    // Mark session as COMPLETE and bust cache
+    if (report) {
+      try {
+        await supabase
+          .from('interview_sessions')
+          .update({ state: 'COMPLETE', duration_seconds: session_time || null })
+          .eq('id', session_id)
+          .eq('user_id', dbUser.id);
+
+        const { redis } = await import('@/lib/redis');
+        if (redis) {
+          await redis.del(`api_sessions_${dbUser.id}`);
+        }
+      } catch (cacheErr) {
+        console.warn('[POST /api/sessions/report] Cache bust or state update failed:', cacheErr);
+      }
+    }
+
     // 5. Send automated report email via SMTP
     if (report && user.email) {
       try {

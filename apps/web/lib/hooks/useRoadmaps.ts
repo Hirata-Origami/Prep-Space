@@ -11,7 +11,8 @@ export interface Roadmap {
   progress_pct?: number;
   status: 'active' | 'completed' | 'paused';
   created_at: string;
-  modules?: Array<{ count: number }>;
+  modules?: Array<{ count: number }> | { count: number };
+  module_count?: number;
 }
 
 export function useRoadmaps() {
@@ -32,13 +33,17 @@ export function useRoadmaps() {
 export interface InterviewSession {
   id: string;
   created_at: string;
-  status: 'in_progress' | 'completed' | 'abandoned';
+  status?: 'in_progress' | 'completed' | 'abandoned';
+  state?: string;
   duration_seconds?: number;
   overall_score?: number;
   interview_type: string;
   role?: string;
   company?: string;
   reports?: Array<{ id: string; overall_score: number; recommendation: string }>;
+  interview_reports?: Array<{ id: string; session_id?: string; overall_score?: number; hire_recommendation?: string; recommendation?: string }>;
+  plan?: Record<string, any>;
+  question_log?: any[];
 }
 
 export function useSessions() {

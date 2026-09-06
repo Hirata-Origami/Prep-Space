@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useSWR from 'swr';
+import Link from 'next/link';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -19,6 +20,11 @@ const PERIODS = ['Weekly', 'Monthly', 'All Time'];
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState('Weekly');
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const { data, isLoading } = useSWR<{ users: LeaderboardUser[]; userRank: number | null }>(
     `/api/leaderboard?period=${period.toLowerCase().replace(' ', '_')}`,
@@ -29,8 +35,11 @@ export default function LeaderboardPage() {
   const top3 = users.slice(0, 3);
   const rest = users.slice(3);
 
+  // Prevent SSR/Client hydration mismatch
+  const showSkeleton = !isMounted || (isLoading && users.length === 0);
+
   return (
-    <div style={{ padding: '32px', maxWidth: '900px' }}>
+    <div style={{ padding: '32px', maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
         <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Global Leaderboard</h1>
         <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Top performers ranked by XP earned and consistency</p>
@@ -46,8 +55,17 @@ export default function LeaderboardPage() {
         ))}
       </div>
 
-      {isLoading ? (
-        <div className="surface" style={{ padding: '48px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading leaderboard…</div>
+      {showSkeleton ? (
+        <div>
+          {/* Top 3 Skeleton Podium */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '16px', marginBottom: '24px', alignItems: 'end' }}>
+            <div className="card skeleton" style={{ height: '220px', borderRadius: '16px' }} />
+            <div className="card skeleton" style={{ height: '260px', borderRadius: '16px' }} />
+            <div className="card skeleton" style={{ height: '220px', borderRadius: '16px' }} />
+          </div>
+          {/* Table Skeleton */}
+          <div className="card skeleton" style={{ height: '240px', borderRadius: '16px' }} />
+        </div>
       ) : (
         <>
           {/* Top 3 Podium */}
@@ -57,7 +75,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[1] ? 'rgba(192,192,192,0.3)' : 'var(--border)' }}>
                 {top3[1] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>2nd</div>
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥈</div>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #B8C4E0, #6B7A99)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#080C14', margin: '0 auto 10px' }}>
                       {top3[1].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -72,7 +90,7 @@ export default function LeaderboardPage() {
               <div className="card glow-mint" style={{ padding: '24px', textAlign: 'center', borderColor: 'rgba(77,255,160,0.4)', background: 'rgba(77,255,160,0.04)' }}>
                 {top3[0] ? (
                   <>
-                    <div style={{ fontSize: '44px', marginBottom: '8px' }}>1st</div>
+                    <div style={{ fontSize: '44px', marginBottom: '8px' }}>🥇</div>
                     <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, color: '#080C14', margin: '0 auto 10px' }}>
                       {top3[0].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -88,7 +106,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[2] ? 'rgba(205,127,50,0.3)' : 'var(--border)' }}>
                 {top3[2] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>3rd</div>
+                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥉</div>
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #CD7F32, #8B5E3C)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff', margin: '0 auto 10px' }}>
                       {top3[2].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -118,15 +136,17 @@ export default function LeaderboardPage() {
                       <td style={{ padding: '14px 16px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: 'var(--text-muted)' }}>#{u.rank}</td>
                       <td style={{ padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                          <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#fff', flexShrink: 0 }}>{u.full_name?.[0]?.toUpperCase() ?? '?'}</div>
+                          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 700 }}>
+                            {u.full_name?.[0]?.toUpperCase() ?? '?'}
+                          </div>
                           <div>
                             <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{u.full_name}</div>
-                            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{u.target_role ?? 'Candidate'}</div>
+                            <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{u.target_role ?? 'Candidate'}</div>
                           </div>
                         </div>
                       </td>
-                      <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: 'var(--accent-primary)' }}>{(u.xp ?? 0).toLocaleString()}</td>
-                      <td style={{ padding: '14px 16px', fontSize: '14px', color: u.streak_days > 20 ? '#FFB547' : 'var(--text-secondary)' }}>{u.streak_days || 0}d</td>
+                      <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: 'var(--accent-primary)' }}>{(u.xp).toLocaleString()} XP</td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: u.streak_days > 0 ? '#FFB547' : 'var(--text-muted)' }}>{u.streak_days > 0 ? `🔥 ${u.streak_days}d` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -138,7 +158,7 @@ export default function LeaderboardPage() {
             <div className="surface" style={{ padding: '64px', textAlign: 'center' }}>
               <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Be the first on the leaderboard!</div>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>Complete your first interview session to earn XP and appear here.</p>
-              <a href="/interview/new" className="btn-primary" style={{ textDecoration: 'none', fontSize: '14px', padding: '10px 24px' }}>Start a Session</a>
+              <Link href="/interview" className="btn-primary" style={{ textDecoration: 'none', fontSize: '14px', padding: '10px 24px' }}>Start a Session</Link>
             </div>
           )}
 
@@ -151,7 +171,7 @@ export default function LeaderboardPage() {
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>You</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Your current global rank</div>
               </div>
-              <a href="/interview/new" className="btn-primary" style={{ marginLeft: 'auto', fontSize: '13px', padding: '8px 18px', textDecoration: 'none' }}>Earn XP</a>
+              <Link href="/interview" className="btn-primary" style={{ marginLeft: 'auto', fontSize: '13px', padding: '8px 18px', textDecoration: 'none' }}>Earn XP</Link>
             </div>
           )}
         </>

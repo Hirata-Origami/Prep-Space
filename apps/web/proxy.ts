@@ -9,7 +9,6 @@ const PROTECTED_PREFIXES = [
   '/resume',
   '/mock-company',
   '/groups',
-  '/peer-practice',
   '/leaderboard',
   '/settings',
 ];

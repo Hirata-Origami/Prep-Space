@@ -1,380 +1,767 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
-import { useResume, Experience, Education } from '@/lib/hooks/useResume';
+import { useResume, Experience, ProjectItem, EducationItem, SkillCategories, ResumeTemplateId } from '@/lib/hooks/useResume';
+import useSWR from 'swr';
+import {
+  FileText, Sparkles, Copy, Download, Briefcase, FolderGit2,
+  Plus, Trash2, RefreshCw, Upload, ChevronDown, ChevronUp, Eye,
+  Code2, Layers, Sun, GraduationCap, Trophy,
+} from 'lucide-react';
 
+/* ─── Types ─────────────────────────────────────────────── */
+interface ResumeVersion {
+  id: string;
+  version_name: string;
+  company?: string;
+  role?: string;
+  latex_code: string;
+  created_at: string;
+}
+
+const TEMPLATES: { id: ResumeTemplateId; label: string; desc: string; icon: string }[] = [
+  { id: 'modern-two-column', label: 'Modern Two-Column', desc: 'Teal & Lato — Flagship ATS', icon: '⬛' },
+  { id: 'classic-single',    label: 'Classic Single',   desc: 'High-compatibility ATS',       icon: '📄' },
+  { id: 'minimal-tech',      label: 'Minimal Tech',     desc: 'Clean modern tech style',      icon: '⚡' },
+];
+
+const TABS = [
+  { id: 'profile',    label: 'Profile',              icon: Briefcase   },
+  { id: 'experience', label: 'Work Experience',       icon: Briefcase   },
+  { id: 'projects',   label: 'Projects',              icon: FolderGit2  },
+  { id: 'skills',     label: 'Skills',                icon: Layers      },
+  { id: 'education',  label: 'Education',             icon: GraduationCap },
+  { id: 'preview',    label: 'Preview & Export',      icon: Eye         },
+  { id: 'optimize',   label: '🎯 Optimize for JD',   icon: Sparkles    },
+] as const;
+
+type TabId = typeof TABS[number]['id'];
+
+/* ─── Styles ─────────────────────────────────────────────── */
+const inp = {
+  width: '100%', padding: '10px 14px',
+  background: 'var(--bg-elevated)',
+  border: '1.5px solid var(--border)',
+  borderRadius: '8px', color: 'var(--text-primary)',
+  fontSize: '14px', fontFamily: 'var(--font-body)', outline: 'none',
+  transition: 'border-color .15s',
+  boxSizing: 'border-box' as const,
+};
+const lbl = {
+  fontSize: '11px', fontWeight: 700 as const, letterSpacing: '.05em',
+  color: 'var(--text-muted)' as const, display: 'block' as const,
+  marginBottom: '5px', textTransform: 'uppercase' as const,
+};
+
+/* ─── Page ───────────────────────────────────────────────── */
 export default function ResumeBuilderPage() {
-  const { resumeData, isLoading: fetchLoading, updateResume } = useResume();
-  const [tab, setTab] = useState<'profile' | 'experience' | 'skills' | 'latex'>('profile');
-  const [generating, setGenerating] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [latexTab, setLatexTab] = useState<'code' | 'preview'>('code');
+  const { resumeData, isLoading, updateResume } = useResume();
 
-  // Local state for form inputs, synced with SWR cache
+  const [tab, setTab] = useState<TabId>('profile');
+  const [latexView, setLatexView] = useState<'preview' | 'code'>('preview');
+  const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [templateId, setTemplateId] = useState<ResumeTemplateId>('modern-two-column');
+
+  /* ─ Form state ─ */
   const [profile, setProfile] = useState({
-    name: '',
-    email: '',
-    phone: '',
-    linkedin: '',
-    github: '',
-    targetRole: '',
-    targetCompany: '',
+    name: '', email: '', phone: '', linkedin: '', github: '',
+    location: '', summary: '', targetRole: '', targetCompany: '',
   });
   const [experience, setExperience] = useState<Experience[]>([]);
-  const [education, setEducation] = useState<Education>({ degree: '', institution: '', year: '' });
+  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [education, setEducation] = useState<EducationItem[]>([{ degree: '', institution: '', year: '', score: '' }]);
   const [skills, setSkills] = useState('');
+  const [skillsCat, setSkillsCat] = useState<SkillCategories>({
+    languages: '', frameworks: '', cloud_and_databases: '', tools_and_architecture: '', area_of_interest: '',
+  });
+  const [achievements, setAchievements] = useState('');
   const [latexCode, setLatexCode] = useState('');
 
-  // Sync SWR data to local state on initial load
+  /* ─ JD optimizer state ─ */
+  const [jdText, setJdText] = useState('');
+  const [jdFile, setJdFile] = useState<File | null>(null);
+  const [jdCompany, setJdCompany] = useState('');
+  const [jdRole, setJdRole] = useState('');
+  const [detectedRoles, setDetectedRoles] = useState<string[]>([]);
+  const [detectedCompany, setDetectedCompany] = useState('');
+  const [showRoleModal, setShowRoleModal] = useState(false);
+
+  /* ─ Versions ─ */
+  const { data: versionsData, mutate: mutateVersions } = useSWR<{ versions: ResumeVersion[] }>(
+    '/api/resume/versions',
+    (url: string) => fetch(url).then(r => r.json()),
+    { revalidateOnFocus: false }
+  );
+  const versions = versionsData?.versions || [];
+
+  /* ─ Sync from SWR ─ */
   useEffect(() => {
-    if (resumeData) {
-      if (resumeData.profile) setProfile(resumeData.profile);
-      if (resumeData.experience) setExperience(resumeData.experience);
-      if (resumeData.education) setEducation(resumeData.education);
-      if (resumeData.skills) setSkills(resumeData.skills);
-      if (resumeData.latex_code) setLatexCode(resumeData.latex_code);
+    if (!resumeData) return;
+    if (resumeData.profile) setProfile(p => ({ ...p, ...resumeData.profile }));
+    if (resumeData.experience?.length) setExperience(resumeData.experience);
+    if (resumeData.projects?.length) setProjects(resumeData.projects);
+    if (resumeData.skills) setSkills(resumeData.skills);
+    if (resumeData.skills_categorized) setSkillsCat(sc => ({ ...sc, ...resumeData.skills_categorized }));
+    if (resumeData.achievements) setAchievements(resumeData.achievements);
+    if (resumeData.latex_code) setLatexCode(resumeData.latex_code);
+    if (resumeData.templateId) setTemplateId(resumeData.templateId);
+
+    const edu = resumeData.education;
+    if (edu) {
+      if (Array.isArray(edu) && edu.length > 0) setEducation(edu);
+      else if (!Array.isArray(edu) && (edu.degree || edu.institution)) setEducation([edu]);
     }
   }, [resumeData]);
 
-  const handleSaveProfile = async () => {
+  const collectData = useCallback(() => ({
+    templateId, profile, experience, projects,
+    education, skills, skills_categorized: skillsCat, achievements, latex_code: latexCode,
+  }), [templateId, profile, experience, projects, education, skills, skillsCat, achievements, latexCode]);
+
+  const handleSave = async () => {
     setSaving(true);
     try {
-      await updateResume({ profile, experience, education, skills, latex_code: latexCode });
-      toast.success('Resume data saved!');
+      await updateResume(collectData() as any);
+      toast.success('Resume saved!');
     } catch (e: any) {
       toast.error(e.message);
-    } finally {
-      setSaving(false);
-    }
+    } finally { setSaving(false); }
   };
 
-  const handleGenerateLaTeX = async () => {
+  /* ─ Generate with AI ─ */
+  const handleGenerate = async () => {
+    if (!profile.targetRole) { toast.error('Fill in Target Role first'); return; }
     setGenerating(true);
     try {
       const res = await fetch('/api/resume/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          targetRole: profile.targetRole,
-          targetCompany: profile.targetCompany,
-          profile,
-          experience,
-          education,
-          skills: skills.split(',').map(s => s.trim()).filter(Boolean),
-        }),
+        body: JSON.stringify({ ...collectData(), targetRole: profile.targetRole, targetCompany: profile.targetCompany }),
       });
-      const result = await res.json();
-      if (!res.ok) throw new Error(result.error || 'Generation failed');
-      
-      if (result.latex_code) {
-        setLatexCode(result.latex_code);
-        // Persist to cache immediately
-        await updateResume({ latex_code: result.latex_code });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setLatexCode(data.latex_code);
+      if (data.resume_data) {
+        const rd = data.resume_data;
+        if (rd.profile) setProfile(p => ({ ...p, ...rd.profile }));
+        if (rd.experience?.length) setExperience(rd.experience);
+        if (rd.projects?.length) setProjects(rd.projects);
+        if (rd.skills) setSkills(rd.skills);
+        if (rd.skills_categorized) setSkillsCat(sc => ({ ...sc, ...rd.skills_categorized }));
+        if (rd.achievements) setAchievements(rd.achievements);
+        if (rd.education?.length) setEducation(rd.education);
       }
-      toast.success('Resume generated!');
-      setTab('latex');
+      setTab('preview');
+      toast.success('Full 1-page resume generated!');
     } catch (e: any) {
-      toast.error(e.message);
-    } finally {
-      setGenerating(false);
-    }
+      toast.error(e.message || 'Failed to generate');
+    } finally { setGenerating(false); }
   };
 
-  const handleExport = (format: 'tex' | 'pdf' | 'txt') => {
-    if (!latexCode) { toast.error('No content to export'); return; }
-    
+  /* ─ Export ─ */
+  const handleExport = (format: 'tex' | 'pdf') => {
+    if (!latexCode) { toast.error('Generate a resume first!'); return; }
     if (format === 'tex') {
-      const blob = new Blob([latexCode], { type: 'text/plain' });
+      const blob = new Blob([latexCode], { type: 'text/plain;charset=utf-8' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'resume.tex';
+      a.download = `${(profile.name || 'resume').replace(/\s+/g, '_')}.tex`;
       a.click();
       URL.revokeObjectURL(url);
-    } else if (format === 'pdf') {
-      // Browser-based PDF: open in new tab with print dialog
-      const win = window.open('', '_blank');
-      if (!win) { toast.error('Popup blocked — allow popups to export PDF'); return; }
-      win.document.write(`<!DOCTYPE html><html><head><title>Resume</title><style>
-        body { font-family: Georgia, serif; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.5; }
-        code, pre { font-family: monospace; white-space: pre-wrap; font-size: 9px; }
-        @media print { body { margin: 0; } }
-      </style></head><body><pre>${latexCode.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre></body></html>`);
-      win.document.close();
-      setTimeout(() => win.print(), 500);
-      toast('Download as PDF from the print dialog', { icon: 'ℹ️' });
-    } else if (format === 'txt') {
-      // Plain text version — strip LaTeX
-      const plain = latexCode
-        .replace(/\\textbf\{([^}]+)\}/g, '$1')
-        .replace(/\\href\{[^}]+\}\{([^}]+)\}/g, '$1')
-        .replace(/\\[a-zA-Z]+\{([^}]*)\}/g, '$1')
-        .replace(/\\[a-zA-Z]+/g, '')
-        .replace(/[{}$|\\]/g, '')
-        .replace(/\s{3,}/g, '\n\n')
-        .trim();
-      const blob = new Blob([plain], { type: 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'resume.txt';
-      a.click();
-      URL.revokeObjectURL(url);
+      toast.success('Exported .tex file');
+    } else {
+      window.print();
     }
   };
 
-  const addExperience = () => setExperience(prev => [...prev, { company: '', role: '', start: '', end: 'Present', bullets: '' }]);
-  const removeExperience = (idx: number) => setExperience(prev => prev.filter((_, i) => i !== idx));
-  const updateExp = (idx: number, field: string, value: string) =>
-    setExperience(prev => prev.map((e, i) => i === idx ? { ...e, [field]: value } : e));
-
+  /* ─ File upload ─ */
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-       toast.error("Please upload a PDF file");
-       return;
-    }
-
     setIsUploading(true);
-    const formData = new FormData();
-    formData.append('file', file);
-
     try {
-      const res = await fetch('/api/resume/extract', {
-        method: 'POST',
-        body: formData
-      });
+      const fd = new FormData();
+      fd.append('file', file);
+      const res = await fetch('/api/resume/extract', { method: 'POST', body: fd });
       const data = await res.json();
-      
       if (!res.ok) throw new Error(data.error);
+      const ex = data.extracted;
 
-      if (data.extracted) {
-        const { profile: importedProfile, experience: importedExperience, education: importedEducation, skills: importedSkills } = data.extracted;
-        
-        if (importedProfile) setProfile(p => ({ ...p, ...importedProfile }));
-        if (importedExperience && importedExperience.length > 0) setExperience(importedExperience);
-        if (importedEducation) setEducation(e => ({ ...e, ...importedEducation }));
-        if (importedSkills) setSkills(importedSkills);
+      const updatedProfile = ex?.profile ? { ...profile, ...ex.profile } : profile;
+      const updatedExp = ex?.experience?.length ? ex.experience : experience;
+      const updatedProj = ex?.projects?.length ? ex.projects : projects;
+      const updatedSkills = ex?.skills || skills;
+      const updatedSkillsCat = ex?.skills_categorized ? { ...skillsCat, ...ex.skills_categorized } : skillsCat;
+      const updatedAchieve = ex?.achievements || achievements;
+      const updatedEdu = ex?.education?.length ? ex.education : education;
 
-        toast.success("Resume data extracted successfully!");
-      }
+      setProfile(updatedProfile);
+      setExperience(updatedExp);
+      setProjects(updatedProj);
+      setSkills(updatedSkills);
+      setSkillsCat(updatedSkillsCat);
+      setAchievements(updatedAchieve);
+      setEducation(updatedEdu);
 
+      // Immediately persist to Supabase
+      await updateResume({
+        profile: updatedProfile,
+        experience: updatedExp,
+        projects: updatedProj,
+        skills: updatedSkills,
+        skills_categorized: updatedSkillsCat,
+        achievements: updatedAchieve,
+        education: updatedEdu,
+        templateId,
+      } as any);
+
+      toast.success('Resume extracted and saved!');
     } catch (err: any) {
-      toast.error(err.message || 'Failed to extract resume');
+      toast.error(err.message || 'Extraction failed');
     } finally {
       setIsUploading(false);
-      if (e.target) e.target.value = ''; // Reset input
+      if (e.target) e.target.value = '';
     }
   };
 
-  const inputStyle = { width: '100%', padding: '10px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'var(--font-body)', outline: 'none', boxSizing: 'border-box' as const };
-  const labelStyle = { fontSize: '12px', fontWeight: 600 as const, color: 'var(--text-muted)' as const, display: 'block' as const, marginBottom: '6px' };
+  /* ─ Optimize ─ */
+  const handleOptimize = async (roleOverride?: string) => {
+    if (!jdText.trim() && !jdFile) { toast.error('Paste a JD or upload a file.'); return; }
+    setIsOptimizing(true);
+    try {
+      const fd = new FormData();
+      if (jdFile) fd.append('file', jdFile);
+      fd.append('jd_text', jdText);
+      fd.append('company', jdCompany || detectedCompany);
+      fd.append('role', roleOverride || jdRole);
+      fd.append('template_id', templateId);
+      fd.append('resume_data', JSON.stringify(collectData()));
+      if (roleOverride) fd.append('selected_role', roleOverride);
+
+      const res = await fetch('/api/resume/optimize', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      if (data.requires_selection && data.roles_detected?.length > 1) {
+        setDetectedRoles(data.roles_detected);
+        setDetectedCompany(data.company || jdCompany);
+        setShowRoleModal(true);
+        return;
+      }
+
+      setShowRoleModal(false);
+      setLatexCode(data.latex_code);
+      mutateVersions();
+      toast.success(`Optimized: ${data.version_name}`);
+      setTab('preview');
+    } catch (err: any) {
+      toast.error(err.message || 'Optimization failed');
+    } finally { setIsOptimizing(false); }
+  };
+
+  /* ─ Experience helpers ─ */
+  const addExp = () => setExperience(p => [...p, { company: '', role: '', start: '', end: '', location: '', bullets: '', type: 'work' }]);
+  const updateExp = (i: number, f: keyof Experience, v: any) => setExperience(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
+  const removeExp = (i: number) => setExperience(p => p.filter((_, idx) => idx !== i));
+
+  /* ─ Project helpers ─ */
+  const addProj = () => setProjects(p => [...p, { title: '', repo_url: '', demo_url: '', context: '', bullets: '' }]);
+  const updateProj = (i: number, f: keyof ProjectItem, v: string) => setProjects(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
+  const removeProj = (i: number) => setProjects(p => p.filter((_, idx) => idx !== i));
+
+  /* ─ Education helpers ─ */
+  const addEdu = () => setEducation(p => [...p, { degree: '', institution: '', year: '', score: '' }]);
+  const updateEdu = (i: number, f: keyof EducationItem, v: string) => setEducation(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
+  const removeEdu = (i: number) => setEducation(p => p.filter((_, idx) => idx !== i));
+
+  /* ─ Visual preview for modern-two-column ─ */
+  const ModernTwoColPreview = () => {
+    const expItems = experience.filter(e => (e.type || 'work') === 'work' && (e.role || e.company));
+    const projItems = projects.filter(p => p.title);
+    return (
+      <div style={{ fontFamily: '"Lato","Helvetica Neue",sans-serif', fontSize: '9.5px', lineHeight: 1.45, color: '#2E2E2F', background: 'white', padding: '24px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
+        {/* Header */}
+        <div style={{ marginBottom: '8px' }}>
+          <div style={{ fontSize: '22px', fontWeight: 900, color: '#2E2E2F', letterSpacing: '.06em' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px', color: '#65696D', fontSize: '8px' }}>
+            {profile.phone && <span>📞 {profile.phone}</span>}
+            {profile.email && <span>✉ {profile.email}</span>}
+            {profile.linkedin && <span style={{ color: '#00A6C0' }}>🔗 LinkedIn</span>}
+            {profile.github && <span style={{ color: '#00A6C0' }}>💻 GitHub</span>}
+            {profile.location && <span>📍 {profile.location}</span>}
+          </div>
+          <div style={{ borderTop: '1.5px solid #B4B7B9', marginTop: '6px' }} />
+        </div>
+        {/* Two columns */}
+        <div style={{ display: 'grid', gridTemplateColumns: '61% 35%', gap: '12px' }}>
+          {/* Left */}
+          <div>
+            {expItems.length > 0 && (
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>EXPERIENCE</div>
+                <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
+                {expItems.slice(0, 3).map((e, i) => (
+                  <div key={i} style={{ marginBottom: '7px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '9.5px' }}>{e.role || '—'}</div>
+                    <div style={{ color: '#00A6C0', fontWeight: 700, fontSize: '8.5px' }}>{e.company} {e.location ? `· ${e.location}` : ''} <span style={{ color: '#65696D', fontWeight: 400 }}>· {e.start}–{e.end}</span></div>
+                    {e.bullets && <ul style={{ paddingLeft: '10px', marginTop: '2px' }}>{e.bullets.split('\n').filter(Boolean).slice(0, 2).map((b, j) => <li key={j} style={{ color: '#2E2E2F', fontSize: '8.2px', marginBottom: '1px' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}
+                  </div>
+                ))}
+              </div>
+            )}
+            {projItems.length > 0 && (
+              <div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>PROJECTS</div>
+                <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
+                {projItems.slice(0, 2).map((p, i) => (
+                  <div key={i} style={{ marginBottom: '7px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '9.5px' }}>{p.title}</div>
+                    {p.repo_url && <div style={{ color: '#00A6C0', fontSize: '7.8px' }}>🔗 {p.repo_url}</div>}
+                    {p.context && <div style={{ color: '#65696D', fontStyle: 'italic', fontSize: '8px' }}>{p.context}</div>}
+                    {p.bullets && <ul style={{ paddingLeft: '10px', marginTop: '2px' }}>{p.bullets.split('\n').filter(Boolean).slice(0, 2).map((b, j) => <li key={j} style={{ color: '#2E2E2F', fontSize: '8.2px', marginBottom: '1px' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          {/* Right */}
+          <div>
+            {profile.summary && (
+              <div style={{ marginBottom: '8px' }}>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>SUMMARY</div>
+                <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '4px' }} />
+                <p style={{ fontSize: '8.3px', color: '#2E2E2F', lineHeight: 1.5 }}>{profile.summary}</p>
+              </div>
+            )}
+            <div style={{ marginBottom: '8px' }}>
+              <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>SKILLS</div>
+              <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
+              {[
+                { label: 'Languages', val: skillsCat.languages },
+                { label: 'Frameworks', val: skillsCat.frameworks },
+                { label: 'Cloud & DBs', val: skillsCat.cloud_and_databases },
+                { label: 'Tools', val: skillsCat.tools_and_architecture },
+              ].map(({ label, val }) => val ? (
+                <div key={label} style={{ marginBottom: '4px' }}>
+                  <div style={{ color: '#00A6C0', fontWeight: 700, fontSize: '8.3px', marginBottom: '2px' }}>{label}</div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '3px' }}>
+                    {val.split(',').map(s => s.trim()).filter(Boolean).map(s => (
+                      <span key={s} style={{ fontSize: '7.8px', color: '#2E2E2F', borderBottom: '0.5px solid #B4B7B9', paddingBottom: '1px' }}>{s}</span>
+                    ))}
+                  </div>
+                </div>
+              ) : null)}
+            </div>
+            {education.filter(e => e.degree || e.institution).length > 0 && (
+              <div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>EDUCATION</div>
+                <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
+                {education.filter(e => e.degree || e.institution).map((e, i) => (
+                  <div key={i} style={{ marginBottom: '6px' }}>
+                    <div style={{ fontWeight: 700, fontSize: '9.4px' }}>{e.degree}</div>
+                    <div style={{ color: '#00A6C0', fontWeight: 700, fontSize: '8.5px' }}>{e.institution}</div>
+                    <div style={{ color: '#65696D', fontSize: '7.8px' }}>📅 {e.year} {e.score && `· ${e.score}`}</div>
+                  </div>
+                ))}
+              </div>
+            )}
+            {achievements && (
+              <div style={{ marginTop: '8px' }}>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>ACHIEVEMENTS</div>
+                <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '4px' }} />
+                <p style={{ fontSize: '8.2px', color: '#2E2E2F', lineHeight: 1.5 }}>{achievements}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  const ClassicPreview = () => (
+    <div style={{ fontFamily: 'Georgia, serif', fontSize: '11px', color: '#111', background: 'white', padding: '32px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
+      <div style={{ textAlign: 'center', marginBottom: '16px' }}>
+        <div style={{ fontSize: '22px', fontWeight: 900, fontVariant: 'small-caps' }}>{profile.name || 'YOUR NAME'}</div>
+        <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
+          {[profile.phone, profile.email, profile.location].filter(Boolean).join(' | ')}
+        </div>
+      </div>
+      {profile.summary && <><div style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>PROFESSIONAL SUMMARY</div><p style={{ fontSize: '10px', lineHeight: 1.6, marginBottom: '12px' }}>{profile.summary}</p></>}
+      {experience.filter(e => e.role).length > 0 && <><div style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>EXPERIENCE</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}><span>{e.role} @ {e.company}</span><span style={{ fontWeight: 400, fontSize: '10px' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ marginTop: '3px', paddingLeft: '16px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '10px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
+    </div>
+  );
+
+  const MinimalPreview = () => (
+    <div style={{ fontFamily: '"Helvetica Neue",Arial,sans-serif', fontSize: '11px', color: '#111', background: 'white', padding: '28px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
+      <div style={{ fontSize: '20px', fontWeight: 900, marginBottom: '2px' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
+      <div style={{ fontSize: '10px', color: '#444', marginBottom: '16px' }}>{[profile.email, profile.phone, profile.location].filter(Boolean).join(' · ')}</div>
+      {profile.summary && <p style={{ fontSize: '10.5px', color: '#333', lineHeight: 1.6, marginBottom: '14px', borderLeft: '3px solid #000', paddingLeft: '10px' }}>{profile.summary}</p>}
+      {experience.filter(e => e.role).length > 0 && <><div style={{ fontWeight: 900, fontSize: '11px', borderBottom: '2px solid #111', marginBottom: '6px', paddingBottom: '2px' }}>Experience</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ fontWeight: 700 }}>{e.role} @ {e.company} <span style={{ fontWeight: 400, fontSize: '10px', float: 'right' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ paddingLeft: '14px', marginTop: '2px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '10px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
+    </div>
+  );
+
+  const renderPreview = () => {
+    if (templateId === 'modern-two-column') return <ModernTwoColPreview />;
+    if (templateId === 'classic-single') return <ClassicPreview />;
+    return <MinimalPreview />;
+  };
+
+  if (isLoading) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '60vh', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ width: '40px', height: '40px', borderRadius: '50%', border: '3px solid var(--border)', borderTopColor: 'var(--accent-primary)', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ color: 'var(--text-muted)', fontSize: '14px' }}>Loading resume…</p>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1100px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
+    <div style={{ padding: '28px', maxWidth: '1140px', margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Resume Builder</h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>AI-powered ATS-optimized resume with LaTeX export</p>
+          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Resume Builder</h1>
+          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ATS-optimized LaTeX resume with AI enhancement & JD targeting</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button onClick={handleSaveProfile} disabled={saving} className="btn-secondary" style={{ fontSize: '13px' }}>
-            {saving ? ' Saving…' : ' Save'}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', padding: '7px 14px', borderRadius: '8px', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: 700, cursor: isUploading ? 'not-allowed' : 'pointer', opacity: isUploading ? 0.7 : 1, transition: 'all .15s' }}>
+            <Upload size={13} />
+            {isUploading ? 'Extracting…' : 'Upload Resume (.pdf / .tex / .docx)'}
+            <input type="file" accept=".pdf,.tex,.docx,.txt,application/pdf,text/plain" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
+          </label>
+          <button onClick={handleSave} disabled={saving} className="btn-secondary" style={{ fontSize: '13px', padding: '7px 18px' }}>
+            {saving ? 'Saving…' : 'Save Draft'}
           </button>
-          <button onClick={handleGenerateLaTeX} disabled={generating} className="btn-primary" style={{ fontSize: '13px', opacity: generating ? 0.7 : 1 }}>
-            {generating ? ' Generating…' : ' Generate with AI'}
+          <button onClick={handleGenerate} disabled={generating} className="btn-primary" style={{ fontSize: '13px', padding: '7px 18px', opacity: generating ? 0.7 : 1 }}>
+            <Sparkles size={14} style={{ display: 'inline', marginRight: '5px' }} />
+            {generating ? 'Generating…' : 'Generate with AI'}
           </button>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: '4px', marginBottom: '24px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '10px', width: 'fit-content' }}>
-        {(['profile', 'experience', 'skills', 'latex'] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{ padding: '8px 18px', borderRadius: '7px', border: 'none', cursor: 'pointer', fontSize: '13px', fontWeight: 700, fontFamily: 'var(--font-body)', transition: 'all 0.15s', background: tab === t ? 'var(--bg-surface)' : 'transparent', color: tab === t ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: tab === t ? '0 1px 4px rgba(0,0,0,0.3)' : 'none' }}>
-            {t.charAt(0).toUpperCase() + t.slice(1)}
+      {/* Template Selector */}
+      <div style={{ marginBottom: '22px' }}>
+        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>Template</div>
+        <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+          {TEMPLATES.map(t => (
+            <button key={t.id} onClick={() => setTemplateId(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '12px 18px', borderRadius: '10px', border: `2px solid ${templateId === t.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: templateId === t.id ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)', cursor: 'pointer', transition: 'all .15s', minWidth: '155px' }}>
+              <span style={{ fontSize: '18px' }}>{t.icon}</span>
+              <span style={{ fontSize: '13px', fontWeight: 700, color: templateId === t.id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{t.label}</span>
+              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t.desc}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Tab Bar */}
+      <div style={{ display: 'flex', gap: '3px', marginBottom: '22px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '12px', width: 'fit-content', flexWrap: 'wrap' }}>
+        {TABS.map(t => (
+          <button key={t.id} onClick={() => setTab(t.id as TabId)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-body)', transition: 'all .15s', background: tab === t.id ? 'var(--bg-surface)' : 'transparent', color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: tab === t.id ? '0 1px 6px rgba(0,0,0,0.25)' : 'none' }}>
+            {t.label}
           </button>
         ))}
       </div>
 
-      {tab === 'profile' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ padding: '24px' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Personal Information</h2>
-            
-            {/* Auto-fill from PDF button */}
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(77,255,160,0.1)', border: '1px solid rgba(77,255,160,0.2)', padding: '6px 14px', borderRadius: '8px', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: 700, cursor: 'pointer', transition: 'all 0.15s', opacity: isUploading ? 0.7 : 1 }}>
-               {isUploading ? '⏳ Extracting...' : ' Auto-fill from PDF'}
-               <input type="file" accept="application/pdf" style={{ display: 'none' }} onChange={handleFileUpload} disabled={isUploading} />
-            </label>
-          </div>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            <div><label style={labelStyle}>Full Name</label><input style={inputStyle} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Jane Doe" /></div>
-            <div><label style={labelStyle}>Email</label><input style={inputStyle} value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} placeholder="jane@example.com" /></div>
-            <div><label style={labelStyle}>Phone</label><input style={inputStyle} value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+1 (555) 000-0000" /></div>
-            <div><label style={labelStyle}>LinkedIn URL</label><input style={inputStyle} value={profile.linkedin} onChange={e => setProfile(p => ({ ...p, linkedin: e.target.value }))} placeholder="linkedin.com/in/..." /></div>
-            <div><label style={labelStyle}>GitHub URL</label><input style={inputStyle} value={profile.github} onChange={e => setProfile(p => ({ ...p, github: e.target.value }))} placeholder="github.com/..." /></div>
-            <div />
-            <div><label style={labelStyle}>Target Role</label><input style={inputStyle} value={profile.targetRole} onChange={e => setProfile(p => ({ ...p, targetRole: e.target.value }))} placeholder="Senior Frontend Engineer" /></div>
-            <div><label style={labelStyle}>Target Company</label><input style={inputStyle} value={profile.targetCompany} onChange={e => setProfile(p => ({ ...p, targetCompany: e.target.value }))} placeholder="Google, Meta, Stripe..." /></div>
-          </div>
-        </motion.div>
-      )}
-
-      {tab === 'experience' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {experience.map((exp, idx) => (
-            <div key={idx} className="card" style={{ padding: '20px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>Experience #{idx + 1}</h3>
-                {experience.length > 1 && <button onClick={() => removeExperience(idx)} style={{ background: 'none', border: 'none', color: '#FF4D6A', cursor: 'pointer', fontSize: '18px' }}></button>}
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
-                <div><label style={labelStyle}>Company</label><input style={inputStyle} value={exp.company} onChange={e => updateExp(idx, 'company', e.target.value)} placeholder="Google" /></div>
-                <div><label style={labelStyle}>Role</label><input style={inputStyle} value={exp.role} onChange={e => updateExp(idx, 'role', e.target.value)} placeholder="Software Engineer" /></div>
-                <div><label style={labelStyle}>Start Date</label><input style={inputStyle} value={exp.start} onChange={e => updateExp(idx, 'start', e.target.value)} placeholder="Jan 2022" /></div>
-                <div><label style={labelStyle}>End Date</label><input style={inputStyle} value={exp.end} onChange={e => updateExp(idx, 'end', e.target.value)} placeholder="Present" /></div>
-              </div>
-              <div>
-                <label style={labelStyle}>Bullet Points (one per line, use metrics and impact)</label>
-                <textarea value={exp.bullets} onChange={e => updateExp(idx, 'bullets', e.target.value)} rows={4}
-                  placeholder="Built scalable API serving 10M+ requests/day, reducing latency by 40%&#10;Led team of 5 engineers to deliver feature 2 weeks ahead of schedule"
-                  style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
-              </div>
+      <AnimatePresence mode="wait">
+        {/* ═══ PROFILE TAB ═══ */}
+        {tab === 'profile' && (
+          <motion.div key="profile" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card" style={{ padding: '24px' }}>
+            <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>Personal Information</h2>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+              <div><label style={lbl}>Full Name</label><input style={inp} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Your Full Name" /></div>
+              <div><label style={lbl}>Email</label><input style={inp} value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} placeholder="you@example.com" /></div>
+              <div><label style={lbl}>Phone</label><input style={inp} value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" /></div>
+              <div><label style={lbl}>Location</label><input style={inp} value={profile.location || ''} onChange={e => setProfile(p => ({ ...p, location: e.target.value }))} placeholder="Chennai, Tamil Nadu, India" /></div>
+              <div><label style={lbl}>LinkedIn URL</label><input style={inp} value={profile.linkedin} onChange={e => setProfile(p => ({ ...p, linkedin: e.target.value }))} placeholder="https://linkedin.com/in/..." /></div>
+              <div><label style={lbl}>GitHub URL</label><input style={inp} value={profile.github} onChange={e => setProfile(p => ({ ...p, github: e.target.value }))} placeholder="https://github.com/..." /></div>
+              <div><label style={lbl}>Target Role</label><input style={inp} value={profile.targetRole || ''} onChange={e => setProfile(p => ({ ...p, targetRole: e.target.value }))} placeholder="Senior Software Engineer" /></div>
+              <div><label style={lbl}>Target Company</label><input style={inp} value={profile.targetCompany || ''} onChange={e => setProfile(p => ({ ...p, targetCompany: e.target.value }))} placeholder="Google, Meta, Stripe…" /></div>
             </div>
-          ))}
-          <button onClick={addExperience} className="btn-secondary">+ Add Experience</button>
-
-          <div className="card" style={{ padding: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Education</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: '12px' }}>
-              <div><label style={labelStyle}>Degree</label><input style={inputStyle} value={education.degree} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, degree: e.target.value }))} placeholder="B.S. Computer Science" /></div>
-              <div><label style={labelStyle}>Institution</label><input style={inputStyle} value={education.institution} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, institution: e.target.value }))} placeholder="MIT" /></div>
-              <div><label style={labelStyle}>Year</label><input style={inputStyle} value={education.year} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEducation((ed: Education) => ({ ...ed, year: e.target.value }))} placeholder="2022" /></div>
+            <div>
+              <label style={lbl}>Professional Summary</label>
+              <textarea value={profile.summary || ''} onChange={e => setProfile(p => ({ ...p, summary: e.target.value }))} rows={4} placeholder="A results-driven engineer with 3+ years of experience in building scalable full-stack products…" style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
             </div>
-          </div>
-        </motion.div>
-      )}
+          </motion.div>
+        )}
 
-      {tab === 'skills' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="card" style={{ padding: '24px' }}>
-          <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Skills</h2>
-          <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>Enter your skills as a comma-separated list. AI will categorize and optimize these for the target role.</p>
-          <textarea value={skills} onChange={e => setSkills(e.target.value)} rows={6}
-            placeholder="Python, TypeScript, React, Node.js, PostgreSQL, Redis, Docker, Kubernetes, Distributed Systems, Machine Learning, REST APIs, GraphQL, AWS, GCP"
-            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.6 }} />
-
-          {resumeData?.skills && (
-            <div style={{ marginTop: '20px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '10px' }}>AI-Filtered Skills for {profile.targetRole || 'Target Role'}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                {/* resumeData.skills is a string in our hook, let's assume it might be array from backend or just use local skills */}
-                {skills.split(',').map((s: string) => (
-                  <span key={s} style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '100px', background: 'rgba(77,255,160,0.1)', color: 'var(--accent-primary)', border: '1px solid rgba(77,255,160,0.2)', fontWeight: 600 }}>{s}</span>
-                ))}
-              </div>
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      {tab === 'latex' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
-            {/* Code/Preview toggle */}
-            <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
-              <button onClick={() => setLatexTab('code')} style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 700, background: latexTab === 'code' ? 'var(--bg-surface)' : 'transparent', color: latexTab === 'code' ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all 0.15s' }}>
-                {'</>'}  Code
-              </button>
-              <button onClick={() => setLatexTab('preview')} style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '13px', fontWeight: 700, background: latexTab === 'preview' ? 'var(--bg-surface)' : 'transparent', color: latexTab === 'preview' ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all 0.15s' }}>
-                 Preview
-              </button>
-            </div>
-
-            {/* Export buttons */}
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <button onClick={() => handleExport('tex')} className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}>
-                ⬇ .tex
-              </button>
-              <button onClick={() => handleExport('pdf')} className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}>
-                ⬇ PDF
-              </button>
-              <button onClick={() => handleExport('txt')} className="btn-secondary" style={{ fontSize: '12px', padding: '8px 14px' }}>
-                ⬇ .txt
-              </button>
-            </div>
-          </div>
-
-          {latexTab === 'code' ? (
-            <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
-              <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'rgba(77,255,160,0.03)', display: 'flex', gap: '6px' }}>
-                {['#FF5F57', '#FFBD2E', '#28CA41'].map((c, i) => <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: c }} />)}
-                <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>resume.tex</span>
-              </div>
-              <textarea
-                value={latexCode}
-                onChange={e => setLatexCode(e.target.value)}
-                style={{
-                  width: '100%',
-                  minHeight: '480px',
-                  padding: '20px',
-                  background: 'var(--bg-base)',
-                  border: 'none',
-                  outline: 'none',
-                  color: 'var(--accent-primary)',
-                  fontFamily: 'var(--font-mono)',
-                  fontSize: '13px',
-                  lineHeight: 1.7,
-                  resize: 'vertical',
-                  boxSizing: 'border-box',
-                }}
-              />
-            </div>
-          ) : (
-            <div className="card" style={{ padding: '24px', minHeight: '480px' }}>
-              <div style={{ background: 'white', color: '#111', padding: '40px', borderRadius: '6px', fontFamily: 'Georgia, serif', lineHeight: 1.6, fontSize: '13px', minHeight: '400px' }}>
-                <div style={{ textAlign: 'center', marginBottom: '20px' }}>
-                  <h2 style={{ margin: 0, fontVariant: 'small-caps', fontSize: '22px', color: '#000' }}>{profile.name || 'Jane Doe'}</h2>
-                  <p style={{ margin: '6px 0', color: '#444', fontSize: '12px' }}>
-                    {profile.phone} | {profile.email} | {profile.linkedin} | {profile.github}
-                  </p>
-                </div>
-                {experience.filter(e => e.company || e.role).map((exp, i) => (
-                  <div key={i} style={{ marginBottom: '16px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#000' }}>
-                      <span>{exp.role} @ {exp.company}</span>
-                      <span style={{ fontWeight: 'normal', fontSize: '12px' }}>{exp.start} – {exp.end}</span>
-                    </div>
-                    <ul style={{ marginTop: '4px', paddingLeft: '20px' }}>
-                      {exp.bullets.split('\n').filter(Boolean).map((b: string, j: number) => (
-                        <li key={j} style={{ color: '#333', fontSize: '12px', marginBottom: '3px' }}>{b}</li>
+        {/* ═══ EXPERIENCE TAB ═══ */}
+        {tab === 'experience' && (
+          <motion.div key="experience" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {experience.length === 0 && (
+              <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No experience added yet.<br /><br /><button className="btn-primary" onClick={addExp} style={{ fontSize: '13px' }}>+ Add Work Experience</button></div>
+            )}
+            {experience.map((exp, idx) => (
+              <div key={idx} className="card" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Experience #{idx + 1}</h3>
+                    {/* Work/Project toggle */}
+                    <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: '6px', padding: '2px' }}>
+                      {(['work', 'project'] as const).map(t => (
+                        <button key={t} onClick={() => updateExp(idx, 'type', t)} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-body)', background: (exp.type || 'work') === t ? 'var(--bg-surface)' : 'transparent', color: (exp.type || 'work') === t ? 'var(--accent-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
+                          {t === 'work' ? '💼 Work' : '🗂 Project'}
+                        </button>
                       ))}
-                    </ul>
+                    </div>
+                  </div>
+                  <button onClick={() => removeExp(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div><label style={lbl}>{(exp.type || 'work') === 'work' ? 'Company' : 'Organization'}</label><input style={inp} value={exp.company} onChange={e => updateExp(idx, 'company', e.target.value)} placeholder="Google" /></div>
+                  <div><label style={lbl}>Role / Title</label><input style={inp} value={exp.role} onChange={e => updateExp(idx, 'role', e.target.value)} placeholder="Software Engineer" /></div>
+                  <div><label style={lbl}>Start Date</label><input style={inp} value={exp.start} onChange={e => updateExp(idx, 'start', e.target.value)} placeholder="Jan 2022" /></div>
+                  <div><label style={lbl}>End Date</label><input style={inp} value={exp.end} onChange={e => updateExp(idx, 'end', e.target.value)} placeholder="Present" /></div>
+                  <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Location</label><input style={inp} value={exp.location || ''} onChange={e => updateExp(idx, 'location', e.target.value)} placeholder="San Francisco, CA (Remote)" /></div>
+                </div>
+                <div>
+                  <label style={lbl}>Bullet Points (one per line — use metrics and action verbs)</label>
+                  <textarea value={exp.bullets} onChange={e => updateExp(idx, 'bullets', e.target.value)} rows={4} placeholder="Designed and shipped real-time notification service processing 2M+ events/day, reducing latency by 40%&#10;Led cross-functional team of 6 to deliver feature 3 weeks ahead of schedule" style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
+                </div>
+              </div>
+            ))}
+            {experience.length > 0 && (
+              <button onClick={addExp} className="btn-secondary" style={{ alignSelf: 'flex-start' }}>+ Add Experience</button>
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══ PROJECTS TAB ═══ */}
+        {tab === 'projects' && (
+          <motion.div key="projects" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {projects.length === 0 && (
+              <div className="card" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>No projects added yet.<br /><br /><button className="btn-primary" onClick={addProj} style={{ fontSize: '13px' }}>+ Add Project</button></div>
+            )}
+            {projects.map((proj, idx) => (
+              <div key={idx} className="card" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Project #{idx + 1}</h3>
+                  <button onClick={() => removeProj(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                  <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Project Title</label><input style={inp} value={proj.title} onChange={e => updateProj(idx, 'title', e.target.value)} placeholder="PrepSpace — AI Interview Trainer" /></div>
+                  <div><label style={lbl}>GitHub / Repo URL</label><input style={inp} value={proj.repo_url || ''} onChange={e => updateProj(idx, 'repo_url', e.target.value)} placeholder="https://github.com/user/repo" /></div>
+                  <div><label style={lbl}>Live Demo URL</label><input style={inp} value={proj.demo_url || ''} onChange={e => updateProj(idx, 'demo_url', e.target.value)} placeholder="https://prepspace.app" /></div>
+                  <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Client / Context Attribution <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>(optional)</span></label><input style={inp} value={proj.context || ''} onChange={e => updateProj(idx, 'context', e.target.value)} placeholder="Built for XYZ Company · Open source contribution" /></div>
+                </div>
+                <div>
+                  <label style={lbl}>Bullet Points (one per line)</label>
+                  <textarea value={proj.bullets} onChange={e => updateProj(idx, 'bullets', e.target.value)} rows={3} placeholder="Architected scalable real-time API using Next.js, Supabase, and Gemini Live API&#10;Reduced session startup latency from 4s to 800ms through connection pooling" style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
+                </div>
+              </div>
+            ))}
+            {projects.length > 0 && (
+              <button onClick={addProj} className="btn-secondary" style={{ alignSelf: 'flex-start' }}>+ Add Project</button>
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══ SKILLS TAB ═══ */}
+        {tab === 'skills' && (
+          <motion.div key="skills" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div className="card" style={{ padding: '24px' }}>
+              <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Categorized Skills</h2>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '20px' }}>These map exactly to the skills section in the Modern Two-Column template (teal skill pills).</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                {([
+                  { key: 'languages', label: 'Programming Languages', placeholder: 'Python, TypeScript, C++, Java, SQL, Dart' },
+                  { key: 'frameworks', label: 'Frameworks & Libraries', placeholder: 'React, Next.js, FastAPI, Flutter, PyTorch, Streamlit' },
+                  { key: 'cloud_and_databases', label: 'Cloud & Databases', placeholder: 'AWS, GCP, Supabase, PostgreSQL, MongoDB, Redis, Firebase' },
+                  { key: 'tools_and_architecture', label: 'Tools & Architecture', placeholder: 'Git, Docker, Postman, Linux, CI/CD, REST APIs, Microservices' },
+                  { key: 'area_of_interest', label: 'Area of Interest / Core Competencies', placeholder: 'Machine Learning, Full-Stack Development, System Design, NLP' },
+                ] as { key: keyof SkillCategories; label: string; placeholder: string }[]).map(({ key, label, placeholder }) => (
+                  <div key={key}>
+                    <label style={lbl}>{label}</label>
+                    <input style={inp} value={skillsCat[key] || ''} onChange={e => setSkillsCat(s => ({ ...s, [key]: e.target.value }))} placeholder={placeholder} />
+                    {skillsCat[key] && (
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px' }}>
+                        {skillsCat[key].split(',').map(s => s.trim()).filter(Boolean).map(s => (
+                          <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '100px', background: 'var(--accent-primary-dim)', color: 'var(--accent-primary)', fontWeight: 600, border: '1px solid rgba(77,255,160,0.2)' }}>{s}</span>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
-                {education.degree && (
-                  <div>
-                    <div style={{ borderBottom: '1.5px solid #000', marginBottom: '8px', fontWeight: 'bold', fontSize: '14px', paddingBottom: '2px' }}>EDUCATION</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                      <span style={{ fontWeight: 'bold' }}>{education.degree}</span>
-                      <span style={{ color: '#666', fontSize: '12px' }}>{education.institution} — {education.year}</span>
-                    </div>
+              </div>
+            </div>
+            <div className="card" style={{ padding: '20px' }}>
+              <div style={{ marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Achievements & Honors</h3>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Hackathons, awards, recognitions, scholarships.</p>
+              </div>
+              <textarea value={achievements} onChange={e => setAchievements(e.target.value)} rows={4} placeholder="1st Place — Smart India Hackathon 2024 (National Level)&#10;AIR 3 in ICPC Asia-West Regionals 2023" style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══ EDUCATION TAB ═══ */}
+        {tab === 'education' && (
+          <motion.div key="education" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+            {education.map((edu, idx) => (
+              <div key={idx} className="card" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Education #{idx + 1}</h3>
+                  {education.length > 1 && <button onClick={() => removeEdu(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                  <div><label style={lbl}>Degree / Course</label><input style={inp} value={edu.degree} onChange={e => updateEdu(idx, 'degree', e.target.value)} placeholder="B.Tech. Computer Science & Engineering" /></div>
+                  <div><label style={lbl}>Institution</label><input style={inp} value={edu.institution} onChange={e => updateEdu(idx, 'institution', e.target.value)} placeholder="IIT Madras" /></div>
+                  <div><label style={lbl}>Year / Duration</label><input style={inp} value={edu.year} onChange={e => updateEdu(idx, 'year', e.target.value)} placeholder="2020 – 2024" /></div>
+                </div>
+                <div><label style={lbl}>Score / CGPA / Percentage <span style={{ fontWeight: 400 }}>(optional)</span></label><input style={inp} value={edu.score || ''} onChange={e => updateEdu(idx, 'score', e.target.value)} placeholder="CGPA: 8.31 / 10.00  or  Percentage: 96.33%" /></div>
+              </div>
+            ))}
+            <button onClick={addEdu} className="btn-secondary" style={{ alignSelf: 'flex-start' }}>+ Add Education</button>
+          </motion.div>
+        )}
+
+        {/* ═══ PREVIEW TAB ═══ */}
+        {tab === 'preview' && (
+          <motion.div key="preview" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '10px' }}>
+              <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
+                {(['preview', 'code'] as const).map(v => (
+                  <button key={v} onClick={() => setLatexView(v)} style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 700, background: latexView === v ? 'var(--bg-surface)' : 'transparent', color: latexView === v ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
+                    {v === 'preview' ? '👁 Visual Preview' : '</> LaTeX Source'}
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button onClick={() => handleExport('tex')} className="btn-secondary" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}><Download size={13} /> Export .tex</button>
+                <button onClick={() => handleExport('pdf')} className="btn-secondary" style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '5px' }}><Download size={13} /> Print / Save PDF</button>
+              </div>
+            </div>
+
+            {latexView === 'code' ? (
+              <div className="card" style={{ overflow: 'hidden', padding: 0 }}>
+                <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    {['#FF5F57', '#FFBD2E', '#28CA41'].map((c, i) => <div key={i} style={{ width: '10px', height: '10px', borderRadius: '50%', background: c }} />)}
+                    <span style={{ marginLeft: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>resume.tex</span>
+                  </div>
+                  <button onClick={() => { navigator.clipboard.writeText(latexCode); toast.success('LaTeX copied!'); }} style={{ display: 'flex', alignItems: 'center', gap: '4px', background: 'none', border: 'none', color: 'var(--accent-primary)', fontSize: '12px', cursor: 'pointer', fontWeight: 600 }}>
+                    <Copy size={13} /> Copy Code
+                  </button>
+                </div>
+                <textarea value={latexCode} onChange={e => setLatexCode(e.target.value)} style={{ width: '100%', minHeight: '520px', padding: '20px', background: 'var(--bg-base)', border: 'none', outline: 'none', color: 'var(--accent-primary)', fontFamily: 'var(--font-mono)', fontSize: '12px', lineHeight: 1.7, resize: 'vertical', boxSizing: 'border-box' }} />
+              </div>
+            ) : (
+              <div className="card" style={{ padding: '24px', minHeight: '520px', overflow: 'auto' }}>
+                {latexCode ? (
+                  <div style={{ maxWidth: '720px', margin: '0 auto' }}>
+                    {renderPreview()}
+                    <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '12px', color: 'var(--text-muted)' }}>
+                      Preview is an approximation. Export .tex for exact rendering in Overleaf or LaTeX editors.
+                    </p>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '400px', gap: '16px', color: 'var(--text-muted)' }}>
+                    <FileText size={48} strokeWidth={1} />
+                    <p style={{ fontSize: '14px' }}>No resume generated yet.</p>
+                    <button onClick={handleGenerate} disabled={generating} className="btn-primary" style={{ fontSize: '13px', opacity: generating ? 0.7 : 1 }}>
+                      <Sparkles size={14} style={{ display: 'inline', marginRight: '6px' }} />
+                      {generating ? 'Generating…' : 'Generate with AI'}
+                    </button>
                   </div>
                 )}
               </div>
-              <div style={{ marginTop: '12px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
-                ℹ️ This is a simplified HTML preview. For exact output, compile the .tex file using LaTeX or Overleaf.
+            )}
+          </motion.div>
+        )}
+
+        {/* ═══ OPTIMIZE TAB ═══ */}
+        {tab === 'optimize' && (
+          <motion.div key="optimize" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px', alignItems: 'start' }}>
+              <div className="card" style={{ padding: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+                  <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'var(--accent-primary-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
+                    <Sparkles size={18} />
+                  </div>
+                  <div>
+                    <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Targeted JD Optimization</h2>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>AI keyword-matches your resume to a specific job posting</p>
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                  <div><label style={lbl}>Company (Optional)</label><input style={inp} value={jdCompany} onChange={e => setJdCompany(e.target.value)} placeholder="Stripe, Google, Datadog…" /></div>
+                  <div><label style={lbl}>Role (Optional)</label><input style={inp} value={jdRole} onChange={e => setJdRole(e.target.value)} placeholder="Senior Backend Engineer" /></div>
+                </div>
+                <div style={{ marginBottom: '14px' }}>
+                  <label style={lbl}>Paste Job Description</label>
+                  <textarea value={jdText} onChange={e => setJdText(e.target.value)} rows={8} placeholder="Paste the full job posting text including responsibilities, required qualifications, and tech stack…" style={{ ...inp, resize: 'vertical', lineHeight: 1.6 }} />
+                </div>
+                <div style={{ marginBottom: '20px' }}>
+                  <label style={lbl}>Or Upload JD File (.docx / .pdf)</label>
+                  <div style={{ border: '1.5px dashed var(--border)', borderRadius: '10px', padding: '16px', textAlign: 'center', background: 'var(--bg-elevated)', cursor: 'pointer' }}>
+                    <input type="file" accept=".pdf,.docx,application/pdf" id="jd-file-input" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) { setJdFile(f); toast.success(`Attached: ${f.name}`); } }} />
+                    <label htmlFor="jd-file-input" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                      <Upload size={20} style={{ color: 'var(--accent-primary)' }} />
+                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{jdFile ? jdFile.name : 'Click to select .docx or .pdf'}</span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Supports Microsoft Word and PDF job listings</span>
+                    </label>
+                  </div>
+                </div>
+                <button onClick={() => handleOptimize()} disabled={isOptimizing} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '14px', fontWeight: 700, opacity: isOptimizing ? 0.7 : 1 }}>
+                  {isOptimizing ? 'Analyzing & Tailoring…' : '⚡ Optimize for this JD'}
+                </button>
+              </div>
+
+              {/* Saved versions */}
+              <div className="card" style={{ padding: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+                  <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Saved Versions ({versions.length})</h3>
+                  <button onClick={() => mutateVersions()} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }}><RefreshCw size={13} /></button>
+                </div>
+                {versions.length === 0 ? (
+                  <div style={{ padding: '24px 10px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px', lineHeight: 1.6 }}>No saved versions yet. Optimize for a JD to save custom resume variations.</div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {versions.map(ver => (
+                      <div key={ver.id} style={{ padding: '12px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>{ver.version_name}</div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>{new Date(ver.created_at).toLocaleDateString()}</div>
+                        <div style={{ display: 'flex', gap: '6px' }}>
+                          <button onClick={() => { setLatexCode(ver.latex_code); setTab('preview'); toast.success(`Loaded ${ver.version_name}`); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Load</button>
+                          <button onClick={() => { navigator.clipboard.writeText(ver.latex_code); toast.success('LaTeX copied!'); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '11px', cursor: 'pointer' }}>Copy</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
-          )}
-        </motion.div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Multi-role selection modal */}
+      <AnimatePresence>
+        {showRoleModal && (
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+              <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Multiple Roles Detected</h2>
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>Found several roles at <strong style={{ color: 'var(--text-primary)' }}>{detectedCompany || 'this company'}</strong>. Select which position to target:</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                {detectedRoles.map(role => (
+                  <button key={role} onClick={() => handleOptimize(role)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease' }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--accent-primary-dim)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
+                    <span>{role}</span>
+                    <span style={{ color: 'var(--accent-primary)', fontSize: '12px' }}>Target this →</span>
+                  </button>
+                ))}
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowRoleModal(false)} style={{ padding: '8px 18px', background: 'transparent', border: '1px solid var(--border)', borderRadius: '8px', color: 'var(--text-muted)', fontSize: '13px', cursor: 'pointer' }}>Cancel</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

@@ -57,7 +57,7 @@ export default function RoadmapPage() {
                 </div>
                 <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', lineHeight: 1.4 }}>{rm.title}</h3>
                 <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>{rm.modules?.[0]?.count || 0} Modules</span>
+                  <span>{rm.module_count ?? (Array.isArray(rm.modules) ? rm.modules[0]?.count : (rm.modules as any)?.count) ?? 0} Modules</span>
                   <span>{new Date(rm.created_at).toLocaleDateString()}</span>
                 </div>
               </motion.div>

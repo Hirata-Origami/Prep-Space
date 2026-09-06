@@ -17,7 +17,7 @@ export function Testimonials() {
   const isInView = useInView(ref, { once: true });
 
   return (
-    <section ref={ref} style={{ padding: '100px 0', background: 'var(--bg-base)', overflow: 'hidden' }}>
+    <section id="reviews" ref={ref} style={{ padding: '100px 0', background: 'var(--bg-base)', overflow: 'hidden' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }}
         style={{ textAlign: 'center', marginBottom: '56px', padding: '0 24px' }}>
         <span className="badge badge-muted" style={{ marginBottom: '20px', display: 'inline-flex' }}>Success Stories</span>

@@ -1,12 +1,12 @@
 'use client';
 
-
+import Image from 'next/image';
 
 const FOOTER_LINKS = {
-  Product: ['Roadmap Engine', 'AI Interviews', 'Mock Companies', 'Resume Builder', 'Peer Practice', 'Groups'],
-  'For Teams': ['Smart Hire', 'Edu Bundle', 'Enterprise', 'API Access', 'Integrations'],
-  Company: ['About', 'Blog', 'Careers', 'Press Kit', 'Status', 'Changelog'],
-  Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'GDPR', 'Security'],
+  Product: ['Roadmap Engine', 'AI Interviews', 'Mock Companies', 'Resume Builder', 'Groups'],
+  Resources: ['Interview Questions', 'Company Guides', 'Tech Stack Roadmaps', 'System Design Cheatsheet'],
+  Company: ['About', 'Blog', 'Careers', 'Status', 'Changelog'],
+  Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security'],
 };
 
 export function FooterSection() {
@@ -14,11 +14,11 @@ export function FooterSection() {
     <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', padding: '64px 24px 40px' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
         {/* Top grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '280px repeat(4, 1fr)', gap: '40px', marginBottom: '56px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '280px repeat(4, 1fr)', gap: '40px', marginBottom: '48px' }}>
           {/* Brand */}
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: 900, color: '#080C14' }}>P</div>
+              <Image src="/prepspace-logo.png" alt="PrepSpace" width={32} height={32} style={{ borderRadius: '8px' }} />
               <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>PrepSpace</span>
             </div>
             <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '20px' }}>
@@ -26,7 +26,7 @@ export function FooterSection() {
             </p>
             {/* Social links */}
             <div style={{ display: 'flex', gap: '10px' }}>
-              {['𝕏', 'in', 'gh', ''].map((icon, i) => (
+              {['𝕏', 'in', 'gh'].map((icon, i) => (
                 <a key={i} href="#" style={{ width: '34px', height: '34px', background: 'var(--bg-elevated)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', border: '1px solid var(--border)', transition: 'all 0.2s' }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.color = 'var(--accent-primary)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
@@ -53,30 +53,15 @@ export function FooterSection() {
           ))}
         </div>
 
-        {/* Newsletter */}
-        <div style={{ background: 'var(--bg-elevated)', borderRadius: '12px', padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '24px', marginBottom: '40px', flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Get interview tips every week</div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Curated DSA problems, system design breakdowns, and career tips.</div>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <input type="email" placeholder="you@email.com" className="input" style={{ width: '240px', padding: '10px 14px', fontSize: '14px' }} />
-            <button className="btn-primary" style={{ padding: '10px 20px', whiteSpace: 'nowrap', fontSize: '14px' }}>Subscribe</button>
-          </div>
-        </div>
-
         {/* Bottom bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '24px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px' }}>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            © 2026 PrepSpace. All rights reserved.
+            © {new Date().getFullYear()} PrepSpace. All rights reserved.
           </div>
           <div style={{ display: 'flex', gap: '16px' }}>
             <span className="badge badge-mint" style={{ fontSize: '11px' }}>Free for Beta</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>GDPR Compliant</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>SOC2 (In Progress)</span>
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            Powered by Gemini 2.5 Flash · Built on Supabase · Hosted on Vercel
           </div>
         </div>
       </div>
