@@ -18,23 +18,19 @@ export function getGeminiClient(userApiKey?: string | null): GoogleGenerativeAI 
  * Cascade falls through from most capable down to fastest/lightest.
  */
 export const CASCADE_MODELS = [
-  'gemini-3.1-pro-preview',
-  'gemini-2.5-pro',
   'gemini-3.8-flash',
   'gemini-3.7-flash',
   'gemini-3.5-flash',
-  'gemini-2.5-flash',
-  'gemini-3.1-flash-lite-preview',
-  'gemini-2.5-flash-lite',
+  'gemini-3.1-flash-lite',
 ] as const;
 
 export type CascadeModel = typeof CASCADE_MODELS[number];
 
 export const GEMINI_MODELS = {
-  PRO: 'gemini-3.1-pro-preview',
+  PRO: 'gemini-3.5-flash',
   FLASH_HIGH: 'gemini-3.8-flash',
-  FLASH: 'gemini-2.5-flash',
-  FLASH_LITE: 'gemini-3.1-flash-lite-preview',
+  FLASH: 'gemini-3.1-flash',
+  FLASH_LITE: 'gemini-3.1-flash-lite',
 } as const;
 
 /**

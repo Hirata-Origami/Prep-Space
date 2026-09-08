@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     const trimmedKey = key.trim();
     const genAI = new GoogleGenerativeAI(trimmedKey);
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
     // Trivial ping to check authentication
     const result = await model.generateContent({
