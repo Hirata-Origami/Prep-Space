@@ -11,12 +11,12 @@ const FOOTER_LINKS = {
 
 export function FooterSection() {
   return (
-    <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', padding: '64px 24px 40px' }}>
+    <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', padding: '56px 16px 36px' }}>
       <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        {/* Top grid */}
-        <div style={{ display: 'grid', gridTemplateColumns: '280px repeat(4, 1fr)', gap: '40px', marginBottom: '48px' }}>
+        {/* Top grid: 1 col on mobile, 2 col on tablet, 5 col on desktop */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 mb-12">
           {/* Brand */}
-          <div>
+          <div className="sm:col-span-2 lg:col-span-1">
             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
               <Image src="/prepspace-logo.png" alt="PrepSpace" width={32} height={32} style={{ borderRadius: '8px' }} />
               <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>PrepSpace</span>
@@ -39,7 +39,7 @@ export function FooterSection() {
           {/* Link columns */}
           {Object.entries(FOOTER_LINKS).map(([cat, links]) => (
             <div key={cat}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '16px' }}>{cat}</div>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '14px' }}>{cat}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {links.map(l => (
                   <a key={l} href="#" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
@@ -58,7 +58,7 @@ export function FooterSection() {
           <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
             © {new Date().getFullYear()} PrepSpace. All rights reserved.
           </div>
-          <div style={{ display: 'flex', gap: '16px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <span className="badge badge-mint" style={{ fontSize: '11px' }}>Free for Beta</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>GDPR Compliant</span>
             <span className="badge badge-muted" style={{ fontSize: '11px' }}>SOC2 (In Progress)</span>

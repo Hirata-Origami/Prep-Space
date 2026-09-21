@@ -39,9 +39,9 @@ export default function LeaderboardPage() {
   const showSkeleton = !isMounted || (isLoading && users.length === 0);
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Global Leaderboard</h1>
+        <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Global Leaderboard</h1>
         <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Top performers ranked by XP earned and consistency</p>
       </div>
 
@@ -58,10 +58,10 @@ export default function LeaderboardPage() {
       {showSkeleton ? (
         <div>
           {/* Top 3 Skeleton Podium */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '16px', marginBottom: '24px', alignItems: 'end' }}>
-            <div className="card skeleton" style={{ height: '220px', borderRadius: '16px' }} />
-            <div className="card skeleton" style={{ height: '260px', borderRadius: '16px' }} />
-            <div className="card skeleton" style={{ height: '220px', borderRadius: '16px' }} />
+          <div className="grid-responsive-3" style={{ marginBottom: '24px' }}>
+            <div className="card skeleton" style={{ height: '160px', borderRadius: '16px' }} />
+            <div className="card skeleton" style={{ height: '200px', borderRadius: '16px' }} />
+            <div className="card skeleton" style={{ height: '160px', borderRadius: '16px' }} />
           </div>
           {/* Table Skeleton */}
           <div className="card skeleton" style={{ height: '240px', borderRadius: '16px' }} />
@@ -70,7 +70,7 @@ export default function LeaderboardPage() {
         <>
           {/* Top 3 Podium */}
           {top3.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.2fr 1fr', gap: '16px', marginBottom: '24px', alignItems: 'end' }}>
+            <div className="grid-responsive-3" style={{ marginBottom: '24px', alignItems: 'end' }}>
               {/* 2nd */}
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[1] ? 'rgba(192,192,192,0.3)' : 'var(--border)' }}>
                 {top3[1] ? (
@@ -121,7 +121,7 @@ export default function LeaderboardPage() {
 
           {/* Rest of table */}
           {rest.length > 0 && (
-            <div style={{ background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden' }}>
+            <div style={{ background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', overflow: 'hidden', overflowX: 'auto' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)' }}>

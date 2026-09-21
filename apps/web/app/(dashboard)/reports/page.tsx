@@ -54,10 +54,10 @@ export default function ReportsPage() {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1100px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '1100px', margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Interview Reports</h1>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Interview Reports</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Evidence-backed analysis with timestamped audio playback</p>
         </div>
         <Link href="/interview" className="btn-primary" style={{ fontSize: '14px', padding: '10px 20px', textDecoration: 'none' }}>
@@ -94,7 +94,8 @@ export default function ReportsPage() {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  padding: '16px 20px',
+                  gap: '12px',
+                  padding: '14px 16px',
                   borderRadius: '12px',
                   textDecoration: 'none',
                   transition: 'all 0.15s ease',
@@ -102,26 +103,28 @@ export default function ReportsPage() {
                   opacity: report ? 1 : 0.75,
                   border: '1px solid var(--border)',
                   background: 'var(--bg-surface)',
+                  flexWrap: 'wrap',
                 }}
                 onMouseEnter={e => report && (e.currentTarget.style.borderColor = 'rgba(77,255,160,0.3)')}
                 onMouseLeave={e => report && (e.currentTarget.style.borderColor = 'var(--border)')}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flex: 1 }}>
                   <div style={{
-                    width: '48px',
-                    height: '48px',
+                    width: '44px',
+                    height: '44px',
                     borderRadius: '12px',
                     background: 'rgba(77,255,160,0.08)',
                     border: '1px solid rgba(77,255,160,0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '22px'
+                    fontSize: '20px',
+                    flexShrink: 0,
                   }}>
                     {getTypeIcon(session.interview_type)}
                   </div>
-                  <div>
-                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {session.plan?.role || 'Technical Interview'}
                       <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600, marginLeft: '8px', textTransform: 'capitalize' }}>
                         • {session.interview_type?.replace('_', ' ')}
@@ -131,14 +134,14 @@ export default function ReportsPage() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexShrink: 0 }}>
                   {session.state === 'COMPLETE' && report ? (
                     <div style={{ textAlign: 'right' }}>
                       <div style={{ fontSize: '20px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
                       <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Score</div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '12px', color: '#FFB547', fontWeight: 600 }}>
+                    <div style={{ fontSize: '12px', color: '#FFB547', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {session.state === 'IN_PROGRESS' ? '● In Progress' : '● Processing...'}
                     </div>
                   )}

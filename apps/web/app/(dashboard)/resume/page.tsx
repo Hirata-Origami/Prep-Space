@@ -422,11 +422,11 @@ export default function ResumeBuilderPage() {
   }
 
   return (
-    <div style={{ padding: '28px', maxWidth: '1140px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '1140px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Resume Builder</h1>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Resume Builder</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ATS-optimized LaTeX resume with AI enhancement & JD targeting</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -450,7 +450,7 @@ export default function ResumeBuilderPage() {
         <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>Template</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {TEMPLATES.map(t => (
-            <button key={t.id} onClick={() => setTemplateId(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '12px 18px', borderRadius: '10px', border: `2px solid ${templateId === t.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: templateId === t.id ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)', cursor: 'pointer', transition: 'all .15s', minWidth: '155px' }}>
+            <button key={t.id} onClick={() => setTemplateId(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '12px 18px', borderRadius: '10px', border: `2px solid ${templateId === t.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: templateId === t.id ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)', cursor: 'pointer', transition: 'all .15s', minWidth: '155px', flex: '1 1 155px' }}>
               <span style={{ fontSize: '18px' }}>{t.icon}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: templateId === t.id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{t.label}</span>
               <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t.desc}</span>
@@ -460,9 +460,9 @@ export default function ResumeBuilderPage() {
       </div>
 
       {/* Tab Bar */}
-      <div style={{ display: 'flex', gap: '3px', marginBottom: '22px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '12px', width: 'fit-content', flexWrap: 'wrap' }}>
+      <div className="tabs-scrollable" style={{ gap: '4px', marginBottom: '22px', background: 'var(--bg-elevated)', padding: '4px', borderRadius: '12px', width: '100%', maxWidth: '100%' }}>
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id as TabId)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-body)', transition: 'all .15s', background: tab === t.id ? 'var(--bg-surface)' : 'transparent', color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: tab === t.id ? '0 1px 6px rgba(0,0,0,0.25)' : 'none' }}>
+          <button key={t.id} onClick={() => setTab(t.id as TabId)} style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-body)', transition: 'all .15s', background: tab === t.id ? 'var(--bg-surface)' : 'transparent', color: tab === t.id ? 'var(--text-primary)' : 'var(--text-muted)', boxShadow: tab === t.id ? '0 1px 6px rgba(0,0,0,0.25)' : 'none', flexShrink: 0, whiteSpace: 'nowrap' }}>
             {t.label}
           </button>
         ))}
@@ -471,9 +471,9 @@ export default function ResumeBuilderPage() {
       <AnimatePresence mode="wait">
         {/* ═══ PROFILE TAB ═══ */}
         {tab === 'profile' && (
-          <motion.div key="profile" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card" style={{ padding: '24px' }}>
+          <motion.div key="profile" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} className="card" style={{ padding: 'clamp(16px, 4vw, 24px)' }}>
             <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>Personal Information</h2>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px', marginBottom: '14px' }}>
+            <div className="grid-responsive-2" style={{ gap: '14px', marginBottom: '14px' }}>
               <div><label style={lbl}>Full Name</label><input style={inp} value={profile.name} onChange={e => setProfile(p => ({ ...p, name: e.target.value }))} placeholder="Your Full Name" /></div>
               <div><label style={lbl}>Email</label><input style={inp} value={profile.email} onChange={e => setProfile(p => ({ ...p, email: e.target.value }))} placeholder="you@example.com" /></div>
               <div><label style={lbl}>Phone</label><input style={inp} value={profile.phone} onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))} placeholder="+91 98765 43210" /></div>
@@ -512,7 +512,7 @@ export default function ResumeBuilderPage() {
                   </div>
                   <button onClick={() => removeExp(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div className="grid-responsive-2" style={{ gap: '10px', marginBottom: '10px' }}>
                   <div><label style={lbl}>{(exp.type || 'work') === 'work' ? 'Company' : 'Organization'}</label><input style={inp} value={exp.company} onChange={e => updateExp(idx, 'company', e.target.value)} placeholder="Google" /></div>
                   <div><label style={lbl}>Role / Title</label><input style={inp} value={exp.role} onChange={e => updateExp(idx, 'role', e.target.value)} placeholder="Software Engineer" /></div>
                   <div><label style={lbl}>Start Date</label><input style={inp} value={exp.start} onChange={e => updateExp(idx, 'start', e.target.value)} placeholder="Jan 2022" /></div>
@@ -543,7 +543,7 @@ export default function ResumeBuilderPage() {
                   <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Project #{idx + 1}</h3>
                   <button onClick={() => removeProj(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '10px' }}>
+                <div className="grid-responsive-2" style={{ gap: '10px', marginBottom: '10px' }}>
                   <div style={{ gridColumn: '1 / -1' }}><label style={lbl}>Project Title</label><input style={inp} value={proj.title} onChange={e => updateProj(idx, 'title', e.target.value)} placeholder="PrepSpace — AI Interview Trainer" /></div>
                   <div><label style={lbl}>GitHub / Repo URL</label><input style={inp} value={proj.repo_url || ''} onChange={e => updateProj(idx, 'repo_url', e.target.value)} placeholder="https://github.com/user/repo" /></div>
                   <div><label style={lbl}>Live Demo URL</label><input style={inp} value={proj.demo_url || ''} onChange={e => updateProj(idx, 'demo_url', e.target.value)} placeholder="https://prepspace.app" /></div>
@@ -608,7 +608,7 @@ export default function ResumeBuilderPage() {
                   <h3 style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Education #{idx + 1}</h3>
                   {education.length > 1 && <button onClick={() => removeEdu(idx)} style={{ background: 'none', border: 'none', color: 'var(--accent-red)', cursor: 'pointer', fontSize: '13px' }}>Remove</button>}
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 2fr 1fr', gap: '12px', marginBottom: '12px' }}>
+                <div className="grid-responsive-3" style={{ gap: '12px', marginBottom: '12px' }}>
                   <div><label style={lbl}>Degree / Course</label><input style={inp} value={edu.degree} onChange={e => updateEdu(idx, 'degree', e.target.value)} placeholder="B.Tech. Computer Science & Engineering" /></div>
                   <div><label style={lbl}>Institution</label><input style={inp} value={edu.institution} onChange={e => updateEdu(idx, 'institution', e.target.value)} placeholder="IIT Madras" /></div>
                   <div><label style={lbl}>Year / Duration</label><input style={inp} value={edu.year} onChange={e => updateEdu(idx, 'year', e.target.value)} placeholder="2020 – 2024" /></div>
@@ -677,9 +677,9 @@ export default function ResumeBuilderPage() {
         {/* ═══ OPTIMIZE TAB ═══ */}
         {tab === 'optimize' && (
           <motion.div key="optimize" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: '20px', alignItems: 'start' }}>
-              <div className="card" style={{ padding: '24px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px' }}>
+            <div className="grid-main-sidebar" style={{ alignItems: 'start', gap: '20px' }}>
+              <div className="card" style={{ padding: 'clamp(16px, 4vw, 24px)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', flexWrap: 'wrap' }}>
                   <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'var(--accent-primary-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--accent-primary)' }}>
                     <Sparkles size={18} />
                   </div>
@@ -688,7 +688,7 @@ export default function ResumeBuilderPage() {
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>AI keyword-matches your resume to a specific job posting</p>
                   </div>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
+                <div className="grid-responsive-2" style={{ gap: '12px', marginBottom: '14px' }}>
                   <div><label style={lbl}>Company (Optional)</label><input style={inp} value={jdCompany} onChange={e => setJdCompany(e.target.value)} placeholder="Stripe, Google, Datadog…" /></div>
                   <div><label style={lbl}>Role (Optional)</label><input style={inp} value={jdRole} onChange={e => setJdRole(e.target.value)} placeholder="Senior Backend Engineer" /></div>
                 </div>
@@ -743,8 +743,8 @@ export default function ResumeBuilderPage() {
       {/* Multi-role selection modal */}
       <AnimatePresence>
         {showRoleModal && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '28px', maxWidth: '520px', width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
+          <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(12px, 3vw, 24px)' }}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: 'clamp(18px, 4vw, 28px)', maxWidth: '520px', width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
               <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Multiple Roles Detected</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>Found several roles at <strong style={{ color: 'var(--text-primary)' }}>{detectedCompany || 'this company'}</strong>. Select which position to target:</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>

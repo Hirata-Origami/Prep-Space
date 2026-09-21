@@ -49,19 +49,19 @@ export default function MockCompanyPage() {
   };
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Mock Company Interviews</h1>
+          <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Mock Company Interviews</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Practice with real interview formats from top companies</p>
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <input
             className="input"
             placeholder="Search companies..."
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
-            style={{ width: '200px' }}
+            style={{ flex: '1 1 160px', minWidth: '120px', maxWidth: '260px' }}
           />
           <Link href="/mock-company/new" className="btn-primary" style={{ textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '13px' }}>
              Add Company

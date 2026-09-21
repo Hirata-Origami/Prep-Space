@@ -110,12 +110,12 @@ export default function NewCompanyPage() {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '700px' }}>
+    <div className="page-container" style={{ maxWidth: '700px' }}>
       <Link href="/mock-company" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
         ← Back to Companies
       </Link>
 
-      <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Add Company Interview</h1>
+      <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Add Company Interview</h1>
       <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '32px' }}>
         AI researches real interview patterns for any company and makes them available to all users
       </p>
@@ -123,7 +123,7 @@ export default function NewCompanyPage() {
       <AnimatePresence mode="wait">
         {step === 'form' && (
           <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', display: 'flex', flexDirection: 'column', gap: '18px' }}>
               <div>
                 <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
                   Company Name *
@@ -142,7 +142,7 @@ export default function NewCompanyPage() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div className="grid-responsive-2" style={{ gap: '14px' }}>
                 <div>
                   <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Role</label>
                   <input className="input" value={role} onChange={e => setRole(e.target.value)} placeholder="Software Engineer" style={{ width: '100%' }} />
@@ -233,11 +233,11 @@ export default function NewCompanyPage() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: '28px', border: '1px solid rgba(77,255,160,0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px' }}>
+            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', border: '1px solid rgba(77,255,160,0.2)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '48px' }}>{generatedCompany.logo_emoji}</span>
                 <div>
-                  <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
+                  <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     {generatedCompany.industry} • {generatedCompany.size} • Difficulty: <strong style={{ color: generatedCompany.difficulty_rating >= 9 ? '#FF4D6A' : '#FFB547' }}>{generatedCompany.difficulty_rating}/10</strong>
                   </div>

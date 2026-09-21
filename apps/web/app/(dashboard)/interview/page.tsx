@@ -164,7 +164,7 @@ START: Greet the candidate warmly, mention the interview stage${company ? ` at $
 }
 
 function InterviewStudioContent() {
-  const { user } = useUser();
+  const { user, mutate: mutateUser } = useUser();
   const searchParams = useSearchParams();
 
   // Hub state
@@ -868,6 +868,9 @@ function InterviewStudioContent() {
           transcript: currentTranscript,
         }),
         keepalive: true,
+      }).then(() => {
+        // Revalidate user profile so sidebar XP + streak refresh
+        mutateUser();
       }).catch(() => { });
     }
 
@@ -943,16 +946,18 @@ function InterviewStudioContent() {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
         {/* Top bar */}
         <div style={{
-          height: '58px',
+          minHeight: '58px',
           borderBottom: '1px solid var(--border)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
-          padding: '0 24px',
+          padding: '8px clamp(12px, 3vw, 24px)',
           background: 'var(--bg-surface)',
           flexShrink: 0,
+          flexWrap: 'wrap',
+          gap: '10px',
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
             <div style={{
               width: '9px',
               height: '9px',
@@ -961,13 +966,13 @@ function InterviewStudioContent() {
               boxShadow: sessionState === 'live' ? '0 0 8px var(--accent-primary)' : 'none',
               flexShrink: 0,
             }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>
-              {activeMode === 'teach' ? 'Alex — Topic Tutoring' : 'Live Technical Interview'}
+            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
+              {activeMode === 'teach' ? 'Alex · Tutoring' : 'Live Interview'}
             </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500 }}>· {targetRole}</span>
+            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {targetRole}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700 }}>
               <Clock size={15} />
               <span>{formatTime(sessionTime)}</span>
@@ -1036,7 +1041,7 @@ function InterviewStudioContent() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '20px', gap: '16px' }}>
 
           {/* Video Row — equal split between AI and User */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', height: '280px', flexShrink: 0 }}>
+          <div className="grid-responsive-2" style={{ height: 'auto', minHeight: '200px', flexShrink: 0 }}>
 
             {/* Alex AI Card with Glowing Audio Orb */}
             <div style={{
@@ -1208,7 +1213,7 @@ function InterviewStudioContent() {
   if (sessionState === 'complete') {
     const isTeach = activeMode === 'teach';
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 24px' }}>
+      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(24px, 6vw, 40px) 16px' }}>
         <div style={{ maxWidth: '560px', width: '100%', textAlign: 'center' }}>
           <div style={{
             width: '72px', height: '72px', borderRadius: '50%',
@@ -1221,7 +1226,7 @@ function InterviewStudioContent() {
           }}>
             <CheckCircle2 size={34} />
           </div>
-          <h1 style={{ fontSize: '30px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>
             {isTeach ? 'Lesson Complete!' : 'Session Concluded'}
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.6 }}>
@@ -1298,11 +1303,11 @@ function InterviewStudioContent() {
   // RENDER: STUDIO HUB (Default)
   // ==========================================
   return (
-    <div style={{ padding: '32px', maxWidth: '960px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '960px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: '30px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
             AI Interview Studio
           </h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>

@@ -239,26 +239,26 @@ export default function DashboardPage() {
   const targetCompany = user?.target_company || 'Top Tech';
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1180px', margin: '0 auto' }}>
+    <div className="page-container">
       {/* Hero Header */}
       <div
         style={{
-          padding: '30px',
           background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)',
           borderRadius: '20px',
           border: '1px solid var(--border)',
-          marginBottom: '28px',
+          marginBottom: '24px',
           position: 'relative',
           overflow: 'hidden',
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          gap: '24px',
+          gap: '20px',
           flexWrap: 'wrap',
         }}
+        className="p-5 sm:p-7"
       >
         <div style={{ maxWidth: '650px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
             <span
               style={{
                 padding: '4px 10px',
@@ -285,7 +285,7 @@ export default function DashboardPage() {
 
           <h1
             style={{
-              fontSize: '32px',
+              fontSize: 'clamp(24px, 4vw, 32px)',
               fontWeight: 800,
               color: 'var(--text-primary)',
               marginBottom: '8px',
@@ -295,18 +295,19 @@ export default function DashboardPage() {
           >
             {greeting}, {firstName}
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          <p style={{ fontSize: '14.5px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
             Your interview prep track for <strong style={{ color: 'var(--accent-primary)' }}>{targetRole}</strong> is active. Launch a real-time session with Alex below.
           </p>
         </div>
 
         {/* Quick Launch Buttons */}
-        <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <Link
             href="/interview?mode=interview"
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               padding: '12px 24px',
               borderRadius: '12px',
@@ -328,6 +329,7 @@ export default function DashboardPage() {
             style={{
               display: 'inline-flex',
               alignItems: 'center',
+              justifyContent: 'center',
               gap: '8px',
               padding: '12px 22px',
               borderRadius: '12px',
@@ -349,15 +351,8 @@ export default function DashboardPage() {
       {/* Gemini Key Prompt */}
       <GeminiKeyBanner hasKey={user?.has_gemini_key ?? true} />
 
-      {/* Stats Row */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-          gap: '16px',
-          marginBottom: '28px',
-        }}
-      >
+      {/* Stats Row — 2 cols on mobile, 4 cols on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         <StatCard
           label="Interviews Completed"
           value={completedSessions.length}
@@ -392,7 +387,7 @@ export default function DashboardPage() {
       </div>
 
       {/* High-Interest Practice Drills & Roadmap Section */}
-      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '22px', marginBottom: '28px' }}>
+      <div className="grid-dashboard-focus mb-7">
         {/* Left Column: AI Recommended Focus & High Yield Drills */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
           {/* Today's Focus Card */}

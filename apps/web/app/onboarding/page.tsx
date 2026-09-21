@@ -60,18 +60,18 @@ export default function OnboardingPage() {
   if (isLoading || !user) return null;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '40px 16px 24px' }}>
       <div style={{ maxWidth: '480px', width: '100%', position: 'relative' }}>
         {/* Background Decor */}
         <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, var(--accent-primary-dim), transparent 70%)', opacity: 0.15, zIndex: 0 }} />
 
-        <div className="card" style={{ padding: '40px', position: 'relative', zIndex: 1, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px', boxShadow: '0 0 30px rgba(77, 255, 160, 0.2)' }}>
+        <div className="card p-6 sm:p-10" style={{ position: 'relative', zIndex: 1, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}>
+          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(77, 255, 160, 0.2)' }}>
               <Zap size={24} color="#080C14" strokeWidth={3} />
             </div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Finalize Your Edge</h1>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Help PrepSpace calibrate your training environment.</p>
+            <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Finalize Your Edge</h1>
+            <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>Help PrepSpace calibrate your training environment.</p>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>

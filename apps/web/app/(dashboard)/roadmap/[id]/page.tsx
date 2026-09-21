@@ -112,7 +112,7 @@ export default function RoadmapDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
         <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
         Calibrating your learning path...
       </div>
@@ -121,7 +121,7 @@ export default function RoadmapDetailPage() {
 
   if (!roadmap) {
     return (
-      <div style={{ padding: '80px', textAlign: 'center' }}>
+      <div className="page-container" style={{ textAlign: 'center', paddingTop: '60px', paddingBottom: '60px' }}>
         <div style={{ fontSize: '48px', marginBottom: '20px' }}>️</div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Roadmap not found</h2>
         <Link href="/roadmap" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Roadmaps</Link>
@@ -140,7 +140,7 @@ export default function RoadmapDetailPage() {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '900px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
       {/* Edit Plan Modal */}
       <AnimatePresence>
         {showEditModal && (
@@ -148,16 +148,16 @@ export default function RoadmapDetailPage() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px' }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(12px, 3vw, 24px)' }}
             onClick={e => { if (e.target === e.currentTarget) setShowEditModal(false); }}
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: '32px', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}
+              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: 'clamp(20px, 4vw, 32px)', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}
             >
-              <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Edit Roadmap Plan</h2>
+              <h2 style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Edit Roadmap Plan</h2>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
                 Describe how you want to update this roadmap. Optionally select specific modules to update.
               </p>
@@ -231,9 +231,9 @@ export default function RoadmapDetailPage() {
         <Link href="/roadmap" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
           ← Back to Roadmaps
         </Link>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px' }}>
-          <div style={{ flex: 1 }}>
-            <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px' }}>{roadmap.title}</h1>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 280px', minWidth: 0 }}>
+            <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>{roadmap.title}</h1>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{
                 padding: '4px 12px',
@@ -412,10 +412,10 @@ export default function RoadmapDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ marginTop: '32px', padding: '32px', background: 'rgba(77,255,160,0.05)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '16px', textAlign: 'center' }}
+          style={{ marginTop: '32px', padding: 'clamp(20px, 4vw, 32px)', background: 'rgba(77,255,160,0.05)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '16px', textAlign: 'center' }}
         >
           <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
-          <h2 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
+          <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '20px' }}>You&apos;ve mastered all modules. Time to ace that interview.</p>
           <Link href="/interview" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
              Take Full Mock Interview →

@@ -127,30 +127,30 @@ export function DemoTeaser() {
   const isInView = useInView(ref, { once: true, margin: '-80px' });
 
   return (
-    <section ref={ref} id="demo" style={{ padding: '120px 24px', background: 'linear-gradient(180deg, var(--bg-base) 0%, var(--bg-surface) 100%)' }}>
+    <section ref={ref} id="demo" style={{ padding: '80px 16px', background: 'linear-gradient(180deg, var(--bg-base) 0%, var(--bg-surface) 100%)' }}>
       <div style={{ maxWidth: '1200px', margin: '0 auto' }}>
         <motion.div
           initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
           transition={{ duration: 0.6 }}
-          style={{ textAlign: 'center', marginBottom: '60px' }}
+          style={{ textAlign: 'center', marginBottom: '40px' }}
         >
-          <span className="badge badge-violet" style={{ marginBottom: '20px', display: 'inline-flex' }}>Platform Preview</span>
-          <h2 style={{ fontSize: 'clamp(28px, 4vw, 48px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', marginBottom: '16px' }}>
+          <span className="badge badge-violet" style={{ marginBottom: '16px', display: 'inline-flex' }}>Platform Preview</span>
+          <h2 style={{ fontSize: 'clamp(26px, 4vw, 48px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', marginBottom: '12px' }}>
             See the full loop in action
           </h2>
-          <p style={{ fontSize: '18px', color: 'var(--text-muted)' }}>From personalized roadmap → live AI interview → evidence-backed report</p>
+          <p style={{ fontSize: 'clamp(15px, 2vw, 18px)', color: 'var(--text-muted)' }}>From personalized roadmap → live AI interview → evidence-backed report</p>
         </motion.div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {DEMO_PANELS.map((panel, i) => (
             <motion.div
               key={panel.title}
               initial={{ opacity: 0, y: 40 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: i * 0.15 }}
               className="card"
-              style={{ padding: '0', overflow: 'hidden', minHeight: '480px' }}
+              style={{ padding: '0', overflow: 'hidden', minHeight: '440px' }}
             >
-              <div style={{ padding: '20px 24px 0', borderBottom: '1px solid var(--border)' }}>
+              <div style={{ padding: '20px 20px 0', borderBottom: '1px solid var(--border)' }}>
                 <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '6px' }}>Step {i + 1}</div>
                 <div style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>{panel.title}</div>
                 <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>{panel.desc}</div>

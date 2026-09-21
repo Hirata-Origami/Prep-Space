@@ -139,10 +139,10 @@ export default function NewRoadmapPage() {
 
   if (generatedRoadmap) {
     return (
-      <div style={{ padding: '32px', maxWidth: '860px' }}>
+      <div className="page-container" style={{ maxWidth: '860px' }}>
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <h1 style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
                Roadmap Generated
             </h1>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
@@ -277,14 +277,14 @@ export default function NewRoadmapPage() {
   }
 
   return (
-    <div style={{ padding: '32px', maxWidth: '720px' }}>
+    <div className="page-container" style={{ maxWidth: '720px' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Create a Roadmap</h1>
+        <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Create a Roadmap</h1>
         <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Let AI build a personalized prep plan with 16-20 comprehensive modules</p>
       </div>
 
       {/* Mode selector */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', marginBottom: '28px' }}>
+      <div className="grid-responsive-3" style={{ gap: '12px', marginBottom: '28px' }}>
         {([
           { id: 'generate', icon: '', label: 'By Role', desc: 'Pick a role name' },
           { id: 'jd', icon: '', label: 'From JD', desc: 'Paste a job description' },

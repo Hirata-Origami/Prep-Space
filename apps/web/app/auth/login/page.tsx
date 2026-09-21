@@ -21,12 +21,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '24px' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '60px 16px 24px', position: 'relative' }}>
       {/* Background glow */}
-      <div style={{ position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '600px', height: '400px', background: 'radial-gradient(ellipse, rgba(77,255,160,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
+      <div style={{ position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '600px', maxWidth: '100vw', height: '400px', background: 'radial-gradient(ellipse, rgba(77,255,160,0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
       {/* Back to Landing */}
-      <Link href="/" style={{ position: 'fixed', top: '20px', left: '24px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s' }}
+      <Link href="/" style={{ position: 'absolute', top: '20px', left: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s', zIndex: 10 }}
         onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)'; }}
         onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)'; }}
       >
@@ -39,18 +39,18 @@ export default function LoginPage() {
         style={{ width: '100%', maxWidth: '420px' }}
       >
         {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none', marginBottom: '24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none', marginBottom: '20px' }}>
             <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900, color: '#080C14' }}>P</div>
             <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>PrepSpace</span>
           </Link>
-          <h1 style={{ fontSize: '26px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Welcome back</h1>
+          <h1 style={{ fontSize: 'clamp(22px, 3vw, 26px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Welcome back</h1>
           <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Sign in to continue your prep journey</p>
         </div>
 
-        <div className="card" style={{ padding: '32px' }}>
+        <div className="card p-5 sm:p-8">
           {/* Google OAuth */}
-          <button onClick={handleGoogle} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', transition: 'all 0.2s', marginBottom: '24px', opacity: loading ? 0.7 : 1 }}
+          <button onClick={handleGoogle} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', transition: 'all 0.2s', marginBottom: '20px', opacity: loading ? 0.7 : 1 }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
             onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
             {loading ? (
@@ -61,8 +61,8 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Continue with Google'}
           </button>
 
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+          <div style={{ textAlign: 'center', marginTop: '12px' }}>
+            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
               By continuing, you confirm you have read our <a href="#" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Privacy Policy</a>
             </p>
           </div>

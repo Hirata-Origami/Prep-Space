@@ -9,7 +9,7 @@ export default function RoadmapPage() {
 
   if (isLoading && roadmaps.length === 0) {
     return (
-      <div style={{ padding: '32px' }}>
+      <div className="page-container">
         <div style={{ width: '100%', height: '200px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ color: 'var(--text-muted)' }}>Loading roadmaps…</div>
         </div>
@@ -18,10 +18,10 @@ export default function RoadmapPage() {
   }
 
   return (
-    <div style={{ padding: '32px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px' }}>
+    <div className="page-container">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>My Roadmaps</h1>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>My Roadmaps</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Personalized learning paths powered by your skill graph</p>
         </div>
         <Link href="/roadmap/new" className="btn-primary" style={{ fontSize: '14px', padding: '10px 20px', textDecoration: 'none' }}>+ New Roadmap</Link>

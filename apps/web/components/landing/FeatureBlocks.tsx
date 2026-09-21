@@ -11,7 +11,7 @@ const FEATURES = [
     description: 'Upload a job description or pick a role. The AI builds a personalized roadmap, calibrates it with an assessment, then reorders modules based on your gaps vs. JD requirements.',
     bullets: ['15 predefined career tracks', 'JD → skills parsing via AI models', 'Dynamic module reordering (gap × relevance algorithm)', 'Prerequisite unlocking with smart continue logic'],
     visual: (
-      <div style={{ padding: '28px' }}>
+      <div style={{ padding: 'clamp(16px, 4vw, 28px)' }}>
         <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Backend Engineer — Meta</div>
         {[
           { name: 'Data Structures & Algorithms', pct: 91, status: 'Mastered' },
@@ -37,7 +37,7 @@ const FEATURES = [
     description: 'Practicing by typing isn&apos;t enough. Experience real-time voice interviews that feel like actual recruiter screens.',
     bullets: ['Direct WebSocket to AI (no proxy latency)', 'Native Voice Activity Detection — automatic turn management', '7 interview types: coding, system design, behavioral, SQL, and more', 'Adaptive difficulty adjusts question-by-question'],
     visual: (
-      <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '14px' }}>
+      <div style={{ padding: 'clamp(16px, 4vw, 28px)', display: 'flex', flexDirection: 'column', gap: '14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#fff' }}>A</div>
@@ -71,7 +71,7 @@ const FEATURES = [
     description: 'Practice for exactly the company you&apos;re targeting. 50+ companies seeded with real interview formats, known patterns, and culture context. Ruthless mode simulates real interview-day pressure with no hints.',
     bullets: ['50+ companies: FAANG, unicorns, consulting firms', 'Train mode (hints on) vs. Ruthless mode (zero hints, strict time limits)', 'AI interrupts if you run over time — just like a real interviewer', '"What the interviewer was thinking" section post-session'],
     visual: (
-      <div style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+      <div style={{ padding: 'clamp(16px, 4vw, 28px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
         {[{ name: 'Google', rounds: ['DSA Round', 'System Design', 'Behavioral'], pass: 71 },
         { name: 'Meta', rounds: ['Coding (x2)', 'System Design', 'Leadership'], pass: 64 },
         { name: 'Stripe', rounds: ['Bug Fix', 'System Design', 'Architecture'], pass: 58 }].map(({ name, rounds, pass }) => (
@@ -95,7 +95,7 @@ const FEATURES = [
     description: 'Every score is backed by a replayable audio moment. Click any weakness on your report and hear exactly what you said — and what you should have said instead.',
     bullets: ['Colored waveform markers: strong · partial · missed', 'Click any marker → seek + AI annotation overlay', 'Speaking analytics: WPM, filler words, answer length distribution', 'D3.js radar chart vs. previous session + role percentile'],
     visual: (
-      <div style={{ padding: '28px' }}>
+      <div style={{ padding: 'clamp(16px, 4vw, 28px)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div>
             <div style={{ fontSize: '40px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1 }}>84<span style={{ fontSize: '18px', color: 'var(--text-muted)' }}>/100</span></div>
@@ -134,20 +134,20 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
   const isEven = index % 2 === 0;
 
   return (
-    <div key={feature.title} ref={ref} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '48px', alignItems: 'center' }}>
+    <div key={feature.title} ref={ref} className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center">
       {/* Text */}
       <motion.div
         initial={{ opacity: 0, x: isEven ? -30 : 30 }}
         animate={isInView ? { opacity: 1, x: 0 } : {}}
         transition={{ duration: 0.7 }}
-        style={{ order: isEven ? 0 : 1 }}
+        className={isEven ? 'order-1 lg:order-1' : 'order-1 lg:order-2'}
       >
-        <span className={`badge ${feature.tagColor}`} style={{ marginBottom: '16px', display: 'inline-flex' }}>{feature.tag}</span>
-        <h3 style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', lineHeight: 1.2, marginBottom: '16px' }}>{feature.title}</h3>
-        <p style={{ fontSize: '16px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '24px' }}>{feature.description}</p>
+        <span className={`badge ${feature.tagColor}`} style={{ marginBottom: '14px', display: 'inline-flex' }}>{feature.tag}</span>
+        <h3 style={{ fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)', lineHeight: 1.25, marginBottom: '14px' }}>{feature.title}</h3>
+        <p style={{ fontSize: '15px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '20px' }}>{feature.description}</p>
         <ul style={{ listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {feature.bullets.map(b => (
-            <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '14px', color: 'var(--text-secondary)' }}>
+            <li key={b} style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '13.5px', color: 'var(--text-secondary)' }}>
               <span style={{ color: 'var(--accent-primary)', marginTop: '1px', flexShrink: 0 }}>✓</span>
               {b}
             </li>
@@ -160,8 +160,8 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
         initial={{ opacity: 0, x: isEven ? 30 : -30 }}
         animate={isInView ? { opacity: 1, x: 0 } : {}}
         transition={{ duration: 0.7, delay: 0.15 }}
-        style={{ order: isEven ? 1 : 0, padding: 0, overflow: 'hidden', minHeight: '320px', background: 'var(--bg-surface)' }}
-        className="card"
+        style={{ padding: 0, overflow: 'hidden', minHeight: '300px', background: 'var(--bg-surface)' }}
+        className={`card ${isEven ? 'order-2 lg:order-2' : 'order-2 lg:order-1'}`}
       >
         {feature.visual}
       </motion.div>
@@ -171,8 +171,8 @@ function FeatureBlock({ feature, index }: { feature: typeof FEATURES[0]; index: 
 
 export function FeatureBlocks() {
   return (
-    <section id="features" style={{ padding: '80px 24px', background: 'var(--bg-base)' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto', display: 'flex', flexDirection: 'column', gap: '80px' }}>
+    <section id="features" style={{ padding: '60px 16px', background: 'var(--bg-base)' }}>
+      <div style={{ maxWidth: '1100px', margin: '0 auto' }} className="flex flex-col gap-12 lg:gap-20">
         {FEATURES.map((feature, i) => (
           <FeatureBlock key={feature.title} feature={feature} index={i} />
         ))}

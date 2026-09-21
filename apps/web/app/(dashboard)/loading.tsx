@@ -1,15 +1,15 @@
 export default function DashboardLoading() {
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
+    <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
       {/* Header skeleton */}
       <div style={{ marginBottom: '28px' }}>
         <div
           className="skeleton"
-          style={{ width: '220px', height: '32px', borderRadius: '8px', marginBottom: '10px' }}
+          style={{ width: 'min(220px, 70%)', height: '32px', borderRadius: '8px', marginBottom: '10px' }}
         />
         <div
           className="skeleton"
-          style={{ width: '380px', height: '16px', borderRadius: '6px' }}
+          style={{ width: 'min(380px, 90%)', height: '16px', borderRadius: '6px' }}
         />
       </div>
 

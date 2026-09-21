@@ -80,7 +80,7 @@ export default function ReportDetailPage() {
 
   if (isLoading) {
     return (
-      <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
+      <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
         <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
         Analyzing your interview data...
       </div>
@@ -89,7 +89,7 @@ export default function ReportDetailPage() {
 
   if (!report) {
     return (
-      <div style={{ padding: '80px', textAlign: 'center' }}>
+      <div className="page-container" style={{ textAlign: 'center', paddingTop: '60px', paddingBottom: '60px' }}>
         <div style={{ fontSize: '48px', marginBottom: '20px' }}>!</div>
         <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Report not found</h2>
         <Link href="/reports" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Reports</Link>
@@ -111,7 +111,7 @@ export default function ReportDetailPage() {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }} className="report-container">
+    <div className="page-container report-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <style>{`
         @media print {
           html, body, main, 
@@ -151,12 +151,12 @@ export default function ReportDetailPage() {
       `}</style>
 
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '40px' }} className="no-print">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }} className="no-print">
         <div>
-          <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600, marginBottom: '16px' }}>
+          <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
             ← Back to Reports
           </Link>
-          <h1 style={{ fontSize: '32px', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>Performance Report</h1>
+          <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '4px' }}>Performance Report</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>{report.interview_sessions?.plan?.role || 'Software Engineer'}</p>
         </div>
         <button onClick={handleDownloadPDF} className="btn-secondary" style={{ padding: '10px 24px', fontWeight: 800 }}>
@@ -165,13 +165,13 @@ export default function ReportDetailPage() {
       </div>
 
       {/* Main Score Card */}
-      <div className="surface" style={{ padding: '40px', display: 'flex', gap: '40px', alignItems: 'center', marginBottom: '32px' }}>
-        <div style={{ width: '120px', height: '120px', borderRadius: '30px', background: 'rgba(77,255,160,0.06)', border: '1px solid rgba(77,255,160,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ fontSize: '38px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
+      <div className="surface" style={{ padding: 'clamp(20px, 4vw, 40px)', display: 'flex', gap: 'clamp(16px, 4vw, 32px)', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap' }}>
+        <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'rgba(77,255,160,0.06)', border: '1px solid rgba(77,255,160,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+          <div style={{ fontSize: '34px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
           <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Overall</div>
         </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
              <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '100px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-primary)' }}>Recommendation</span>
              <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{report.hire_recommendation}</span>
           </div>
@@ -182,16 +182,16 @@ export default function ReportDetailPage() {
       </div>
 
       {/* Competency Grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '40px' }}>
+      <div className="grid-responsive-4" style={{ marginBottom: '36px' }}>
         {Object.entries(scores).map(([key, val]: [string, any]) => (
           <div key={key} className="surface" style={{ padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em' }}>{key.replace('_', ' ')}</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', wordBreak: 'break-word' }}>{key.replace(/_/g, ' ')}</div>
           </div>
         ))}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '32px', alignItems: 'flex-start' }}>
+      <div className="grid-main-sidebar" style={{ alignItems: 'flex-start' }}>
         {/* Left: Transcript & Answers */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
           {/* Audio Evidence */}
@@ -297,11 +297,54 @@ export default function ReportDetailPage() {
       </div>
 
       {/* Floating Chat */}
-      <button onClick={() => setChatOpen(!chatOpen)} className="no-print chat-trigger" style={{ position: 'fixed', bottom: '32px', right: '32px', width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', color: '#080C14', border: 'none', cursor: 'pointer', zIndex: 100, boxShadow: '0 4px 20px rgba(77,255,160,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '20px', fontWeight: 900 }}>?</button>
+      <button 
+        onClick={() => setChatOpen(!chatOpen)} 
+        className="no-print chat-trigger" 
+        style={{ 
+          position: 'fixed', 
+          bottom: 'clamp(20px, 8vh, 32px)', 
+          right: 'clamp(16px, 4vw, 32px)', 
+          width: '52px', 
+          height: '52px', 
+          borderRadius: '50%', 
+          background: 'var(--accent-primary)', 
+          color: '#080C14', 
+          border: 'none', 
+          cursor: 'pointer', 
+          zIndex: 100, 
+          boxShadow: '0 4px 20px rgba(77,255,160,0.3)', 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          fontSize: '20px', 
+          fontWeight: 900 
+        }}
+      >?</button>
 
       <AnimatePresence>
         {chatOpen && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }} className="no-print chat-widget" style={{ position: 'fixed', bottom: '100px', right: '32px', width: '360px', height: '480px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 20px 40px rgba(0,0,0,0.4)', zIndex: 100 }}>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            exit={{ opacity: 0, y: 20 }} 
+            className="no-print chat-widget" 
+            style={{ 
+              position: 'fixed', 
+              bottom: 'clamp(80px, 12vh, 100px)', 
+              right: 'clamp(12px, 3vw, 32px)', 
+              width: 'min(360px, calc(100vw - 24px))', 
+              maxHeight: 'min(480px, 70vh)',
+              height: '480px', 
+              background: 'var(--bg-surface)', 
+              border: '1px solid var(--border)', 
+              borderRadius: '20px', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              overflow: 'hidden', 
+              boxShadow: '0 20px 40px rgba(0,0,0,0.4)', 
+              zIndex: 100 
+            }}
+          >
             <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
               <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: '#080C14' }}>A</div>
               <div style={{ fontSize: '14px', fontWeight: 700 }}>Career Coach</div>

@@ -128,13 +128,13 @@ export default function SettingsPage() {
   };
 
   return (
-    <div style={{ padding: '32px', maxWidth: '880px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '880px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Settings</h1>
+        <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Settings</h1>
         <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Manage your account, preferences, and AI configuration</p>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '200px 1fr', gap: '28px' }}>
+      <div className="grid-settings-layout">
         {/* Sidebar Navigation */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           {TABS.map(tab => (
@@ -204,7 +204,7 @@ export default function SettingsPage() {
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }} suppressHydrationWarning>{mounted ? (user?.xp ?? 0).toLocaleString() : 0} XP · Level {mounted ? (user?.level || 'Novice') : 'Novice'}</div>
                 </div>
               </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+              <div className="grid-responsive-2" style={{ gap: '14px' }}>
                 <div>
                   <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Target Role</label>
                   <input className="input" value={formData.target_role} onChange={e => setFormData(p => ({ ...p, target_role: e.target.value }))} placeholder="e.g. Senior Frontend Engineer" />
@@ -248,7 +248,7 @@ export default function SettingsPage() {
                 <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
                   {user?.has_gemini_key ? 'Update API Key' : 'Add API Key'}
                 </label>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                   <input
                     className="input"
                     type="password"

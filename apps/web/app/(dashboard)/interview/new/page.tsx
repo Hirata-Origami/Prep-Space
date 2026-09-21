@@ -13,7 +13,7 @@ function RedirectContent() {
   }, [router, searchParams]);
 
   return (
-    <div style={{ padding: '32px', color: 'var(--text-muted)' }}>
+    <div className="page-container" style={{ color: 'var(--text-muted)' }}>
       Redirecting to AI Interview Studio...
     </div>
   );

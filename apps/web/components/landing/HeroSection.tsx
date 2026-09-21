@@ -176,9 +176,9 @@ export function HeroSection() {
       }} />
 
       {/* Content */}
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: '900px', margin: '0 auto', padding: '0 24px', textAlign: 'center' }}>
+      <div style={{ position: 'relative', zIndex: 2, maxWidth: '900px', margin: '0 auto', padding: '90px 16px 40px', textAlign: 'center' }}>
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', borderRadius: '100px', marginBottom: '32px' }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', borderRadius: '100px', marginBottom: '24px' }}>
             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block', animation: 'pulse-mint 2s infinite' }} />
             <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>AI-Native Engineering Interviews</span>
           </div>
@@ -189,7 +189,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.1 }}
           style={{
-            fontSize: 'clamp(40px, 6.5vw, 82px)',
+            fontSize: 'clamp(32px, 6.5vw, 82px)',
             fontWeight: 900,
             fontFamily: 'var(--font-display)',
             lineHeight: 1.2,
@@ -229,7 +229,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.25 }}
-          style={{ fontSize: 'clamp(16px, 2vw, 20px)', color: 'var(--hero-subtext, var(--text-secondary))', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 40px', fontWeight: 500 }}
+          style={{ fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--hero-subtext, var(--text-secondary))', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 36px', fontWeight: 500 }}
         >
           The first AI interview platform with <strong style={{ color: 'var(--text-primary)' }}>real-time voice interaction</strong>, adaptive skill graphs, and evidence-backed scoring — not just flashcards.
         </motion.p>
@@ -238,7 +238,7 @@ export function HeroSection() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
-          style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '64px' }}
+          style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '48px' }}
         >
           <Link href="/auth/signup" style={{
             display: 'inline-flex',
@@ -258,19 +258,20 @@ export function HeroSection() {
           </Link>
         </motion.div>
 
-        {/* Stats */}
+        {/* Stats — 2 columns on mobile, 4 on desktop */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.55 }}
-          style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1px', background: 'var(--border)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
+          style={{ gap: '1px', background: 'var(--border)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
+          className="grid grid-cols-2 md:grid-cols-4"
         >
           {STATS.map(({ value, suffix, label }) => (
-            <div key={label} style={{ padding: '24px 16px', background: 'var(--bg-surface)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(24px, 3vw, 36px)', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1, marginBottom: '6px' }}>
+            <div key={label} style={{ padding: '20px 12px', background: 'var(--bg-surface)', textAlign: 'center' }}>
+              <div style={{ fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1, marginBottom: '6px' }}>
                 {mounted ? <AnimatedCounter target={value} suffix={suffix} /> : `${value}${suffix}`}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>{label}</div>
+              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>{label}</div>
             </div>
           ))}
         </motion.div>

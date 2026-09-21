@@ -68,16 +68,16 @@ export default function GroupsPage() {
 
 
   return (
-    <div style={{ padding: '32px' }}>
+    <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: '28px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Groups & Collaborative Roadmaps</h1>
+          <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Groups & Collaborative Roadmaps</h1>
           <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Study together, compete on leaderboards, hit deadlines as a cohort</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--border)', marginBottom: '28px' }}>
+      <div className="tabs-scrollable" style={{ borderBottom: '1px solid var(--border)', marginBottom: '28px' }}>
         {TABS.map(t => (
           <button key={t} onClick={() => setTab(t)}
             style={{ padding: '10px 24px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)', color: tab === t ? 'var(--accent-primary)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t ? 'var(--accent-primary)' : 'transparent'}`, transition: 'all 0.2s' }}>

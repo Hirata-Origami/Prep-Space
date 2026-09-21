@@ -17,21 +17,21 @@ export function Testimonials() {
   const isInView = useInView(ref, { once: true });
 
   return (
-    <section id="reviews" ref={ref} style={{ padding: '100px 0', background: 'var(--bg-base)', overflow: 'hidden' }}>
+    <section id="reviews" ref={ref} style={{ padding: '70px 0', background: 'var(--bg-base)', overflow: 'hidden' }}>
       <motion.div initial={{ opacity: 0, y: 20 }} animate={isInView ? { opacity: 1, y: 0 } : {}} transition={{ duration: 0.6 }}
-        style={{ textAlign: 'center', marginBottom: '56px', padding: '0 24px' }}>
-        <span className="badge badge-muted" style={{ marginBottom: '20px', display: 'inline-flex' }}>Success Stories</span>
-        <h2 style={{ fontSize: 'clamp(28px, 4vw, 44px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
+        style={{ textAlign: 'center', marginBottom: '40px', padding: '0 16px' }}>
+        <span className="badge badge-muted" style={{ marginBottom: '16px', display: 'inline-flex' }}>Success Stories</span>
+        <h2 style={{ fontSize: 'clamp(26px, 4vw, 44px)', fontWeight: 800, fontFamily: 'var(--font-display)', color: 'var(--text-primary)' }}>
           Real results from real candidates
         </h2>
       </motion.div>
 
       {/* Marquee row 1 */}
-      <div style={{ position: 'relative', marginBottom: '20px' }}>
+      <div style={{ position: 'relative', marginBottom: '16px' }}>
         <div className="marquee-track">
           {[...TESTIMONIALS, ...TESTIMONIALS].map((t, i) => (
-            <div key={i} style={{ width: '380px', flexShrink: 0, marginRight: '20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '24px' }}>
-              <div style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '20px' }}>&quot;{t.quote}&quot;</div>
+            <div key={i} style={{ width: 'clamp(280px, 80vw, 380px)', flexShrink: 0, marginRight: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '20px' }}>
+              <div style={{ fontSize: '13.5px', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '16px' }}>&quot;{t.quote}&quot;</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>
@@ -48,8 +48,8 @@ export function Testimonials() {
       <div style={{ position: 'relative' }}>
         <div className="marquee-track" style={{ animationDirection: 'reverse', animationDuration: '35s' }}>
           {[...TESTIMONIALS.slice(3), ...TESTIMONIALS.slice(0, 3), ...TESTIMONIALS.slice(3), ...TESTIMONIALS.slice(0, 3)].map((t, i) => (
-            <div key={i} style={{ width: '360px', flexShrink: 0, marginRight: '20px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '20px' }}>
-              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.7, marginBottom: '16px' }}>&quot;{t.quote}&quot;</div>
+            <div key={i} style={{ width: 'clamp(260px, 75vw, 360px)', flexShrink: 0, marginRight: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: '18px' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.65, marginBottom: '14px' }}>&quot;{t.quote}&quot;</div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)' }}>{t.name}</div>

@@ -787,10 +787,216 @@ h6 {
 }
 
 /* ============================================
-   RESPONSIVE
+   RESPONSIVE UTILITIES & MOBILE DESIGN SYSTEM
    ============================================ */
-@media (max-width: 768px) {
 
+/* Page container with adaptive padding */
+.page-container {
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 16px;
+  box-sizing: border-box;
+}
+
+@media (min-width: 640px) {
+  .page-container {
+    padding: 24px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .page-container {
+    padding: 32px;
+  }
+}
+
+/* Dashboard Shell Responsive Classes */
+.dashboard-shell {
+  display: flex;
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+.dashboard-sidebar-desktop {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .dashboard-sidebar-desktop {
+    display: flex !important;
+    width: 240px;
+    flex-shrink: 0;
+    background: var(--bg-surface);
+    border-right: 1px solid var(--border);
+    flex-direction: column;
+    height: 100vh;
+    z-index: 50;
+    overflow: hidden;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+}
+
+.dashboard-main-content {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-base);
+  position: relative;
+  min-width: 0;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (min-width: 1024px) {
+  .dashboard-main-content {
+    padding-bottom: 0;
+  }
+}
+
+/* Mobile-only UI elements: shown below lg, hidden at lg+ */
+.mobile-header {
+  display: flex;
+}
+
+.mobile-nav-bar {
+  display: flex;
+}
+
+@media (min-width: 1024px) {
+  .mobile-header {
+    display: none !important;
+  }
+
+  .mobile-nav-bar {
+    display: none !important;
+  }
+}
+
+
+/* Responsive Grids */
+.grid-responsive-2 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 768px) {
+  .grid-responsive-2 {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+}
+
+.grid-responsive-3 {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 640px) {
+  .grid-responsive-3 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive-3 {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+}
+
+.grid-responsive-4 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+@media (min-width: 1024px) {
+  .grid-responsive-4 {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+  }
+}
+
+.grid-dashboard-focus {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 1024px) {
+  .grid-dashboard-focus {
+    grid-template-columns: 2fr 1fr;
+    gap: 24px;
+  }
+}
+
+.grid-main-sidebar {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+@media (min-width: 1024px) {
+  .grid-main-sidebar {
+    grid-template-columns: 1fr 340px;
+    gap: 32px;
+  }
+}
+
+.grid-settings-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+
+@media (min-width: 768px) {
+  .grid-settings-layout {
+    grid-template-columns: 200px 1fr;
+    gap: 28px;
+  }
+}
+
+.grid-landing-footer {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 32px;
+}
+
+@media (min-width: 640px) {
+  .grid-landing-footer {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1024px) {
+  .grid-landing-footer {
+    grid-template-columns: 280px repeat(4, 1fr);
+    gap: 40px;
+  }
+}
+
+/* Horizontal scrollable navigation & tab containers */
+.tabs-scrollable {
+  display: flex;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  white-space: nowrap;
+  gap: 6px;
+  padding-bottom: 2px;
+}
+
+.tabs-scrollable::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile Touch Adjustments */
+@media (max-width: 768px) {
   .container-xl,
   .container-lg {
     padding: 0 16px;
@@ -798,5 +1004,17 @@ h6 {
 
   .kanban-col {
     min-width: 240px;
+  }
+
+  /* Safe tap sizes */
+  button, 
+  a.btn-primary, 
+  a.btn-secondary {
+    min-height: 40px;
+  }
+
+  /* Prevent text jumping */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS */
   }
 }

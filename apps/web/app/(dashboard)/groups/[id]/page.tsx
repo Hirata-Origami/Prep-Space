@@ -189,24 +189,24 @@ export default function GroupDashboardPage() {
   };
 
   if (loading) {
-    return <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading group dashboard…</div>;
+    return <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px' }}>Loading group dashboard…</div>;
   }
 
   if (!group) return null;
 
   return (
-    <div style={{ padding: '32px', maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
       <Link href="/groups" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '24px', fontWeight: 600 }}>
         ← Back to Groups
       </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
-            <h1 style={{ fontSize: '32px', fontWeight: 800, color: 'var(--text-primary)' }}>{group.name}</h1>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{group.name}</h1>
             <span className="badge badge-mint">{group.access_type}</span>
           </div>
-          <p style={{ fontSize: '16px', color: 'var(--text-secondary)' }}>{group.description}</p>
+          <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>{group.description}</p>
         </div>
         {myRole !== 'admin' && (
           <button
@@ -218,7 +218,7 @@ export default function GroupDashboardPage() {
         )}
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
+      <div className="grid-responsive-2" style={{ gap: '24px' }}>
         {/* Members Section */}
         <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
           <div>
@@ -227,12 +227,12 @@ export default function GroupDashboardPage() {
           </div>
 
           {myRole === 'admin' && (
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input 
                 type="email" 
                 placeholder="Invite member by email..." 
                 className="input" 
-                style={{ flex: 1 }}
+                style={{ flex: '1 1 180px', minWidth: '150px' }}
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
               />
