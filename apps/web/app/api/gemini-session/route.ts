@@ -25,9 +25,9 @@ export async function GET() {
 
   const apiKey = profile?.gemini_api_key?.trim();
 
-  if (!apiKey) {
+  if (!apiKey || apiKey.includes('•') || /[^\x00-\x7F]/.test(apiKey) || apiKey.length < 10) {
     return NextResponse.json(
-      { error: 'No Gemini API key configured. Please add your key in Settings.' },
+      { error: 'No valid Gemini API key configured. Please add your key in Settings.' },
       { status: 400 }
     );
   }
@@ -36,7 +36,7 @@ export async function GET() {
   try {
     const ai = new GoogleGenAI({
       apiKey,
-      httpOptions: { apiVersion: 'v1alpha' }
+      httpOptions: { apiVersion: 'v1beta' }
     });
     const response = await ai.authTokens.create({});
     return NextResponse.json({

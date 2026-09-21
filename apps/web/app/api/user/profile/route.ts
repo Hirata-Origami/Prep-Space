@@ -48,16 +48,23 @@ export async function GET() {
           profile = newProfileData?.[0];
         }
 
+        const rawKey = profile?.gemini_api_key?.trim();
+        const isValidRawKey = !!(
+          rawKey &&
+          !rawKey.includes('•') &&
+          /^[\x00-\x7F]+$/.test(rawKey) &&
+          rawKey.length >= 10
+        );
+
         let maskedKey = null;
-        if (profile?.gemini_api_key) {
-          const k = profile.gemini_api_key;
-          maskedKey = k.length > 8 ? `${k.slice(0, 4)}••••••••••${k.slice(-4)}` : '••••••••';
+        if (isValidRawKey && rawKey) {
+          maskedKey = rawKey.length > 8 ? `${rawKey.slice(0, 4)}••••••••••${rawKey.slice(-4)}` : '••••••••';
         }
 
         return {
           ...profile,
           gemini_api_key: maskedKey,
-          has_gemini_key: !!profile?.gemini_api_key,
+          has_gemini_key: isValidRawKey,
         };
       },
       300 // cache for 5 minutes
@@ -83,7 +90,12 @@ export async function PATCH(request: Request) {
   const updates: Record<string, unknown> = {};
   for (const field of allowedFields) {
     if (field in body) {
-      if (field === 'gemini_api_key' && typeof body[field] === 'string' && body[field].includes('••••')) {
+      if (field === 'gemini_api_key') {
+        const val = typeof body[field] === 'string' ? body[field].trim() : '';
+        if (!val || val.includes('•') || /[^\x00-\x7F]/.test(val) || val.length < 10) {
+          continue;
+        }
+        updates[field] = val;
         continue;
       }
       updates[field] = body[field];

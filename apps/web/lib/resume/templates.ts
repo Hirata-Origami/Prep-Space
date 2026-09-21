@@ -1,5 +1,5 @@
 import { ResumeData, ResumeTemplateId, Experience, ProjectItem, EducationItem, SkillCategories } from '@/lib/hooks/useResume';
-import { markdownToLatex, sanitizeBullets, sanitizeUrl, escapeLatexSpecialChars } from './latexSanitizer';
+import { markdownToLatex, sanitizeBullets, sanitizeUrl, escapeLatexSpecialChars, splitSkillsSafely } from './latexSanitizer';
 
 /**
  * Normalizes skills into categories if only a flat string was provided
@@ -17,7 +17,7 @@ export function normalizeSkills(data: ResumeData): SkillCategories {
 
   // Fallback / Auto-bucket flat skills string
   const flat = data.skills || '';
-  const skillsList = flat.split(',').map(s => s.trim()).filter(Boolean);
+  const skillsList = splitSkillsSafely(flat);
 
   const languages: string[] = [];
   const frameworks: string[] = [];
@@ -85,6 +85,20 @@ export function normalizeProjects(data: ResumeData): { workExperience: Experienc
       }
     });
   }
+
+  // Also catch any projects that might be in experience even if data.projects has entries
+  (data.experience || []).forEach(e => {
+    if (e.type === 'project') {
+      const alreadyInProjects = projects.some(p => p.title === (e.role || e.company));
+      if (!alreadyInProjects) {
+        projects.push({
+          title: e.role || e.company || 'Project',
+          context: e.company !== 'Project' ? e.company : undefined,
+          bullets: e.bullets || '',
+        });
+      }
+    }
+  });
 
   return { workExperience, projects };
 }
@@ -193,7 +207,7 @@ export function renderModernTwoColumn(data: ResumeData): string {
 
   // Render Skills with Tikz Pills
   const renderSkillPills = (categoryTitle: string, skillString: string) => {
-    const list = skillString.split(',').map(s => s.trim()).filter(Boolean);
+    const list = splitSkillsSafely(skillString);
     if (list.length === 0) return '';
     let res = `\\skillcat{${escapeLatexSpecialChars(categoryTitle)}}\n`;
     res += list.map(s => `\\sk{${escapeLatexSpecialChars(s)}}`).join('');

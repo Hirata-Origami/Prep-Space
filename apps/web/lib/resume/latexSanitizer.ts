@@ -83,6 +83,32 @@ export function sanitizeBullets(bullets: string | string[]): string[] {
 }
 
 /**
+ * Split skill list safely by commas that are NOT inside parentheses.
+ * e.g. "AWS (Lambda, Bedrock), Redis" -> ["AWS (Lambda, Bedrock)", "Redis"]
+ */
+export function splitSkillsSafely(skillStr: string): string[] {
+  if (!skillStr) return [];
+  const results: string[] = [];
+  let current = '';
+  let parenDepth = 0;
+
+  for (let i = 0; i < skillStr.length; i++) {
+    const char = skillStr[i];
+    if (char === '(') parenDepth++;
+    else if (char === ')') parenDepth = Math.max(0, parenDepth - 1);
+
+    if (char === ',' && parenDepth === 0) {
+      if (current.trim()) results.push(current.trim());
+      current = '';
+    } else {
+      current += char;
+    }
+  }
+  if (current.trim()) results.push(current.trim());
+  return results;
+}
+
+/**
  * Sanitizes URLs for use in \url{...} or \href{...}{...}
  */
 export function sanitizeUrl(url: string): string {

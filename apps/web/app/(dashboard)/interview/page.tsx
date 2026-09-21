@@ -56,7 +56,7 @@ interface SessionItem {
   }>;
 }
 
-const MODEL = 'models/gemini-2.5-flash-native-audio-preview-12-2025';
+const MODEL = 'models/gemini-3.8-live';
 const SAMPLE_RATE = 16000;
 
 // Audio-orb fast PCM encoder
@@ -69,15 +69,16 @@ function encodeBytes(bytes: Uint8Array): string {
   return btoa(binary);
 }
 
-function createBlob(data: Float32Array): { data: string; mimeType: string } {
+function createAudioBlob(data: Float32Array): { data: string; mimeType: string } {
   const l = data.length;
   const int16 = new Int16Array(l);
   for (let i = 0; i < l; i++) {
-    int16[i] = data[i] * 32768;
+    const s = Math.max(-1, Math.min(1, data[i]));
+    int16[i] = s < 0 ? s * 0x8000 : s * 0x7fff;
   }
   return {
     data: encodeBytes(new Uint8Array(int16.buffer)),
-    mimeType: 'audio/pcm;rate=16000',
+    mimeType: 'audio/pcm',
   };
 }
 
@@ -103,7 +104,11 @@ function buildSystemInstruction(
 LANGUAGE & AUDIO RULES:
 - The candidate communicates strictly in ENGLISH. You must only listen and respond in English.
 - Strictly ignore ambient room noise, static, keyboard typing, breathing, mumbling, and non-English utterances. Only respond when the candidate clearly addresses you in English.
-- Speak promptly, concisely, and naturally (1-3 sentences per turn). Maintain a lively, interactive conversation.`;
+- Speak promptly, concisely, and naturally (1-3 sentences per turn). Maintain a lively, interactive conversation.
+VISION & REAL-TIME VIDEO FEED:
+- You receive real-time video frames (1 frame per second) from the candidate's camera.
+- You can observe the candidate's visual presence, facial expressions, body language, gestures, or any notes and diagrams they display.
+- Naturally incorporate visual cues when relevant while keeping the discussion focused on the role and topics.`;
 
   const resumptionSection = pastConversationText && pastConversationText.trim().length > 0 ? `
 ========================================
@@ -199,6 +204,8 @@ function InterviewStudioContent() {
   const directStartedRef = useRef(false);
   const transcriptRef = useRef<TranscriptEntry[]>([]);
   const isMutedRef = useRef(false);
+  const isCameraOffRef = useRef(false);
+  const videoIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const pastTranscriptCountRef = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
 
@@ -214,6 +221,10 @@ function InterviewStudioContent() {
   useEffect(() => {
     isMutedRef.current = isMuted;
   }, [isMuted]);
+
+  useEffect(() => {
+    isCameraOffRef.current = isCameraOff;
+  }, [isCameraOff]);
 
   // SWR for past sessions
   const { data: sessionData, mutate: mutateSessions } = useSWR<{ sessions: SessionItem[] }>(
@@ -269,7 +280,7 @@ function InterviewStudioContent() {
             duration_seconds: sessionTime,
           }),
           keepalive: true,
-        }).catch(() => {});
+        }).catch(() => { });
       }, 15000);
       return () => clearInterval(interval);
     }
@@ -288,48 +299,64 @@ function InterviewStudioContent() {
 
   // Audio Playback (PCM 24kHz)
   const playPCMChunk = useCallback((base64Audio: string, onEnded?: () => void) => {
-    if (!audioOutputRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
-      audioOutputRef.current = new AC({ sampleRate: 24000 });
+    try {
+      if (!audioOutputRef.current || audioOutputRef.current.state === 'closed') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+        audioOutputRef.current = new AC({ sampleRate: 24000 });
+      }
+      const ctx = audioOutputRef.current;
+      if (!ctx) return;
+      if (ctx.state === 'suspended') {
+        ctx.resume().catch(() => {});
+      }
+
+      const binaryString = atob(base64Audio);
+      const len = binaryString.length;
+      const sampleCount = Math.floor(len / 2);
+      if (sampleCount === 0) return;
+
+      const float32 = new Float32Array(sampleCount);
+      for (let i = 0; i < sampleCount; i++) {
+        const b1 = binaryString.charCodeAt(i * 2);
+        const b2 = binaryString.charCodeAt(i * 2 + 1);
+        let val = b1 | (b2 << 8);
+        if (val >= 32768) val -= 65536;
+        float32[i] = val / 32768.0;
+      }
+
+      const buffer = ctx.createBuffer(1, sampleCount, 24000);
+      buffer.copyToChannel(float32, 0);
+
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+
+      activeSourcesRef.current.push(source);
+      source.onended = () => {
+        activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
+        if (onEnded) onEnded();
+      };
+
+      const now = ctx.currentTime;
+      const startTime = Math.max(now + 0.02, lastAudioTimeRef.current);
+      source.start(startTime);
+      lastAudioTimeRef.current = startTime + buffer.duration;
+    } catch (e) {
+      console.error('Error in playPCMChunk:', e);
     }
-    const ctx = audioOutputRef.current;
-    if (!ctx) return;
-    if (ctx.state === 'suspended') ctx.resume();
-
-    const binaryString = atob(base64Audio);
-    const len = binaryString.length;
-    const bytes = new Uint8Array(len);
-    for (let i = 0; i < len; i++) bytes[i] = binaryString.charCodeAt(i);
-
-    const int16 = new Int16Array(bytes.buffer);
-    const float32 = new Float32Array(int16.length);
-    for (let i = 0; i < int16.length; i++) float32[i] = int16[i] / 32768.0;
-
-    const buffer = ctx.createBuffer(1, float32.length, 24000);
-    buffer.copyToChannel(float32, 0);
-
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.connect(ctx.destination);
-
-    activeSourcesRef.current.push(source);
-    source.onended = () => {
-      activeSourcesRef.current = activeSourcesRef.current.filter((s) => s !== source);
-      if (onEnded) onEnded();
-    };
-
-    const startTime = Math.max(ctx.currentTime, lastAudioTimeRef.current);
-    source.start(startTime);
-    lastAudioTimeRef.current = startTime + buffer.duration;
   }, []);
 
   const stopAudioPlayback = useCallback(() => {
     activeSourcesRef.current.forEach((s) => {
-      try { s.stop(); } catch {}
+      try { s.stop(); } catch { }
     });
     activeSourcesRef.current = [];
-    lastAudioTimeRef.current = 0;
+    if (audioOutputRef.current) {
+      lastAudioTimeRef.current = audioOutputRef.current.currentTime;
+    } else {
+      lastAudioTimeRef.current = 0;
+    }
     setAlexStatus('listening');
   }, []);
 
@@ -371,7 +398,7 @@ function InterviewStudioContent() {
     async (apiKey: string, systemInstructionText: string, pastEntries: TranscriptEntry[] = []) => {
       const ai = new GoogleGenAI({
         apiKey,
-        httpOptions: { apiVersion: 'v1alpha' },
+        httpOptions: { apiVersion: 'v1beta' },
       });
 
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -381,7 +408,7 @@ function InterviewStudioContent() {
           systemInstruction: { parts: [{ text: systemInstructionText }] },
           responseModalities: [Modality.AUDIO],
           speechConfig: {
-            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Orus' } },
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Puck' } },
             languageCode: 'en-US',
           },
           inputAudioTranscription: {},
@@ -417,7 +444,7 @@ function InterviewStudioContent() {
                       return [...prev, { role: 'ai', text: part.text, ts: Date.now() }];
                     });
                   }
-                  if (part.inlineData?.data && part.inlineData.mimeType?.startsWith('audio/pcm')) {
+                  if (part.inlineData?.data) {
                     setAlexStatus('speaking');
                     const stopWave = animateWave(true);
                     playPCMChunk(part.inlineData.data, () => {
@@ -515,15 +542,20 @@ function InterviewStudioContent() {
 
       try {
         const localKey = localStorage.getItem('prepspace_gemini_key');
-        if (localKey && localKey.trim()) apiKey = localKey.trim();
-      } catch {}
+        if (localKey && localKey.trim() && !localKey.includes('•') && /^[\x00-\x7F]+$/.test(localKey.trim())) {
+          apiKey = localKey.trim();
+        }
+      } catch { }
 
       if (!apiKey) {
         try {
           const keyRes = await fetch('/api/gemini-session');
           if (keyRes.ok) {
             const keyData = await keyRes.json();
-            apiKey = keyData.apiKey || keyData.token || keyData.key;
+            const fetched = keyData.apiKey || keyData.token || keyData.key;
+            if (fetched && !fetched.includes('•') && /^[\x00-\x7F]+$/.test(fetched)) {
+              apiKey = fetched;
+            }
           }
         } catch (e) {
           console.warn('Failed to fetch from /api/gemini-session', e);
@@ -536,11 +568,11 @@ function InterviewStudioContent() {
           if (profRes.ok) {
             const profData = await profRes.json();
             const p = profData.profile || profData.user;
-            if (p?.gemini_api_key && !p.gemini_api_key.includes('••••')) {
+            if (p?.gemini_api_key && !p.gemini_api_key.includes('•') && /^[\x00-\x7F]+$/.test(p.gemini_api_key)) {
               apiKey = p.gemini_api_key;
             }
           }
-        } catch {}
+        } catch { }
       }
 
       if (!apiKey) {
@@ -564,7 +596,7 @@ function InterviewStudioContent() {
       try {
         const raw = searchParams.get('module_topics');
         if (raw) moduleTopics = JSON.parse(decodeURIComponent(raw));
-      } catch {}
+      } catch { }
 
       // Re-use existing session ID if resuming, otherwise create a new session
       let activeSessionId = overrideSessionId || sessionId;
@@ -591,7 +623,7 @@ function InterviewStudioContent() {
                 pastEntries = d.session.transcript;
               }
             }
-          } catch {}
+          } catch { }
         }
 
         if (pastEntries.length > 0) {
@@ -638,14 +670,28 @@ function InterviewStudioContent() {
 
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        videoRef.current.play().catch(() => {});
+        videoRef.current.play().catch(() => { });
       }
 
-      // 4. Fast Audio Streaming with noise gate
+      // 4. Fast Audio Streaming & Playback Output Setup
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const AC = (window as any).AudioContext || (window as any).webkitAudioContext;
+
+      // Ensure output AudioContext is initialized and un-suspended within user gesture
+      let outCtx = audioOutputRef.current;
+      if (!outCtx || outCtx.state === 'closed') {
+        outCtx = new AC({ sampleRate: 24000 });
+        audioOutputRef.current = outCtx;
+      }
+      if (outCtx && outCtx.state === 'suspended') {
+        await outCtx.resume().catch(() => {});
+      }
+
       const audioContext = new AC({ sampleRate: SAMPLE_RATE });
       audioCtxRef.current = audioContext;
+      if (audioContext.state === 'suspended') {
+        await audioContext.resume().catch(() => {});
+      }
 
       const source = audioContext.createMediaStreamSource(stream);
       const analyser = audioContext.createAnalyser();
@@ -653,8 +699,8 @@ function InterviewStudioContent() {
       source.connect(analyser);
       analyserRef.current = analyser;
 
-      // 512 samples = 32ms buffer for immediate low-latency transmission
-      const scriptProcessor = audioContext.createScriptProcessor(512, 1, 1);
+      // 2048 samples = 128ms buffer for smooth, reliable speech streaming to Gemini VAD
+      const scriptProcessor = audioContext.createScriptProcessor(2048, 1, 1);
       scriptProcessorRef.current = scriptProcessor;
 
       scriptProcessor.onaudioprocess = (audioProcessingEvent: AudioProcessingEvent) => {
@@ -663,28 +709,14 @@ function InterviewStudioContent() {
         const inputBuffer = audioProcessingEvent.inputBuffer;
         const pcmData = inputBuffer.getChannelData(0);
 
-        // Calculate RMS for noise gate
-        let sumSquares = 0;
-        for (let i = 0; i < pcmData.length; i++) {
-          sumSquares += pcmData[i] * pcmData[i];
-        }
-        const rms = Math.sqrt(sumSquares / pcmData.length);
-
-        // Ignore ambient room noise/hiss/breathing below threshold
-        if (rms < 0.005) {
-          return;
-        }
-
         try {
-          const blob = createBlob(pcmData);
-          sessionRef.current.sendRealtimeInput({ media: blob });
-        } catch {}
+          const blob = createAudioBlob(pcmData);
+          sessionRef.current.sendRealtimeInput({ audio: blob });
+        } catch { }
       };
 
       source.connect(scriptProcessor);
       scriptProcessor.connect(audioContext.destination);
-
-      if (audioContext.state === 'suspended') await audioContext.resume();
 
       // 5. Connect to Gemini Live with prior conversation context if continuing
       let pastConversationText = '';
@@ -729,27 +761,97 @@ function InterviewStudioContent() {
     }
   }, [searchParams, sessionState]);
 
+  // 1 FPS real-time video frame capture and transmission to Gemini Live
+  useEffect(() => {
+    if (sessionState !== 'live') {
+      if (videoIntervalRef.current) {
+        clearInterval(videoIntervalRef.current);
+        videoIntervalRef.current = undefined;
+      }
+      return;
+    }
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    videoIntervalRef.current = setInterval(() => {
+      if (!sessionRef.current || isCameraOffRef.current) return;
+      const videoEl = videoRef.current;
+      if (!videoEl || videoEl.readyState < 2 || videoEl.paused || videoEl.ended) return;
+
+      const vw = videoEl.videoWidth;
+      const vh = videoEl.videoHeight;
+      if (!vw || !vh) return;
+
+      const hasActiveTrack = streamRef.current
+        ?.getVideoTracks()
+        .some((t) => t.enabled && t.readyState === 'live');
+      if (!hasActiveTrack) return;
+
+      try {
+        const scale = Math.min(640 / vw, 480 / vh, 1);
+        const targetWidth = Math.round(vw * scale);
+        const targetHeight = Math.round(vh * scale);
+
+        if (canvas.width !== targetWidth || canvas.height !== targetHeight) {
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+        }
+
+        if (ctx) {
+          ctx.drawImage(videoEl, 0, 0, targetWidth, targetHeight);
+          const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+          const commaIdx = dataUrl.indexOf(',');
+          if (commaIdx !== -1) {
+            const base64 = dataUrl.substring(commaIdx + 1);
+            if (base64 && sessionRef.current) {
+              sessionRef.current.sendRealtimeInput({
+                media: {
+                  data: base64,
+                  mimeType: 'image/jpeg',
+                },
+              });
+            }
+          }
+        }
+      } catch {
+        // Silently skip frame on transient failure
+      }
+    }, 1000); // Recommended 1 frame per second for multimodal live
+
+    return () => {
+      if (videoIntervalRef.current) {
+        clearInterval(videoIntervalRef.current);
+        videoIntervalRef.current = undefined;
+      }
+    };
+  }, [sessionState]);
+
   // END session
   const endSession = useCallback(async () => {
     sessionRef.current?.close();
 
     streamRef.current?.getTracks().forEach((t) => t.stop());
     clearInterval(timerRef.current);
+    if (videoIntervalRef.current) {
+      clearInterval(videoIntervalRef.current);
+      videoIntervalRef.current = undefined;
+    }
 
     if (scriptProcessorRef.current) {
-      try { scriptProcessorRef.current.disconnect(); } catch {}
+      try { scriptProcessorRef.current.disconnect(); } catch { }
       scriptProcessorRef.current = null;
     }
 
     if (audioCtxRef.current && audioCtxRef.current.state !== 'closed') {
-      audioCtxRef.current.close().catch(() => {});
+      audioCtxRef.current.close().catch(() => { });
     }
     if (audioOutputRef.current && audioOutputRef.current.state !== 'closed') {
-      audioOutputRef.current.close().catch(() => {});
+      audioOutputRef.current.close().catch(() => { });
     }
 
     if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => {});
+      document.exitFullscreen().catch(() => { });
     }
 
     setSessionState('complete');
@@ -766,7 +868,7 @@ function InterviewStudioContent() {
           transcript: currentTranscript,
         }),
         keepalive: true,
-      }).catch(() => {});
+      }).catch(() => { });
     }
 
     // Only generate performance report for interview sessions, not teach sessions
@@ -817,6 +919,10 @@ function InterviewStudioContent() {
       sessionRef.current?.close();
       streamRef.current?.getTracks().forEach((t) => t.stop());
       clearInterval(timerRef.current);
+      if (videoIntervalRef.current) {
+        clearInterval(videoIntervalRef.current);
+        videoIntervalRef.current = undefined;
+      }
     };
   }, []);
 
@@ -890,9 +996,11 @@ function InterviewStudioContent() {
             {/* Camera toggle */}
             <button
               onClick={() => {
-                setIsCameraOff(v => !v);
+                const nextOff = !isCameraOff;
+                setIsCameraOff(nextOff);
+                isCameraOffRef.current = nextOff;
                 const tracks = streamRef.current?.getVideoTracks();
-                tracks?.forEach(t => { t.enabled = isCameraOff; });
+                tracks?.forEach(t => { t.enabled = !nextOff; });
               }}
               title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
               style={{

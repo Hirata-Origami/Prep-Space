@@ -10,6 +10,11 @@ const TABS = ['Profile', 'AI API Key', 'Appearance', 'Privacy'];
 
 export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState('Profile');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
   const [saving, setSaving] = useState(false);
   const [validatingKey, setValidatingKey] = useState(false);
   const [currentTheme, setCurrentTheme] = useState('dark');
@@ -29,7 +34,8 @@ export default function SettingsPage() {
         target_role: user.target_role ?? '',
         target_company: user.target_company ?? '',
       });
-      setGeminiKey(user.gemini_api_key ?? '');
+      // Do not populate input with masked key string; placeholder & badge indicate active status
+      setGeminiKey('');
     }
     // Read theme
     try {
@@ -49,8 +55,13 @@ export default function SettingsPage() {
 
   const handleValidateKey = async () => {
     const keyToTest = geminiKey.trim();
-    if (!keyToTest) {
+    if (!keyToTest && !user?.has_gemini_key) {
       toast.error('Enter an API key first to validate.');
+      return;
+    }
+
+    if (keyToTest && (keyToTest.includes('•') || /[^\x00-\x7F]/.test(keyToTest))) {
+      toast.error('Please enter a fresh, unmasked API key starting with AIza...');
       return;
     }
 
@@ -59,7 +70,7 @@ export default function SettingsPage() {
       const res = await fetch('/api/validate-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: keyToTest }),
+        body: JSON.stringify({ key: keyToTest || undefined }),
       });
       const data = await res.json();
 
@@ -185,12 +196,12 @@ export default function SettingsPage() {
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Update your personal information and career targets</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 900, color: '#080C14' }}>
-                  {user?.full_name?.[0]?.toUpperCase() ?? 'U'}
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 900, color: '#080C14' }} suppressHydrationWarning>
+                  {mounted ? (user?.full_name?.[0]?.toUpperCase() ?? 'U') : 'U'}
                 </div>
                 <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{user?.full_name ?? 'User'}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{(user?.xp ?? 0).toLocaleString()} XP · Level {user?.level || 'Novice'}</div>
+                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }} suppressHydrationWarning>{mounted ? (user?.full_name ?? 'User') : 'User'}</div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }} suppressHydrationWarning>{mounted ? (user?.xp ?? 0).toLocaleString() : 0} XP · Level {mounted ? (user?.level || 'Novice') : 'Novice'}</div>
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
@@ -234,12 +245,14 @@ export default function SettingsPage() {
               </div>
 
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Update API Key</label>
+                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
+                  {user?.has_gemini_key ? 'Update API Key' : 'Add API Key'}
+                </label>
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <input
                     className="input"
                     type="password"
-                    placeholder={user?.has_gemini_key ? '••••••••••••••••••••' : 'Paste AIzaSy... key here'}
+                    placeholder={user?.has_gemini_key ? 'Key is saved · enter new key to replace' : 'Paste AIzaSy... key here'}
                     value={geminiKey}
                     onChange={e => setGeminiKey(e.target.value)}
                     style={{ flex: 1 }}
@@ -247,14 +260,19 @@ export default function SettingsPage() {
                   <button
                     type="button"
                     onClick={handleValidateKey}
-                    disabled={validatingKey || !geminiKey.trim()}
+                    disabled={validatingKey || (!geminiKey.trim() && !user?.has_gemini_key)}
                     className="btn-secondary"
                     style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
                   >
                     {validatingKey ? <Loader2 size={14} className="animate-spin" /> : null}
-                    <span>Validate</span>
+                    <span>{geminiKey.trim() ? 'Validate Key' : 'Test Saved Key'}</span>
                   </button>
-                  <button onClick={handleSave} disabled={saving || !geminiKey} className="btn-primary" style={{ padding: '10px 20px', fontSize: '13px' }}>
+                  <button
+                    onClick={handleSave}
+                    disabled={saving || !geminiKey.trim() || geminiKey.includes('•')}
+                    className="btn-primary"
+                    style={{ padding: '10px 20px', fontSize: '13px' }}
+                  >
                     {saving ? 'Saving...' : 'Save Key'}
                   </button>
                 </div>

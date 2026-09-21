@@ -1,18 +1,45 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { createClient } from '@/lib/supabase/server';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req: Request) {
   try {
-    const { key } = await req.json();
+    const body = await req.json().catch(() => ({}));
+    let key = typeof body?.key === 'string' ? body.key.trim() : '';
 
-    if (!key || typeof key !== 'string' || key.trim().length < 10) {
-      return NextResponse.json({ valid: false, error: 'Please enter a valid API key string' }, { status: 400 });
+    // If key contains bullets (masked) or is empty, try to test the user's saved key from DB
+    const isMaskedOrEmpty = !key || key.includes('•') || /[^\x00-\x7F]/.test(key);
+
+    if (isMaskedOrEmpty) {
+      // Check if user is authenticated and has a saved key in database
+      const supabase = await createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('users')
+          .select('gemini_api_key')
+          .eq('supabase_uid', user.id)
+          .single();
+
+        const savedKey = profile?.gemini_api_key?.trim();
+        if (savedKey && !savedKey.includes('•') && /^[\x00-\x7F]+$/.test(savedKey)) {
+          key = savedKey;
+        }
+      }
     }
 
-    const trimmedKey = key.trim();
-    const genAI = new GoogleGenerativeAI(trimmedKey);
+    // Strictly validate that key is ASCII and does not contain bullets or non-byte chars
+    if (!key || key.length < 10 || key.includes('•') || /[^\x00-\x7F]/.test(key)) {
+      return NextResponse.json({
+        valid: false,
+        error: 'Please enter a valid, unmasked Gemini API key (starts with AIza...)'
+      }, { status: 400 });
+    }
+
+    const genAI = new GoogleGenerativeAI(key);
     const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
 
     // Trivial ping to check authentication

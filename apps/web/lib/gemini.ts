@@ -6,9 +6,15 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * Server-side only.
  */
 export function getGeminiClient(userApiKey?: string | null): GoogleGenerativeAI {
-  const key = userApiKey || process.env.GEMINI_API_KEY;
+  let key = userApiKey?.trim();
+  if (key && (key.includes('•') || /[^\x00-\x7F]/.test(key) || key.length < 10)) {
+    key = undefined;
+  }
   if (!key) {
-    throw new Error('No Gemini API key configured. Please add your key in Settings.');
+    key = process.env.GEMINI_API_KEY?.trim();
+  }
+  if (!key || key.includes('•') || /[^\x00-\x7F]/.test(key)) {
+    throw new Error('No valid Gemini API key configured. Please add your key in Settings.');
   }
   return new GoogleGenerativeAI(key);
 }
