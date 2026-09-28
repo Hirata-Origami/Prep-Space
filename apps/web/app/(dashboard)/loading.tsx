@@ -1,65 +1,22 @@
+import { Skeleton } from '@/components/ui/Skeleton';
+
 export default function DashboardLoading() {
   return (
-    <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto', width: '100%' }}>
-      {/* Header skeleton */}
-      <div style={{ marginBottom: '28px' }}>
-        <div
-          className="skeleton"
-          style={{ width: 'min(220px, 70%)', height: '32px', borderRadius: '8px', marginBottom: '10px' }}
-        />
-        <div
-          className="skeleton"
-          style={{ width: 'min(380px, 90%)', height: '16px', borderRadius: '6px' }}
-        />
-      </div>
+    <div className="page-container" aria-busy="true" aria-label="Loading">
+      <Skeleton className="mb-2.5 h-9 w-[min(260px,70%)]" />
+      <Skeleton className="mb-8 h-4 w-[min(400px,90%)]" />
 
-      {/* Metric / Action cards skeleton */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-          gap: '16px',
-          marginBottom: '28px',
-        }}
-      >
-        {[1, 2, 3, 4].map((i) => (
-          <div
-            key={i}
-            className="skeleton"
-            style={{
-              height: '100px',
-              borderRadius: '14px',
-              background: 'var(--bg-surface)',
-            }}
-          />
+      <div className="mb-7 grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {[1, 2, 3, 4].map(i => (
+          <Skeleton key={i} className="h-24 rounded-panel" />
         ))}
       </div>
 
-      {/* Main content block skeleton */}
-      <div
-        className="skeleton"
-        style={{
-          width: '100%',
-          height: '320px',
-          borderRadius: '16px',
-          background: 'var(--bg-surface)',
-          marginBottom: '20px',
-        }}
-      />
+      <Skeleton className="mb-5 h-72 w-full rounded-panel" />
 
-      {/* Secondary list rows skeleton */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {[1, 2, 3].map((i) => (
-          <div
-            key={i}
-            className="skeleton"
-            style={{
-              width: '100%',
-              height: '64px',
-              borderRadius: '12px',
-              background: 'var(--bg-surface)',
-            }}
-          />
+      <div className="flex flex-col gap-2.5">
+        {[1, 2, 3].map(i => (
+          <Skeleton key={i} className="h-16 w-full rounded-panel" />
         ))}
       </div>
     </div>
