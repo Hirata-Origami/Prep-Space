@@ -1,8 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
+import { Medal } from 'lucide-react';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
@@ -20,12 +21,6 @@ const PERIODS = ['Weekly', 'Monthly', 'All Time'];
 
 export default function LeaderboardPage() {
   const [period, setPeriod] = useState('Weekly');
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
   const { data, isLoading } = useSWR<{ users: LeaderboardUser[]; userRank: number | null }>(
     `/api/leaderboard?period=${period.toLowerCase().replace(' ', '_')}`,
     fetcher
@@ -36,7 +31,7 @@ export default function LeaderboardPage() {
   const rest = users.slice(3);
 
   // Prevent SSR/Client hydration mismatch
-  const showSkeleton = !isMounted || (isLoading && users.length === 0);
+  const showSkeleton = isLoading && users.length === 0;
 
   return (
     <div className="page-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
@@ -75,7 +70,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[1] ? 'rgba(192,192,192,0.3)' : 'var(--border)' }}>
                 {top3[1] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥈</div>
+                    <Medal size={30} aria-label="Second place" style={{ color: 'var(--text-secondary)', margin: '0 auto 8px' }} />
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: 'var(--text-on-accent)', margin: '0 auto 10px' }}>
                       {top3[1].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -90,7 +85,7 @@ export default function LeaderboardPage() {
               <div className="card glow-mint" style={{ padding: '24px', textAlign: 'center', borderColor: 'rgba(var(--accent-primary-rgb), 0.4)', background: 'rgba(var(--accent-primary-rgb), 0.04)' }}>
                 {top3[0] ? (
                   <>
-                    <div style={{ fontSize: '44px', marginBottom: '8px' }}>🥇</div>
+                    <Medal size={38} aria-label="First place" style={{ color: 'var(--accent-amber)', margin: '0 auto 8px' }} />
                     <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 700, color: 'var(--text-on-accent)', margin: '0 auto 10px' }}>
                       {top3[0].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
@@ -106,7 +101,7 @@ export default function LeaderboardPage() {
               <div className="card" style={{ padding: '20px', textAlign: 'center', borderColor: top3[2] ? 'rgba(205,127,50,0.3)' : 'var(--border)' }}>
                 {top3[2] ? (
                   <>
-                    <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥉</div>
+                    <Medal size={30} aria-label="Third place" style={{ color: '#C77B3D', margin: '0 auto 8px' }} />
                     <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#CD7F32', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 700, color: '#fff', margin: '0 auto 10px' }}>
                       {top3[2].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>

@@ -1,11 +1,10 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import useSWR from 'swr';
-import { GoogleGenAI, Modality } from '@google/genai';
+import { GoogleGenAI, Modality, type LiveConnectConfig } from '@google/genai';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/hooks/useUser';
 import { AudioOrb } from '@/components/interview/AudioOrb';
@@ -19,7 +18,6 @@ import {
   Sparkles,
   BookOpen,
   Play,
-  ArrowRight,
   RotateCcw,
   CheckCircle2,
   FileText
@@ -413,7 +411,7 @@ function InterviewStudioContent() {
           },
           inputAudioTranscription: {},
           outputAudioTranscription: {},
-        } as any,
+        } as LiveConnectConfig,
         callbacks: {
           onopen: () => {
             toast.success('Connected to Gemini Live');
@@ -1528,7 +1526,7 @@ function InterviewStudioContent() {
             borderRadius: '16px',
             textAlign: 'center',
           }}>
-            <div style={{ fontSize: '32px', marginBottom: '10px' }}>🎙️</div>
+            <div style={{ marginBottom: '10px', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'center' }}><Mic size={30} aria-hidden /></div>
             <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
               No {activeMode === 'interview' ? 'interview' : 'tutoring'} sessions yet
             </div>
@@ -1570,7 +1568,7 @@ function InterviewStudioContent() {
                       justifyContent: 'center',
                       fontSize: '18px',
                     }}>
-                      {activeMode === 'teach' ? '📖' : '🎙️'}
+                      {activeMode === 'teach' ? <BookOpen size={18} aria-hidden /> : <Mic size={18} aria-hidden />}
                     </div>
                     <div>
                       <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>

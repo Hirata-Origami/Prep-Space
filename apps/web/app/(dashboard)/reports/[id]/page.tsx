@@ -1,5 +1,24 @@
 'use client';
 
+interface AudioMarker { type?: string; annotation?: string; start_time: string }
+interface SampleAnswer { question?: string; score?: number; user_answer?: string; ideal_answer?: string }
+interface ReportAnalysis {
+  summary?: string;
+  scores?: Record<string, number>;
+  strengths?: string[];
+  improvements?: string[];
+  sample_answers?: SampleAnswer[];
+  audio_url?: string;
+  audio_markers?: AudioMarker[];
+  metrics?: { wpm?: number; filler_words_count?: number } | null;
+}
+interface Report {
+  overall_score?: number;
+  hire_recommendation?: string;
+  analysis?: ReportAnalysis;
+  interview_sessions?: { plan?: { role?: string } };
+}
+
 import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
 
 import { useState, useEffect, useRef } from 'react';
@@ -15,7 +34,7 @@ interface ChatMessage {
 
 export default function ReportDetailPage() {
   const { id } = useParams();
-  const [report, setReport] = useState<any>(null);
+  const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
 
@@ -47,8 +66,8 @@ export default function ReportDetailPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to get response');
       setChatMessages(prev => [...prev, { role: 'coach', content: data.reply }]);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setChatLoading(false);
     }
@@ -105,7 +124,7 @@ export default function ReportDetailPage() {
     );
   }
 
-  const analysis = report.analysis || {};
+  const analysis: ReportAnalysis = report.analysis || {};
   const scores = analysis.scores || {};
   const strengths = analysis.strengths || [];
   const improvements = analysis.improvements || [];
@@ -191,7 +210,7 @@ export default function ReportDetailPage() {
 
       {/* Competency Grid */}
       <div className="grid-responsive-4" style={{ marginBottom: '36px' }}>
-        {Object.entries(scores).map(([key, val]: [string, any]) => (
+        {Object.entries(scores).map(([key, val]: [string, number]) => (
           <div key={key} className="surface" style={{ padding: '20px', textAlign: 'center' }}>
             <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, wordBreak: 'break-word' }}>{key.replace(/_/g, ' ')}</div>
@@ -209,7 +228,7 @@ export default function ReportDetailPage() {
               <audio ref={audioRef} controls src={audioUrl} style={{ width: '100%', marginBottom: '20px' }} className="no-print" />
               
               <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
-                {markers.map((m: any, i: number) => {
+                {markers.map((m, i) => {
                   const color = m.type === 'strong' ? 'var(--accent-primary)' : m.type === 'missed' ? 'var(--accent-red)' : 'var(--accent-amber)';
                   return (
                     <div key={i} onClick={() => { if(audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }} 
@@ -230,11 +249,11 @@ export default function ReportDetailPage() {
           <section>
             <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>Technical Breakdown</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {sampleAnswers.map((item: any, i: number) => (
+              {sampleAnswers.map((item, i) => (
                 <div key={i} className="surface" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>{i + 1}. {item.question}</div>
-                    <div style={{ fontWeight: 700, color: item.score > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
+                    <div style={{ fontWeight: 700, color: (item.score ?? 0) > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
@@ -262,18 +281,18 @@ export default function ReportDetailPage() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Words/min</div>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics.wpm || '--'}</div>
+                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics?.wpm || '--'}</div>
               </div>
               <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler words</div>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics.filler_words_count ?? '--'}</div>
+                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics?.filler_words_count ?? '--'}</div>
               </div>
             </div>
             
             <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>Global Percentile</div>
               <div style={{ fontSize: '18px', fontWeight: 700 }}>
-                 {report.overall_score >= 90 ? 'Top 5%' : report.overall_score >= 80 ? 'Top 20%' : report.overall_score >= 70 ? 'Top 40%' : 'Standard'}
+                 {(report.overall_score ?? 0) >= 90 ? 'Top 5%' : (report.overall_score ?? 0) >= 80 ? 'Top 20%' : (report.overall_score ?? 0) >= 70 ? 'Top 40%' : 'Standard'}
               </div>
               <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Based on peer performance</div>
             </div>

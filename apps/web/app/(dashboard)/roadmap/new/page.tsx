@@ -5,8 +5,25 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { useUser } from '@/lib/hooks/useUser';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FileText, KeyRound, Loader2, PenLine, Target, Upload, type LucideIcon } from 'lucide-react';
 
 type Mode = 'generate' | 'jd' | 'custom';
+
+interface GeneratedModule {
+  id?: string;
+  title: string;
+  description?: string;
+  estimated_hours?: number;
+  coverage_note?: string;
+  interview_topics?: string[];
+  skills?: string[];
+}
+
+interface GeneratedRoadmap {
+  title: string;
+  description?: string;
+  modules?: GeneratedModule[];
+}
 
 export default function NewRoadmapPage() {
   const router = useRouter();
@@ -17,7 +34,7 @@ export default function NewRoadmapPage() {
   const [parsing, setParsing] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [generatedRoadmap, setGeneratedRoadmap] = useState<any>(null);
+  const [generatedRoadmap, setGeneratedRoadmap] = useState<GeneratedRoadmap | null>(null);
 
   // Post-generate refinement state
   const [refineComments, setRefineComments] = useState('');
@@ -48,8 +65,8 @@ export default function NewRoadmapPage() {
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setGeneratedRoadmap(data.roadmap);
       toast.success(`Roadmap with ${data.roadmap.modules?.length || 0} modules generated!`);
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -81,8 +98,8 @@ export default function NewRoadmapPage() {
       setRefineComments('');
       setSelectedModuleIds([]);
       toast.success('Roadmap refined!');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setRefining(false);
     }
@@ -100,8 +117,8 @@ export default function NewRoadmapPage() {
       if (!res.ok) throw new Error(data.error || 'Parsing failed');
       setJd(data.text);
       toast.success('JD extracted successfully!');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setParsing(false);
     }
@@ -125,8 +142,8 @@ export default function NewRoadmapPage() {
       
       toast.success('Roadmap saved!');
       router.push('/roadmap');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -154,7 +171,7 @@ export default function NewRoadmapPage() {
               ← Regenerate
             </button>
             <button onClick={() => setShowRefine(v => !v)} className="btn-secondary" style={{ fontSize: '13px', padding: '9px 18px', borderColor: showRefine ? 'var(--accent-primary)' : undefined, color: showRefine ? 'var(--accent-primary)' : undefined }}>
-              ️ Refine
+              Refine
             </button>
             <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ fontSize: '13px', padding: '9px 20px' }}>
               {saving ? 'Saving…' : 'Save roadmap'}
@@ -179,7 +196,7 @@ export default function NewRoadmapPage() {
 
                 {/* Module selection */}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                  {(generatedRoadmap.modules || []).map((m: any, i: number) => (
+                  {(generatedRoadmap.modules || []).map((m, i) => (
                     <button
                       key={i}
                       onClick={() => toggleModule(i)}
@@ -234,24 +251,24 @@ export default function NewRoadmapPage() {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-          {(generatedRoadmap.modules ?? []).map((m: any, i: number) => (
+          {(generatedRoadmap.modules ?? []).map((m, i) => (
             <div key={i} className="card" style={{ padding: '20px', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
                 <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(var(--accent-primary-rgb), 0.1)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{m.title}</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '10px' }}>{m.description}</div>
-                  {m.interview_topics?.length > 0 && (
+                  {(m.interview_topics?.length ?? 0) > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
-                      {m.interview_topics.slice(0, 5).map((t: string) => (
+                      {m.interview_topics?.slice(0, 5).map((t: string) => (
                         <span key={t} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                       ))}
-                      {m.interview_topics.length > 5 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{m.interview_topics.length - 5}</span>}
+                      {(m.interview_topics?.length ?? 0) > 5 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{(m.interview_topics?.length ?? 0) - 5}</span>}
                     </div>
                   )}
-                  {m.skills?.length > 0 && (
+                  {(m.skills?.length ?? 0) > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
-                      {m.skills.map((s: string) => (
+                      {m.skills?.map((s: string) => (
                         <span key={s} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
                       ))}
                     </div>
@@ -267,7 +284,7 @@ export default function NewRoadmapPage() {
         </div>
 
         <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button onClick={() => setShowRefine(true)} className="btn-secondary">️ Refine Roadmap</button>
+          <button onClick={() => setShowRefine(true)} className="btn-secondary">Refine roadmap</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '12px 28px', fontSize: '15px' }}>
             {saving ? 'Saving…' : ' Save roadmap'}
           </button>
@@ -286,13 +303,13 @@ export default function NewRoadmapPage() {
       {/* Mode selector */}
       <div className="grid-responsive-3" style={{ gap: '12px', marginBottom: '28px' }}>
         {([
-          { id: 'generate', icon: '', label: 'By Role', desc: 'Pick a role name' },
-          { id: 'jd', icon: '', label: 'From JD', desc: 'Paste a job description' },
-          { id: 'custom', icon: '️', label: 'Manual', desc: 'Build it yourself' },
-        ] as { id: Mode; icon: string; label: string; desc: string }[]).map(({ id, icon, label, desc }) => (
+          { id: 'generate', icon: Target, label: 'By Role', desc: 'Pick a role name' },
+          { id: 'jd', icon: FileText, label: 'From JD', desc: 'Paste a job description' },
+          { id: 'custom', icon: PenLine, label: 'Manual', desc: 'Build it yourself' },
+        ] as { id: Mode; icon: LucideIcon; label: string; desc: string }[]).map(({ id, icon: Icon, label, desc }) => (
           <button key={id} onClick={() => setMode(id)}
             style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${mode === id ? 'var(--accent-primary)' : 'var(--border)'}`, background: mode === id ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'var(--bg-elevated)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
-            <div style={{ fontSize: '24px', marginBottom: '8px' }}>{icon}</div>
+            <Icon size={22} aria-hidden style={{ marginBottom: '8px', color: mode === id ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
             <div style={{ fontSize: '14px', fontWeight: 700, color: mode === id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{label}</div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</div>
           </button>
@@ -319,7 +336,7 @@ export default function NewRoadmapPage() {
             <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(var(--accent-primary-rgb), 0.03)', border: '1px dashed rgba(var(--accent-primary-rgb), 0.3)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s', opacity: parsing ? 0.6 : 1 }}>
                 <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsing} />
-                <span style={{ fontSize: '24px', marginBottom: '8px' }}>{parsing ? '⌛' : ''}</span>
+                <span style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>{parsing ? <Loader2 size={22} className="animate-spin" aria-hidden /> : <Upload size={22} aria-hidden />}</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{parsing ? 'Parsing File...' : 'Upload JD (PDF, DOCX, TXT)'}</span>
                 <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>or type/paste below</span>
               </label>
@@ -331,7 +348,7 @@ export default function NewRoadmapPage() {
 
         {mode === 'custom' && (
           <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-            <div style={{ fontSize: '40px', marginBottom: '12px' }}></div>
+            <PenLine size={32} aria-hidden style={{ margin: '0 auto 12px' }} />
             <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Manual builder coming soon</div>
             <p style={{ fontSize: '13px' }}>For now, use the AI-powered modes above. Manual editing is available after generation via the Refine option.</p>
           </div>
@@ -356,7 +373,7 @@ export default function NewRoadmapPage() {
 
       {!user?.has_gemini_key && (
         <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(var(--accent-amber-rgb), 0.06)', border: '1px solid rgba(var(--accent-amber-rgb), 0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <span>️</span>
+          <KeyRound size={16} aria-hidden style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-amber)' }} />
           <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Add one in Settings</a></span>
         </div>
       )}

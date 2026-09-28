@@ -275,7 +275,7 @@ export default function SettingsPage() {
               </div>
 
               <div style={{ padding: '14px', background: 'var(--bg-elevated)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                🔒 <strong style={{ color: 'var(--text-secondary)' }}>Secure storage:</strong> Your key is stored in your private user profile row with strict Row Level Security and never exposed to other clients.
+                <strong style={{ color: 'var(--text-secondary)' }}>Secure storage:</strong> Your key is stored in your private user profile row with strict Row Level Security and never exposed to other clients.
               </div>
             </div>
           )}

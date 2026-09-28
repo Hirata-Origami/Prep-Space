@@ -185,8 +185,8 @@ export default function GroupDashboardPage() {
         const data = await res.json();
         toast.error(data.error);
       }
-    } catch (err: any) {
-      toast.error(err.message);
+    } catch (err: unknown) {
+      toast.error((err as Error).message);
     }
   };
 
@@ -271,7 +271,7 @@ export default function GroupDashboardPage() {
                         if (e.target.value === 'remove') handleRemoveMember(m.id);
                         e.target.value = '';
                       }} style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer', outline: 'none', appearance: 'none' }}>
-                        <option value="">️</option>
+                        <option value="">Manage</option>
                         <option value="make_admin">Make Admin</option>
                         <option value="remove">Remove User</option>
                       </select>

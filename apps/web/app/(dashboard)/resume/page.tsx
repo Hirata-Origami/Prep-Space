@@ -7,8 +7,8 @@ import { useResume, Experience, ProjectItem, EducationItem, SkillCategories, Res
 import useSWR from 'swr';
 import {
   FileText, Sparkles, Copy, Download, Briefcase, FolderGit2,
-  Plus, Trash2, RefreshCw, Upload, ChevronDown, ChevronUp, Eye,
-  Code2, Layers, Sun, GraduationCap, Trophy,
+  RefreshCw, Upload, Eye,
+  Layers, GraduationCap, Columns2, Zap, type LucideIcon,
 } from 'lucide-react';
 
 /* ─── Types ─────────────────────────────────────────────── */
@@ -21,10 +21,10 @@ interface ResumeVersion {
   created_at: string;
 }
 
-const TEMPLATES: { id: ResumeTemplateId; label: string; desc: string; icon: string }[] = [
-  { id: 'modern-two-column', label: 'Modern Two-Column', desc: 'Teal & Lato — Flagship ATS', icon: '⬛' },
-  { id: 'classic-single',    label: 'Classic Single',   desc: 'High-compatibility ATS',       icon: '📄' },
-  { id: 'minimal-tech',      label: 'Minimal Tech',     desc: 'Clean modern tech style',      icon: '⚡' },
+const TEMPLATES: { id: ResumeTemplateId; label: string; desc: string; icon: LucideIcon }[] = [
+  { id: 'modern-two-column', label: 'Modern Two-Column', desc: 'Teal & Lato — Flagship ATS', icon: Columns2 },
+  { id: 'classic-single',    label: 'Classic Single',   desc: 'High-compatibility ATS',       icon: FileText },
+  { id: 'minimal-tech',      label: 'Minimal Tech',     desc: 'Clean modern tech style',      icon: Zap },
 ];
 
 const TABS = [
@@ -34,7 +34,7 @@ const TABS = [
   { id: 'skills',     label: 'Skills',                icon: Layers      },
   { id: 'education',  label: 'Education',             icon: GraduationCap },
   { id: 'preview',    label: 'Preview & Export',      icon: Eye         },
-  { id: 'optimize',   label: '🎯 Optimize for JD',   icon: Sparkles    },
+  { id: 'optimize',   label: 'Optimize for JD',   icon: Sparkles    },
 ] as const;
 
 type TabId = typeof TABS[number]['id'];
@@ -126,10 +126,10 @@ export default function ResumeBuilderPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      await updateResume(collectData() as any);
+      await updateResume(collectData());
       toast.success('Resume saved!');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally { setSaving(false); }
   };
 
@@ -158,8 +158,8 @@ export default function ResumeBuilderPage() {
       }
       setTab('preview');
       toast.success('Full 1-page resume generated!');
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to generate');
+    } catch (e: unknown) {
+      toast.error((e as Error).message || 'Failed to generate');
     } finally { setGenerating(false); }
   };
 
@@ -219,11 +219,11 @@ export default function ResumeBuilderPage() {
         achievements: updatedAchieve,
         education: updatedEdu,
         templateId,
-      } as any);
+      });
 
       toast.success('Resume extracted and saved!');
-    } catch (err: any) {
-      toast.error(err.message || 'Extraction failed');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Extraction failed');
     } finally {
       setIsUploading(false);
       if (e.target) e.target.value = '';
@@ -260,14 +260,14 @@ export default function ResumeBuilderPage() {
       mutateVersions();
       toast.success(`Optimized: ${data.version_name}`);
       setTab('preview');
-    } catch (err: any) {
-      toast.error(err.message || 'Optimization failed');
+    } catch (err: unknown) {
+      toast.error((err as Error).message || 'Optimization failed');
     } finally { setIsOptimizing(false); }
   };
 
   /* ─ Experience helpers ─ */
   const addExp = () => setExperience(p => [...p, { company: '', role: '', start: '', end: '', location: '', bullets: '', type: 'work' }]);
-  const updateExp = (i: number, f: keyof Experience, v: any) => setExperience(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
+  const updateExp = (i: number, f: keyof Experience, v: Experience[keyof Experience]) => setExperience(p => { const c = [...p]; c[i] = { ...c[i], [f]: v }; return c; });
   const removeExp = (i: number) => setExperience(p => p.filter((_, idx) => idx !== i));
 
   /* ─ Project helpers ─ */
@@ -451,7 +451,7 @@ export default function ResumeBuilderPage() {
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {TEMPLATES.map(t => (
             <button key={t.id} onClick={() => setTemplateId(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '12px 18px', borderRadius: '10px', border: `2px solid ${templateId === t.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: templateId === t.id ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)', cursor: 'pointer', transition: 'all .15s', minWidth: '155px', flex: '1 1 155px' }}>
-              <span style={{ fontSize: '18px' }}>{t.icon}</span>
+              <t.icon size={18} aria-hidden />
               <span style={{ fontSize: '13px', fontWeight: 700, color: templateId === t.id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{t.label}</span>
               <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.desc}</span>
             </button>
@@ -505,7 +505,7 @@ export default function ResumeBuilderPage() {
                     <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: '6px', padding: '2px' }}>
                       {(['work', 'project'] as const).map(t => (
                         <button key={t} onClick={() => updateExp(idx, 'type', t)} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-body)', background: (exp.type || 'work') === t ? 'var(--bg-surface)' : 'transparent', color: (exp.type || 'work') === t ? 'var(--accent-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
-                          {t === 'work' ? '💼 Work' : '🗂 Project'}
+                          {t === 'work' ? 'Work' : 'Project'}
                         </button>
                       ))}
                     </div>
@@ -627,7 +627,7 @@ export default function ResumeBuilderPage() {
               <div style={{ display: 'flex', background: 'var(--bg-elevated)', borderRadius: '8px', padding: '3px', gap: '2px' }}>
                 {(['preview', 'code'] as const).map(v => (
                   <button key={v} onClick={() => setLatexView(v)} style={{ padding: '7px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', fontSize: '12px', fontWeight: 700, background: latexView === v ? 'var(--bg-surface)' : 'transparent', color: latexView === v ? 'var(--text-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
-                    {v === 'preview' ? '👁 Visual Preview' : '</> LaTeX Source'}
+                    {v === 'preview' ? 'Visual preview' : 'LaTeX source'}
                   </button>
                 ))}
               </div>
@@ -708,7 +708,7 @@ export default function ResumeBuilderPage() {
                   </div>
                 </div>
                 <button onClick={() => handleOptimize()} disabled={isOptimizing} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', fontSize: '14px', fontWeight: 700, opacity: isOptimizing ? 0.7 : 1 }}>
-                  {isOptimizing ? 'Analyzing & Tailoring…' : '⚡ Optimize for this JD'}
+                  {isOptimizing ? 'Analyzing & Tailoring…' : 'Optimize for this JD'}
                 </button>
               </div>
 

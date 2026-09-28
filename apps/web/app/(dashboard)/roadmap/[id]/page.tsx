@@ -1,9 +1,10 @@
 'use client';
 
+import { Check } from 'lucide-react';
 import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
 
 import { useState, useEffect, useCallback } from 'react';
-import { useParams, useRouter } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -30,7 +31,6 @@ interface Roadmap {
 
 export default function RoadmapDetailPage() {
   const { id } = useParams();
-  const router = useRouter();
   const [roadmap, setRoadmap] = useState<Roadmap | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -99,8 +99,8 @@ export default function RoadmapDetailPage() {
       setEditComments('');
       setSelectedModuleIds([]);
       toast.success('Roadmap updated successfully!');
-    } catch (e: any) {
-      toast.error(e.message);
+    } catch (e: unknown) {
+      toast.error((e as Error).message);
     } finally {
       setIsEditing(false);
     }
@@ -263,7 +263,7 @@ export default function RoadmapDetailPage() {
             </div>
           </div>
           <button onClick={() => setShowEditModal(true)} className="btn-secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>
-            ️ Edit Plan
+            Edit plan
           </button>
         </div>
 
@@ -324,7 +324,7 @@ export default function RoadmapDetailPage() {
                   flexShrink: 0,
                   transition: 'all 0.3s'
                 }}>
-                  {isCompleted ? '' : index + 1}
+                  {isCompleted ? <Check size={18} strokeWidth={3} aria-hidden /> : index + 1}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '12px' }}>
