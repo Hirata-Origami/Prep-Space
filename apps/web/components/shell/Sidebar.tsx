@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
 import { ChevronsUpDown, Flame, LogOut, Moon, Settings, Sun, Target } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/cn';
@@ -86,9 +85,7 @@ export function ProgressChip({ user, mounted }: { user?: ShellUser | null; mount
 
 export function ThemeToggleItem() {
   const { resolvedTheme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
-  const isDark = !mounted || resolvedTheme !== 'light';
+  const isDark = resolvedTheme !== 'light';
   return (
     <DropdownItem
       onSelect={e => {
