@@ -1063,10 +1063,10 @@ function InterviewStudioContent() {
                 padding: '3px 10px', borderRadius: '100px',
                 background: 'var(--bg-elevated)',
                 border: '1px solid var(--border)',
-                fontSize: '11px', fontWeight: 700,
+                fontSize: '12px', fontWeight: 700,
                 color: alexStatus === 'speaking' ? 'var(--accent-primary)' : 'var(--text-muted)',
                 display: 'flex', alignItems: 'center', gap: '5px',
-                letterSpacing: '0.05em', textTransform: 'uppercase',
+                
                 zIndex: 2,
               }}>
                 <div style={{
@@ -1141,8 +1141,8 @@ function InterviewStudioContent() {
               padding: '12px 18px',
               borderBottom: '1px solid var(--border)',
               display: 'flex', alignItems: 'center', gap: '8px',
-              fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)',
-              letterSpacing: '0.1em', textTransform: 'uppercase',
+              fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
+              
             }}>
               <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', animation: sessionState === 'live' ? 'pulse 1.4s ease-in-out infinite' : 'none' }} />
               Live Transcript
@@ -1169,10 +1169,10 @@ function InterviewStudioContent() {
                         gap: '12px',
                         margin: '12px 0',
                         color: 'var(--accent-primary)',
-                        fontSize: '11px',
+                        fontSize: '12px',
                         fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.08em',
+                        
+                        
                       }}>
                         <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
                         <span>✦ Session Continued · Resumed From Here ✦</span>
@@ -1191,7 +1191,7 @@ function InterviewStudioContent() {
                       fontSize: '13.5px',
                       lineHeight: 1.55,
                     }}>
-                      <div style={{ fontSize: '10px', color: entry.role === 'user' ? 'var(--accent-primary)' : 'var(--text-muted)', marginBottom: '3px', fontWeight: 800, letterSpacing: '0.08em' }}>
+                      <div style={{ fontSize: '12px', color: entry.role === 'user' ? 'var(--accent-primary)' : 'var(--text-muted)', marginBottom: '3px', fontWeight: 700, }}>
                         {entry.role === 'user' ? 'YOU' : 'ALEX'}
                       </div>
                       {entry.text}
@@ -1221,15 +1221,15 @@ function InterviewStudioContent() {
             border: '2px solid var(--accent-primary)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
             margin: '0 auto 24px',
-            boxShadow: '0 0 30px var(--accent-primary-glow)',
+            
             color: 'var(--accent-primary)',
           }}>
             <CheckCircle2 size={34} />
           </div>
-          <h1 style={{ fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '10px', letterSpacing: '-0.02em' }}>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
             {isTeach ? 'Lesson Complete!' : 'Session Concluded'}
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '8px', lineHeight: 1.6 }}>
+          <p className="text-[15px] text-fg-2">
             {isTeach
               ? `Great learning session with Alex! Duration: ${formatTime(sessionTime)}.`
               : `Great work! Duration: ${formatTime(sessionTime)}.`}
@@ -1262,7 +1262,7 @@ function InterviewStudioContent() {
                     padding: '12px 24px', borderRadius: '10px',
                     background: 'var(--accent-primary)', color: 'var(--text-on-accent)',
                     fontWeight: 700, fontSize: '14px', textDecoration: 'none',
-                    boxShadow: '0 4px 20px var(--accent-primary-glow)',
+                    
                   }}
                 >
                   <FileText size={16} />
@@ -1307,10 +1307,10 @@ function InterviewStudioContent() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(22px, 5vw, 30px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
             AI Interview Studio
           </h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>
+          <p className="text-[15px] text-fg-2">
             Practice real-time voice interviews or get step-by-step topic tutoring with Alex
           </p>
         </div>
@@ -1329,7 +1329,7 @@ function InterviewStudioContent() {
             cursor: 'pointer',
             border: 'none',
             color: 'var(--text-on-accent)',
-            boxShadow: '0 4px 20px var(--accent-primary-glow)',
+            
           }}
         >
           <Play size={16} fill="currentColor" color="currentColor" />
@@ -1510,12 +1510,12 @@ function InterviewStudioContent() {
       {/* Past Sessions (Filtered strictly by mode) */}
       <div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>
+          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
             Past {activeMode === 'interview' ? 'Interview' : 'Topic Tutoring'} Sessions
           </h2>
           {filteredSessions.length > 0 && (
             <Link href="/reports" style={{ fontSize: '13px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}>
-              View all reports →
+              View all reports
             </Link>
           )}
         </div>
@@ -1585,10 +1585,10 @@ function InterviewStudioContent() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     {isCompleted && report ? (
                       <div style={{ textAlign: 'right', marginRight: '4px' }}>
-                        <div style={{ fontSize: '17px', fontWeight: 900, color: 'var(--accent-primary)' }}>
+                        <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--accent-primary)' }}>
                           {report.overall_score}%
                         </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', }}>
                           Score
                         </div>
                       </div>
@@ -1613,7 +1613,7 @@ function InterviewStudioContent() {
                           fontWeight: 600,
                         }}
                       >
-                        Report →
+                        Report
                       </Link>
                     )}
 

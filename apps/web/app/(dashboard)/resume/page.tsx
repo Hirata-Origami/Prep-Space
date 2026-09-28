@@ -50,9 +50,9 @@ const inp = {
   boxSizing: 'border-box' as const,
 };
 const lbl = {
-  fontSize: '11px', fontWeight: 700 as const, letterSpacing: '.05em',
+  fontSize: '12px', fontWeight: 700 as const, letterSpacing: '0',
   color: 'var(--text-muted)' as const, display: 'block' as const,
-  marginBottom: '5px', textTransform: 'uppercase' as const,
+  marginBottom: '5px',
 };
 
 /* ─── Page ───────────────────────────────────────────────── */
@@ -288,7 +288,7 @@ export default function ResumeBuilderPage() {
       <div style={{ fontFamily: '"Lato","Helvetica Neue",sans-serif', fontSize: '9.5px', lineHeight: 1.45, color: '#2E2E2F', background: 'white', padding: '24px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
         {/* Header */}
         <div style={{ marginBottom: '8px' }}>
-          <div style={{ fontSize: '22px', fontWeight: 900, color: '#2E2E2F', letterSpacing: '.06em' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: '#2E2E2F', letterSpacing: '.06em' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '4px', color: '#65696D', fontSize: '8px' }}>
             {profile.phone && <span>📞 {profile.phone}</span>}
             {profile.email && <span>✉ {profile.email}</span>}
@@ -304,7 +304,7 @@ export default function ResumeBuilderPage() {
           <div>
             {expItems.length > 0 && (
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>EXPERIENCE</div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>EXPERIENCE</div>
                 <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
                 {expItems.slice(0, 3).map((e, i) => (
                   <div key={i} style={{ marginBottom: '7px' }}>
@@ -317,7 +317,7 @@ export default function ResumeBuilderPage() {
             )}
             {projItems.length > 0 && (
               <div>
-                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>PROJECTS</div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>PROJECTS</div>
                 <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
                 {projItems.slice(0, 2).map((p, i) => (
                   <div key={i} style={{ marginBottom: '7px' }}>
@@ -334,13 +334,13 @@ export default function ResumeBuilderPage() {
           <div>
             {profile.summary && (
               <div style={{ marginBottom: '8px' }}>
-                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>SUMMARY</div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>SUMMARY</div>
                 <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '4px' }} />
                 <p style={{ fontSize: '8.3px', color: '#2E2E2F', lineHeight: 1.5 }}>{profile.summary}</p>
               </div>
             )}
             <div style={{ marginBottom: '8px' }}>
-              <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>SKILLS</div>
+              <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>SKILLS</div>
               <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
               {[
                 { label: 'Languages', val: skillsCat.languages },
@@ -360,7 +360,7 @@ export default function ResumeBuilderPage() {
             </div>
             {education.filter(e => e.degree || e.institution).length > 0 && (
               <div>
-                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>EDUCATION</div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>EDUCATION</div>
                 <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '5px' }} />
                 {education.filter(e => e.degree || e.institution).map((e, i) => (
                   <div key={i} style={{ marginBottom: '6px' }}>
@@ -373,7 +373,7 @@ export default function ResumeBuilderPage() {
             )}
             {achievements && (
               <div style={{ marginTop: '8px' }}>
-                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: '3px' }}>ACHIEVEMENTS</div>
+                <div style={{ color: '#65696D', fontWeight: 700, fontSize: '8.7px', letterSpacing: '.08em', marginBottom: '3px' }}>ACHIEVEMENTS</div>
                 <div style={{ borderTop: '0.6px solid #B4B7B9', marginBottom: '4px' }} />
                 <p style={{ fontSize: '8.2px', color: '#2E2E2F', lineHeight: 1.5 }}>{achievements}</p>
               </div>
@@ -385,24 +385,24 @@ export default function ResumeBuilderPage() {
   };
 
   const ClassicPreview = () => (
-    <div style={{ fontFamily: 'Georgia, serif', fontSize: '11px', color: '#111', background: 'white', padding: '32px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
+    <div style={{ fontFamily: 'Georgia, serif', fontSize: '12px', color: '#111', background: 'white', padding: '32px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
       <div style={{ textAlign: 'center', marginBottom: '16px' }}>
-        <div style={{ fontSize: '22px', fontWeight: 900, fontVariant: 'small-caps' }}>{profile.name || 'YOUR NAME'}</div>
-        <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
+        <div style={{ fontSize: '22px', fontWeight: 700, fontVariant: 'small-caps' }}>{profile.name || 'YOUR NAME'}</div>
+        <div style={{ fontSize: '12px', color: '#555', marginTop: '4px' }}>
           {[profile.phone, profile.email, profile.location].filter(Boolean).join(' | ')}
         </div>
       </div>
-      {profile.summary && <><div style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>PROFESSIONAL SUMMARY</div><p style={{ fontSize: '10px', lineHeight: 1.6, marginBottom: '12px' }}>{profile.summary}</p></>}
-      {experience.filter(e => e.role).length > 0 && <><div style={{ fontSize: '11px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>EXPERIENCE</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}><span>{e.role} @ {e.company}</span><span style={{ fontWeight: 400, fontSize: '10px' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ marginTop: '3px', paddingLeft: '16px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '10px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
+      {profile.summary && <><div style={{ fontSize: '12px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>PROFESSIONAL SUMMARY</div><p style={{ fontSize: '12px', lineHeight: 1.6, marginBottom: '12px' }}>{profile.summary}</p></>}
+      {experience.filter(e => e.role).length > 0 && <><div style={{ fontSize: '12px', fontWeight: 700, borderBottom: '1.5px solid #000', paddingBottom: '2px', marginBottom: '6px' }}>EXPERIENCE</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700 }}><span>{e.role} @ {e.company}</span><span style={{ fontWeight: 400, fontSize: '12px' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ marginTop: '3px', paddingLeft: '16px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '12px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
     </div>
   );
 
   const MinimalPreview = () => (
-    <div style={{ fontFamily: '"Helvetica Neue",Arial,sans-serif', fontSize: '11px', color: '#111', background: 'white', padding: '28px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
-      <div style={{ fontSize: '20px', fontWeight: 900, marginBottom: '2px' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
-      <div style={{ fontSize: '10px', color: '#444', marginBottom: '16px' }}>{[profile.email, profile.phone, profile.location].filter(Boolean).join(' · ')}</div>
-      {profile.summary && <p style={{ fontSize: '10.5px', color: '#333', lineHeight: 1.6, marginBottom: '14px', borderLeft: '3px solid #000', paddingLeft: '10px' }}>{profile.summary}</p>}
-      {experience.filter(e => e.role).length > 0 && <><div style={{ fontWeight: 900, fontSize: '11px', borderBottom: '2px solid #111', marginBottom: '6px', paddingBottom: '2px' }}>Experience</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ fontWeight: 700 }}>{e.role} @ {e.company} <span style={{ fontWeight: 400, fontSize: '10px', float: 'right' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ paddingLeft: '14px', marginTop: '2px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '10px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
+    <div style={{ fontFamily: '"Helvetica Neue",Arial,sans-serif', fontSize: '12px', color: '#111', background: 'white', padding: '28px', borderRadius: '4px', boxShadow: '0 8px 32px rgba(0,0,0,0.18)', minHeight: '500px' }}>
+      <div style={{ fontSize: '20px', fontWeight: 700, marginBottom: '2px' }}>{profile.name?.toUpperCase() || 'YOUR NAME'}</div>
+      <div style={{ fontSize: '12px', color: '#444', marginBottom: '16px' }}>{[profile.email, profile.phone, profile.location].filter(Boolean).join(' · ')}</div>
+      {profile.summary && <p style={{ fontSize: '12px', color: '#333', lineHeight: 1.6, marginBottom: '14px', borderLeft: '3px solid #000', paddingLeft: '10px' }}>{profile.summary}</p>}
+      {experience.filter(e => e.role).length > 0 && <><div style={{ fontWeight: 700, fontSize: '12px', borderBottom: '2px solid #111', marginBottom: '6px', paddingBottom: '2px' }}>Experience</div>{experience.filter(e => e.role).slice(0, 3).map((e, i) => <div key={i} style={{ marginBottom: '8px' }}><div style={{ fontWeight: 700 }}>{e.role} @ {e.company} <span style={{ fontWeight: 400, fontSize: '12px', float: 'right' }}>{e.start} – {e.end}</span></div>{e.bullets && <ul style={{ paddingLeft: '14px', marginTop: '2px' }}>{e.bullets.split('\n').filter(Boolean).map((b, j) => <li key={j} style={{ fontSize: '12px', color: '#333' }}>{b.replace(/^[\*\-•]\s*/, '')}</li>)}</ul>}</div>)}</>}
     </div>
   );
 
@@ -426,7 +426,7 @@ export default function ResumeBuilderPage() {
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Resume Builder</h1>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Resume Builder</h1>
           <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '4px' }}>ATS-optimized LaTeX resume with AI enhancement & JD targeting</p>
         </div>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -447,13 +447,13 @@ export default function ResumeBuilderPage() {
 
       {/* Template Selector */}
       <div style={{ marginBottom: '22px' }}>
-        <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: '10px' }}>Template</div>
+        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', letterSpacing: '.06em', marginBottom: '10px' }}>Template</div>
         <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           {TEMPLATES.map(t => (
             <button key={t.id} onClick={() => setTemplateId(t.id)} style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '3px', padding: '12px 18px', borderRadius: '10px', border: `2px solid ${templateId === t.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: templateId === t.id ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)', cursor: 'pointer', transition: 'all .15s', minWidth: '155px', flex: '1 1 155px' }}>
               <span style={{ fontSize: '18px' }}>{t.icon}</span>
               <span style={{ fontSize: '13px', fontWeight: 700, color: templateId === t.id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{t.label}</span>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{t.desc}</span>
+              <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.desc}</span>
             </button>
           ))}
         </div>
@@ -504,7 +504,7 @@ export default function ResumeBuilderPage() {
                     {/* Work/Project toggle */}
                     <div style={{ display: 'flex', background: 'var(--bg-base)', borderRadius: '6px', padding: '2px' }}>
                       {(['work', 'project'] as const).map(t => (
-                        <button key={t} onClick={() => updateExp(idx, 'type', t)} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '11px', fontWeight: 700, fontFamily: 'var(--font-body)', background: (exp.type || 'work') === t ? 'var(--bg-surface)' : 'transparent', color: (exp.type || 'work') === t ? 'var(--accent-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
+                        <button key={t} onClick={() => updateExp(idx, 'type', t)} style={{ padding: '3px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 700, fontFamily: 'var(--font-body)', background: (exp.type || 'work') === t ? 'var(--bg-surface)' : 'transparent', color: (exp.type || 'work') === t ? 'var(--accent-primary)' : 'var(--text-muted)', transition: 'all .15s' }}>
                           {t === 'work' ? '💼 Work' : '🗂 Project'}
                         </button>
                       ))}
@@ -581,7 +581,7 @@ export default function ResumeBuilderPage() {
                     {skillsCat[key] && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px' }}>
                         {skillsCat[key].split(',').map(s => s.trim()).filter(Boolean).map(s => (
-                          <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '100px', background: 'var(--accent-primary-dim)', color: 'var(--accent-primary)', fontWeight: 600, border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>{s}</span>
+                          <span key={s} style={{ fontSize: '12px', padding: '3px 10px', borderRadius: '100px', background: 'var(--accent-primary-dim)', color: 'var(--accent-primary)', fontWeight: 600, border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>{s}</span>
                         ))}
                       </div>
                     )}
@@ -684,7 +684,7 @@ export default function ResumeBuilderPage() {
                     <Sparkles size={18} />
                   </div>
                   <div>
-                    <h2 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)', margin: 0 }}>Targeted JD Optimization</h2>
+                    <h2 style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>Targeted JD Optimization</h2>
                     <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: 0 }}>AI keyword-matches your resume to a specific job posting</p>
                   </div>
                 </div>
@@ -703,7 +703,7 @@ export default function ResumeBuilderPage() {
                     <label htmlFor="jd-file-input" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                       <Upload size={20} style={{ color: 'var(--accent-primary)' }} />
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{jdFile ? jdFile.name : 'Click to select .docx or .pdf'}</span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Supports Microsoft Word and PDF job listings</span>
+                      <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Supports Microsoft Word and PDF job listings</span>
                     </label>
                   </div>
                 </div>
@@ -725,10 +725,10 @@ export default function ResumeBuilderPage() {
                     {versions.map(ver => (
                       <div key={ver.id} style={{ padding: '12px', borderRadius: '8px', background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
                         <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '3px' }}>{ver.version_name}</div>
-                        <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '8px' }}>{new Date(ver.created_at).toLocaleDateString()}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>{new Date(ver.created_at).toLocaleDateString()}</div>
                         <div style={{ display: 'flex', gap: '6px' }}>
-                          <button onClick={() => { setLatexCode(ver.latex_code); setTab('preview'); toast.success(`Loaded ${ver.version_name}`); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', fontSize: '11px', fontWeight: 600, cursor: 'pointer' }}>Load</button>
-                          <button onClick={() => { navigator.clipboard.writeText(ver.latex_code); toast.success('LaTeX copied!'); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '11px', cursor: 'pointer' }}>Copy</button>
+                          <button onClick={() => { setLatexCode(ver.latex_code); setTab('preview'); toast.success(`Loaded ${ver.version_name}`); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', color: 'var(--accent-primary)', fontSize: '12px', fontWeight: 600, cursor: 'pointer' }}>Load</button>
+                          <button onClick={() => { navigator.clipboard.writeText(ver.latex_code); toast.success('LaTeX copied!'); }} style={{ padding: '4px 10px', borderRadius: '4px', background: 'var(--bg-surface)', border: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '12px', cursor: 'pointer' }}>Copy</button>
                         </div>
                       </div>
                     ))}
@@ -745,13 +745,13 @@ export default function ResumeBuilderPage() {
         {showRoleModal && (
           <div style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(12px, 3vw, 24px)' }}>
             <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '16px', padding: 'clamp(18px, 4vw, 28px)', maxWidth: '520px', width: '100%', boxShadow: '0 20px 50px rgba(0,0,0,0.5)' }}>
-              <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Multiple Roles Detected</h2>
+              <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Multiple Roles Detected</h2>
               <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>Found several roles at <strong style={{ color: 'var(--text-primary)' }}>{detectedCompany || 'this company'}</strong>. Select which position to target:</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
                 {detectedRoles.map(role => (
                   <button key={role} onClick={() => handleOptimize(role)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 18px', borderRadius: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: 600, cursor: 'pointer', textAlign: 'left', transition: 'all .15s ease' }} onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.background = 'var(--accent-primary-dim)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'var(--bg-elevated)'; }}>
                     <span>{role}</span>
-                    <span style={{ color: 'var(--accent-primary)', fontSize: '12px' }}>Target this →</span>
+                    <span style={{ color: 'var(--accent-primary)', fontSize: '12px' }}>Target this</span>
                   </button>
                 ))}
               </div>

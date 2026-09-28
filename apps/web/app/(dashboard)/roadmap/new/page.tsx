@@ -142,7 +142,7 @@ export default function NewRoadmapPage() {
       <div className="page-container" style={{ maxWidth: '860px' }}>
         <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
           <div>
-            <h1 style={{ fontSize: 'clamp(20px, 5vw, 24px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>
+            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
                Roadmap Generated
             </h1>
             <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
@@ -157,7 +157,7 @@ export default function NewRoadmapPage() {
               ️ Refine
             </button>
             <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ fontSize: '13px', padding: '9px 20px' }}>
-              {saving ? 'Saving…' : 'Save Roadmap →'}
+              {saving ? 'Saving…' : 'Save roadmap'}
             </button>
           </div>
         </div>
@@ -172,7 +172,7 @@ export default function NewRoadmapPage() {
               style={{ overflow: 'hidden', marginBottom: '24px' }}
             >
               <div className="card" style={{ padding: '24px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)', background: 'rgba(var(--accent-primary-rgb), 0.02)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Refine this Roadmap</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Refine this Roadmap</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                   Select specific modules to update (or leave empty for full roadmap changes), then describe what to change.
                 </p>
@@ -229,7 +229,7 @@ export default function NewRoadmapPage() {
         </AnimatePresence>
 
         <div className="card" style={{ marginBottom: '20px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)' }}>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>{generatedRoadmap.title}</div>
+          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>{generatedRoadmap.title}</div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>{generatedRoadmap.description}</div>
         </div>
 
@@ -237,26 +237,26 @@ export default function NewRoadmapPage() {
           {(generatedRoadmap.modules ?? []).map((m: any, i: number) => (
             <div key={i} className="card" style={{ padding: '20px', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(var(--accent-primary-rgb), 0.1)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(var(--accent-primary-rgb), 0.1)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{m.title}</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '10px' }}>{m.description}</div>
                   {m.interview_topics?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                       {m.interview_topics.slice(0, 5).map((t: string) => (
-                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
+                        <span key={t} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                       ))}
-                      {m.interview_topics.length > 5 && <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{m.interview_topics.length - 5}</span>}
+                      {m.interview_topics.length > 5 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{m.interview_topics.length - 5}</span>}
                     </div>
                   )}
                   {m.skills?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                       {m.skills.map((s: string) => (
-                        <span key={s} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
+                        <span key={s} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
                       ))}
                     </div>
                   )}
-                  <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                     {m.estimated_hours && `⏱ ~${m.estimated_hours}h`}
                     {m.coverage_note && <span style={{ marginLeft: '12px' }}> {m.coverage_note}</span>}
                   </div>
@@ -269,7 +269,7 @@ export default function NewRoadmapPage() {
         <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
           <button onClick={() => setShowRefine(true)} className="btn-secondary">️ Refine Roadmap</button>
           <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '12px 28px', fontSize: '15px' }}>
-            {saving ? 'Saving…' : ' Save Roadmap →'}
+            {saving ? 'Saving…' : ' Save roadmap'}
           </button>
         </div>
       </div>
@@ -279,8 +279,8 @@ export default function NewRoadmapPage() {
   return (
     <div className="page-container" style={{ maxWidth: '720px' }}>
       <div style={{ marginBottom: '32px' }}>
-        <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Create a Roadmap</h1>
-        <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Let AI build a personalized prep plan with 16-20 comprehensive modules</p>
+        <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Create a Roadmap</h1>
+        <p className="text-[15px] text-fg-2">Let AI build a personalized prep plan with 16-20 comprehensive modules</p>
       </div>
 
       {/* Mode selector */}
@@ -357,7 +357,7 @@ export default function NewRoadmapPage() {
       {!user?.has_gemini_key && (
         <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(var(--accent-amber-rgb), 0.06)', border: '1px solid rgba(var(--accent-amber-rgb), 0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span>️</span>
-          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Add one in Settings →</a></span>
+          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Add one in Settings</a></span>
         </div>
       )}
     </div>

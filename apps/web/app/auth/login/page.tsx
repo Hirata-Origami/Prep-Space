@@ -1,9 +1,10 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { AuthShell, GoogleIcon } from '@/components/auth/AuthShell';
+import { Button } from '@/components/ui/Button';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -21,58 +22,23 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '60px 16px 24px', position: 'relative' }}>
-      {/* Background glow */}
-      <div style={{ position: 'fixed', top: '20%', left: '50%', transform: 'translateX(-50%)', width: '600px', maxWidth: '100vw', height: '400px', background: 'radial-gradient(ellipse, rgba(var(--accent-primary-rgb), 0.05) 0%, transparent 70%)', pointerEvents: 'none' }} />
-
-      {/* Back to Landing */}
-      <Link href="/" style={{ position: 'absolute', top: '20px', left: '16px', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', fontWeight: 500, transition: 'color 0.2s', zIndex: 10 }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-primary)'; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLAnchorElement).style.color = 'var(--text-muted)'; }}
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M19 12H5M5 12l7-7M5 12l7 7"/></svg>
-        Back to Home
-      </Link>
-
-      <motion.div
-        initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}
-        style={{ width: '100%', maxWidth: '420px' }}
-      >
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-          <Link href="/" style={{ display: 'inline-flex', alignItems: 'center', gap: '10px', textDecoration: 'none', marginBottom: '20px' }}>
-            <div style={{ width: '36px', height: '36px', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-cyan))', borderRadius: '9px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 900, color: 'var(--text-on-accent)' }}>P</div>
-            <span style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)' }}>PrepSpace</span>
+    <AuthShell
+      title="Welcome back"
+      description="Sign in to pick up your prep where you left it."
+      footer={
+        <>
+          New to PrepSpace?{' '}
+          <Link href="/auth/signup" className="font-medium text-signal hover:underline">
+            Create an account
           </Link>
-          <h1 style={{ fontSize: 'clamp(22px, 3vw, 26px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Welcome back</h1>
-          <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Sign in to continue your prep journey</p>
-        </div>
-
-        <div className="card p-5 sm:p-8">
-          {/* Google OAuth */}
-          <button onClick={handleGoogle} disabled={loading} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)', fontFamily: 'var(--font-body)', transition: 'all 0.2s', marginBottom: '20px', opacity: loading ? 0.7 : 1 }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-hover)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; }}>
-            {loading ? (
-              <div style={{ width: '18px', height: '18px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite' }} />
-            ) : (
-              <svg width="18" height="18" viewBox="0 0 18 18"><path fill="#4285F4" d="M17.64 9.2a10.34 10.34 0 0 0-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"/><path fill="#34A853" d="M9 18a8.6 8.6 0 0 0 5.96-2.18l-2.92-2.26a5.43 5.43 0 0 1-8.07-2.85H.96v2.34A9 9 0 0 0 9 18z"/><path fill="#FBBC05" d="M3.97 10.71a5.4 5.4 0 0 1 0-3.42V4.95H.96a9 9 0 0 0 0 8.1l3.01-2.34z"/><path fill="#EA4335" d="M9 3.58a4.86 4.86 0 0 1 3.44 1.35l2.58-2.58A8.65 8.65 0 0 0 9 0 9 9 0 0 0 .96 4.95l3.01 2.34A5.36 5.36 0 0 1 9 3.58z"/></svg>
-            )}
-            {loading ? 'Signing in…' : 'Continue with Google'}
-          </button>
-
-          <div style={{ textAlign: 'center', marginTop: '12px' }}>
-            <p style={{ fontSize: '12.5px', color: 'var(--text-muted)' }}>
-              By continuing, you confirm you have read our <a href="#" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Privacy Policy</a>
-            </p>
-          </div>
-        </div>
-
-        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: 'var(--text-muted)' }}>
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" style={{ color: 'var(--accent-primary)', fontWeight: 600, textDecoration: 'none' }}>Start free →</Link>
-        </p>
-      </motion.div>
-    </div>
+        </>
+      }
+    >
+      <Button variant="secondary" size="lg" className="w-full" onClick={handleGoogle} loading={loading}>
+        {!loading && <GoogleIcon />}
+        {loading ? 'Signing in…' : 'Continue with Google'}
+      </Button>
+      <p className="mt-4 text-xs text-fg-3">By continuing, you confirm you have read our privacy policy.</p>
+    </AuthShell>
   );
 }

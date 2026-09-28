@@ -1,5 +1,7 @@
 'use client';
 
+import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
+
 import { useState, useEffect, useCallback } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -112,19 +114,25 @@ export default function RoadmapDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(var(--accent-primary-rgb), 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
-        Calibrating your learning path...
+      <div className="page-container" aria-busy="true" aria-label="Loading roadmap">
+        <Skeleton className="mb-3 h-9 w-72 max-w-full" />
+        <Skeleton className="mb-8 h-4 w-96 max-w-full" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-48 rounded-panel" />
+          <Skeleton className="h-48 rounded-panel" />
+        </div>
       </div>
     );
   }
 
   if (!roadmap) {
     return (
-      <div className="page-container" style={{ textAlign: 'center', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>️</div>
-        <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Roadmap not found</h2>
-        <Link href="/roadmap" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Roadmaps</Link>
+      <div className="page-container">
+        <EmptyState
+          title="Roadmap not found"
+          description="It may have been deleted, or the link is wrong."
+          action={<ButtonLink href="/roadmap" variant="secondary">Back to roadmaps</ButtonLink>}
+        />
       </div>
     );
   }
@@ -157,14 +165,14 @@ export default function RoadmapDetailPage() {
               exit={{ scale: 0.95, opacity: 0 }}
               style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: 'clamp(20px, 4vw, 32px)', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}
             >
-              <h2 style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Edit Roadmap Plan</h2>
+              <h2 style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Edit Roadmap Plan</h2>
               <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
                 Describe how you want to update this roadmap. Optionally select specific modules to update.
               </p>
 
               {/* Module Selection */}
               <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '10px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '10px' }}>
                   Select Modules to Update (optional — leave empty for full roadmap)
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
@@ -179,7 +187,7 @@ export default function RoadmapDetailPage() {
                       <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', flex: 1 }}>
                         {i + 1}. {mod.title}
                       </span>
-                      {mod.status === 'completed' && <span style={{ fontSize: '10px', color: 'var(--accent-primary)', fontWeight: 700 }}> DONE</span>}
+                      {mod.status === 'completed' && <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 700 }}> DONE</span>}
                     </label>
                   ))}
                 </div>
@@ -192,7 +200,7 @@ export default function RoadmapDetailPage() {
 
               {/* Comments */}
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em', display: 'block', marginBottom: '8px' }}>
+                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
                   Your Comments *
                 </label>
                 <textarea
@@ -233,16 +241,16 @@ export default function RoadmapDetailPage() {
         </Link>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
           <div style={{ flex: '1 1 280px', minWidth: 0 }}>
-            <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 900, color: 'var(--text-primary)', marginBottom: '8px', letterSpacing: '-0.02em' }}>{roadmap.title}</h1>
+            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">{roadmap.title}</h1>
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{
                 padding: '4px 12px',
                 borderRadius: '100px',
-                fontSize: '11px',
+                fontSize: '12px',
                 fontWeight: 700,
                 background: roadmap.status === 'completed' ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'rgba(var(--accent-violet-rgb), 0.1)',
                 color: roadmap.status === 'completed' ? 'var(--accent-primary)' : 'var(--accent-violet)',
-                textTransform: 'uppercase'
+                
               }}>
                 {roadmap.status}
               </span>
@@ -271,7 +279,7 @@ export default function RoadmapDetailPage() {
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPct}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                style={{ height: '100%', background: progressPct >= 80 ? 'var(--accent-primary)' : 'linear-gradient(90deg, var(--accent-violet), var(--accent-primary))', borderRadius: '100px', boxShadow: '0 0 8px rgba(var(--accent-primary-rgb), 0.4)' }}
+                style={{ height: '100%', background: progressPct >= 80 ? 'var(--accent-primary)' : 'var(--accent-violet)', borderRadius: '100px', boxShadow: '0 0 8px rgba(var(--accent-primary-rgb), 0.4)' }}
               />
             </div>
           </div>
@@ -279,7 +287,7 @@ export default function RoadmapDetailPage() {
       </header>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Path Modules</h2>
+        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Path Modules</h2>
         {sortedModules.map((module, index) => {
           const colors = statusColor(module.status);
           const isCompleted = module.status === 'completed';
@@ -311,7 +319,7 @@ export default function RoadmapDetailPage() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontSize: '14px',
-                  fontWeight: 800,
+                  fontWeight: 700,
                   color: isCompleted ? 'var(--text-on-accent)' : 'var(--text-muted)',
                   flexShrink: 0,
                   transition: 'all 0.3s'
@@ -324,14 +332,14 @@ export default function RoadmapDetailPage() {
                       {module.title}
                     </h3>
                     <span style={{
-                      fontSize: '10px',
+                      fontSize: '12px',
                       fontWeight: 700,
                       padding: '3px 10px',
                       borderRadius: '100px',
                       background: colors.bg,
                       color: colors.color,
                       border: `1px solid ${colors.border}`,
-                      textTransform: 'uppercase',
+                      
                       whiteSpace: 'nowrap',
                       flexShrink: 0
                     }}>
@@ -346,12 +354,12 @@ export default function RoadmapDetailPage() {
                   {topics.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
                       {topics.slice(0, 6).map((t: string) => (
-                        <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>
+                        <span key={t} style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>
                           {t}
                         </span>
                       ))}
                       {topics.length > 6 && (
-                        <span style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>
+                        <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>
                           +{topics.length - 6} more
                         </span>
                       )}
@@ -415,10 +423,10 @@ export default function RoadmapDetailPage() {
           style={{ marginTop: '32px', padding: 'clamp(20px, 4vw, 32px)', background: 'rgba(var(--accent-primary-rgb), 0.05)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', borderRadius: '16px', textAlign: 'center' }}
         >
           <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
-          <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '20px' }}>You&apos;ve mastered all modules. Time to ace that interview.</p>
+          <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
+          <p className="text-[15px] text-fg-2">You&apos;ve mastered all modules. Time to ace that interview.</p>
           <Link href="/interview" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
-             Take Full Mock Interview →
+             Take Full Mock Interview
           </Link>
         </motion.div>
       )}

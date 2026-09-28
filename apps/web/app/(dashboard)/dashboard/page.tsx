@@ -6,185 +6,72 @@ import Link from 'next/link';
 import { useUser } from '@/lib/hooks/useUser';
 import { useRoadmaps, useSessions } from '@/lib/hooks/useRoadmaps';
 import {
-  Sparkles,
   Play,
   Flame,
-  Trophy,
   Target,
-  TrendingUp,
   ArrowRight,
   BookOpen,
   Building2,
   FileUser,
   Users,
-  CheckCircle2,
-  Zap,
+  Trophy,
   RotateCcw,
-  Compass,
+  KeyRound,
+  Mic,
+  Map,
 } from 'lucide-react';
+import { Badge, ButtonLink, Card, EmptyState, PageHeader, Progress, SectionHeader, Skeleton, Stat } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
-function StatCard({
-  label,
-  value,
-  icon: Icon,
-  color,
-  subtitle,
-  trend,
-}: {
-  label: string;
-  value: string | number;
-  icon: React.ComponentType<{ size?: number; color?: string; style?: React.CSSProperties }>;
-  color: string;
-  subtitle?: string;
-  trend?: string;
-}) {
-  return (
-    <div
-      style={{
-        padding: '20px 22px',
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '16px',
-        position: 'relative',
-        overflow: 'hidden',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.03)',
-        transition: 'transform 0.2s, box-shadow 0.2s',
-      }}
-    >
-      <div
-        style={{
-          position: 'absolute',
-          top: 0,
-          right: 0,
-          width: '70px',
-          height: '70px',
-          borderRadius: '50%',
-          background: color,
-          opacity: 0.08,
-          transform: 'translate(15px,-15px)',
-        }}
-      />
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-        <div
-          style={{
-            width: '38px',
-            height: '38px',
-            borderRadius: '10px',
-            background: `color-mix(in srgb, ${color} 14%, transparent)`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Icon size={20} color={color} />
-        </div>
-        {trend && (
-          <span
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              padding: '2px 8px',
-              borderRadius: '100px',
-              background: `color-mix(in srgb, ${color} 12%, transparent)`,
-              color,
-            }}
-          >
-            {trend}
-          </span>
-        )}
-        {!trend && subtitle && (
-          <span style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)' }}>
-            {subtitle}
-          </span>
-        )}
-      </div>
-      <div
-        style={{
-          fontSize: '30px',
-          fontWeight: 900,
-          fontFamily: 'var(--font-mono)',
-          color,
-          marginBottom: '4px',
-          lineHeight: 1.1,
-        }}
-      >
-        {value}
-      </div>
-      <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.02em' }}>
-        {label}
-      </div>
-    </div>
-  );
-}
+const DRILLS = [
+  { title: 'Distributed caching and Redis', type: 'teach', topic: 'Distributed Caching & Redis Patterns', badge: 'Architecture' },
+  { title: 'System design interview', type: 'interview', topic: 'System Design & Scalability', badge: 'Mock round' },
+  { title: 'React 19 and Next.js internals', type: 'teach', topic: 'React 19 Server Components & Fiber', badge: 'Deep dive' },
+];
+
+const SHORTCUTS = [
+  { label: 'AI voice studio', href: '/interview', icon: Mic },
+  { label: 'Mock companies', href: '/mock-company', icon: Building2 },
+  { label: 'Resume optimizer', href: '/resume', icon: FileUser },
+  { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
+  { label: 'Study groups', href: '/groups', icon: Users },
+];
 
 function GeminiKeyBanner({ hasKey }: { hasKey: boolean }) {
   if (hasKey) return null;
   return (
-    <div
-      style={{
-        padding: '16px 22px',
-        background: 'linear-gradient(135deg, rgba(var(--accent-violet-rgb), 0.12), rgba(var(--accent-primary-rgb), 0.08))',
-        border: '1px solid rgba(var(--accent-violet-rgb), 0.3)',
-        borderRadius: '14px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: '16px',
-        marginBottom: '28px',
-        flexWrap: 'wrap',
-      }}
-    >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-        <div
-          style={{
-            width: '40px',
-            height: '40px',
-            borderRadius: '10px',
-            background: 'var(--accent-violet)',
-            color: '#FFFFFF',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            flexShrink: 0,
-          }}
-        >
-          <Sparkles size={20} />
-        </div>
+    <div className="mb-6 flex flex-col gap-3 rounded-panel border border-live/30 bg-live/10 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex items-start gap-3">
+        <KeyRound size={18} className="mt-0.5 shrink-0 text-live" aria-hidden />
         <div>
-          <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-            Configure your Gemini API Key
-          </div>
-          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-            To conduct real-time voice interviews and tutoring sessions with Alex, connect your personal Gemini API key.
-          </div>
+          <div className="text-sm font-semibold text-fg">Add your Gemini API key</div>
+          <div className="text-[13px] text-fg-2">Voice interviews and tutoring with Alex need your own key. It takes a minute in Settings.</div>
         </div>
       </div>
-      <Link
-        href="/settings"
-        style={{
-          padding: '8px 18px',
-          background: 'var(--accent-violet)',
-          color: '#FFFFFF',
-          borderRadius: '8px',
-          fontSize: '13px',
-          fontWeight: 700,
-          textDecoration: 'none',
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '6px',
-          flexShrink: 0,
-        }}
-      >
-        <span>Open Settings</span>
-        <ArrowRight size={13} />
-      </Link>
+      <ButtonLink href="/settings" variant="secondary" size="sm" className="shrink-0">
+        Open Settings
+      </ButtonLink>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="page-container" aria-busy="true" aria-label="Loading dashboard">
+      <Skeleton className="mb-2 h-9 w-64" />
+      <Skeleton className="mb-8 h-4 w-96 max-w-full" />
+      <Skeleton className="mb-6 h-24 w-full rounded-panel" />
+      <div className="grid-dashboard-focus">
+        <Skeleton className="h-64 rounded-panel" />
+        <Skeleton className="h-64 rounded-panel" />
+      </div>
     </div>
   );
 }
 
 export default function DashboardPage() {
   const { user, isLoading: userLoading } = useUser();
-  const { roadmaps, isLoading: roadmapsLoading } = useRoadmaps();
+  const { roadmaps } = useRoadmaps();
   const { sessions, isLoading: sessionsLoading } = useSessions();
   const router = useRouter();
 
@@ -195,20 +82,7 @@ export default function DashboardPage() {
   }, [user, userLoading, router]);
 
   if (userLoading || (!userLoading && user && (!user.target_role || !user.target_company))) {
-    return (
-      <div style={{ minHeight: '80vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div
-          style={{
-            width: '28px',
-            height: '28px',
-            border: '3px solid var(--accent-primary)',
-            borderTopColor: 'transparent',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-          }}
-        />
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   // Calculate actual completed sessions & scores
@@ -237,694 +111,251 @@ export default function DashboardPage() {
   const firstName = user?.full_name?.split(' ')[0] ?? 'there';
   const targetRole = user?.target_role || 'Software Engineer';
   const targetCompany = user?.target_company || 'Top Tech';
+  const streak = user?.streak_days ?? 0;
+  const activeRoadmap = roadmaps[0];
 
   return (
     <div className="page-container">
-      {/* Hero Header */}
-      <div
-        style={{
-          background: 'linear-gradient(135deg, var(--bg-surface) 0%, var(--bg-elevated) 100%)',
-          borderRadius: '20px',
-          border: '1px solid var(--border)',
-          marginBottom: '24px',
-          position: 'relative',
-          overflow: 'hidden',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: '20px',
-          flexWrap: 'wrap',
-        }}
-        className="p-5 sm:p-7"
-      >
-        <div style={{ maxWidth: '650px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <span
-              style={{
-                padding: '4px 10px',
-                borderRadius: '100px',
-                fontSize: '11px',
-                fontWeight: 700,
-                background: 'var(--accent-primary-dim)',
-                color: 'var(--accent-primary)',
-                letterSpacing: '0.04em',
-                textTransform: 'uppercase',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '5px',
-              }}
-            >
-              <Sparkles size={12} />
-              AI Studio Command
-            </span>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>·</span>
-            <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: 500 }}>
-              Calibrated for <strong style={{ color: 'var(--text-primary)' }}>{targetCompany}</strong>
-            </span>
-          </div>
+      <PageHeader
+        title={`${greeting}, ${firstName}`}
+        description={`Your ${targetRole} prep for ${targetCompany} is on track. Pick up where you left off.`}
+        action={
+          <>
+            <ButtonLink href="/interview?mode=teach" variant="secondary">
+              <BookOpen size={16} aria-hidden /> Teach me a topic
+            </ButtonLink>
+            <ButtonLink href="/interview?mode=interview">
+              <Play size={15} className="fill-current" aria-hidden /> Start mock interview
+            </ButtonLink>
+          </>
+        }
+      />
 
-          <h1
-            style={{
-              fontSize: 'clamp(24px, 4vw, 32px)',
-              fontWeight: 800,
-              color: 'var(--text-primary)',
-              marginBottom: '8px',
-              lineHeight: 1.2,
-              letterSpacing: '-0.02em',
-            }}
-          >
-            {greeting}, {firstName}
-          </h1>
-          <p style={{ fontSize: '14.5px', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-            Your interview prep track for <strong style={{ color: 'var(--accent-primary)' }}>{targetRole}</strong> is active. Launch a real-time session with Alex below.
-          </p>
-        </div>
-
-        {/* Quick Launch Buttons */}
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <Link
-            href="/interview?mode=interview"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px 24px',
-              borderRadius: '12px',
-              background: 'var(--accent-primary)',
-              color: 'var(--text-on-accent)',
-              fontWeight: 700,
-              fontSize: '14px',
-              textDecoration: 'none',
-              boxShadow: '0 4px 16px var(--accent-primary-glow)',
-              transition: 'transform 0.15s ease',
-            }}
-          >
-            <Play size={16} fill="currentColor" color="currentColor" />
-            <span>Mock Interview</span>
-          </Link>
-
-          <Link
-            href="/interview?mode=teach"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '8px',
-              padding: '12px 22px',
-              borderRadius: '12px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontWeight: 700,
-              fontSize: '14px',
-              textDecoration: 'none',
-              transition: 'background 0.15s ease',
-            }}
-          >
-            <BookOpen size={16} color="var(--accent-primary)" />
-            <span>Teach Me a Topic</span>
-          </Link>
-        </div>
-      </div>
-
-      {/* Gemini Key Prompt */}
       <GeminiKeyBanner hasKey={user?.has_gemini_key ?? true} />
 
-      {/* Stats Row — 2 cols on mobile, 4 cols on desktop */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        <StatCard
-          label="Interviews Completed"
-          value={completedSessions.length}
-          icon={Target}
-          color="var(--accent-primary)"
-          trend={completedSessions.length > 0 ? `${completedSessions.length} sessions` : undefined}
-          subtitle="Total Completed"
-        />
-        <StatCard
-          label="Average Score"
+      {/* Numbers first: plain, quiet, comparable */}
+      <Card className="mb-6 grid grid-cols-2 gap-x-6 gap-y-6 p-5 sm:p-6 lg:grid-cols-4 lg:gap-y-0 lg:divide-x lg:divide-line">
+        <Stat label="Interviews completed" value={completedSessions.length} />
+        <Stat
+          label="Average score"
           value={avgScore !== null ? `${avgScore}%` : '—'}
-          icon={TrendingUp}
-          color="var(--accent-violet)"
-          trend={avgScore && avgScore >= 75 ? 'Ready' : undefined}
-          subtitle={avgScore ? 'Performance' : 'Awaiting 1st Score'}
+          hint={avgScore === null ? 'Finish one session to see it' : avgScore >= 75 ? 'Interview-ready range' : 'Room to grow'}
+          className="lg:pl-6"
         />
-        <StatCard
-          label="Active Day Streak"
-          value={user?.streak_days ?? 0}
-          icon={Flame}
-          color="var(--accent-amber)"
-          trend={(user?.streak_days ?? 0) > 0 ? `${user?.streak_days}d fire` : undefined}
-          subtitle="Daily Habit"
+        <Stat
+          label="Day streak"
+          value={
+            <span className="inline-flex items-center gap-2">
+              {streak}
+              {streak > 0 && <Flame size={20} className="fill-current text-live" aria-hidden />}
+            </span>
+          }
+          hint={streak > 0 ? 'Keep it going today' : 'Practice today to start one'}
+          className="lg:pl-6"
         />
-        <StatCard
-          label="Total XP Earned"
+        <Stat
+          label="XP earned"
           value={user?.xp ? user.xp.toLocaleString() : '0'}
-          icon={Trophy}
-          color="var(--accent-primary)"
-          subtitle={user?.level ? user.level.toUpperCase() : 'NOVICE'}
+          hint={user?.level ? `Level: ${user.level}` : 'Level: novice'}
+          className="lg:pl-6"
         />
-      </div>
+      </Card>
 
-      {/* High-Interest Practice Drills & Roadmap Section */}
-      <div className="grid-dashboard-focus mb-7">
-        {/* Left Column: AI Recommended Focus & High Yield Drills */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {/* Today's Focus Card */}
-          <div
-            style={{
-              padding: '24px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-              display: 'flex',
-              flexDirection: 'column',
-              justifyContent: 'space-between',
-            }}
-          >
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 700,
-                    textTransform: 'uppercase',
-                    color: 'var(--accent-primary)',
-                    letterSpacing: '0.08em',
-                  }}
-                >
-                  Today&apos;s Focus Roadmap
-                </span>
-                <span
-                  style={{
-                    fontSize: '11px',
-                    fontWeight: 600,
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                    background: 'var(--accent-primary-dim)',
-                    color: 'var(--accent-primary)',
-                  }}
-                >
-                  Recommended
-                </span>
-              </div>
-
-              <h2 style={{ fontSize: '20px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>
-                {roadmaps.length > 0 ? roadmaps[0].title : `${targetRole} Comprehensive Track`}
-              </h2>
-
-              <p style={{ fontSize: '13.5px', color: 'var(--text-muted)', lineHeight: 1.6, marginBottom: '20px' }}>
-                {roadmaps.length > 0
-                  ? 'Follow structured interactive milestones tailored to your target company standards and interview patterns.'
-                  : `Structured curriculum curated for ${targetCompany} technical and architecture rounds.`}
-              </p>
+      <div className="grid-dashboard-focus mb-8">
+        <div className="flex min-w-0 flex-col gap-6">
+          {/* Next up */}
+          <Card className="p-5 sm:p-6">
+            <div className="mb-1 flex items-center gap-2">
+              <Badge tone="signal">Next up</Badge>
             </div>
+            <h2 className="mt-2 font-display text-xl font-semibold text-fg">
+              {activeRoadmap ? activeRoadmap.title : `${targetRole} track`}
+            </h2>
+            <p className="mt-1 max-w-lg text-sm text-fg-2">
+              {activeRoadmap
+                ? 'Work through the next module, then test yourself out loud.'
+                : `Build a study plan for ${targetCompany} from a job description or a role.`}
+            </p>
 
-            {roadmaps.length > 0 ? (
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 600 }}>Track Progress</span>
-                  <span style={{ fontSize: '13px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700 }}>
-                    {roadmaps[0].progress_pct ?? 0}%
-                  </span>
+            {activeRoadmap ? (
+              <div className="mt-5">
+                <div className="mb-2 flex items-center justify-between text-[13px]">
+                  <span className="text-fg-3">Progress</span>
+                  <span className="font-mono font-medium text-fg">{activeRoadmap.progress_pct ?? 0}%</span>
                 </div>
-                <div
-                  style={{
-                    width: '100%',
-                    height: '8px',
-                    borderRadius: '100px',
-                    background: 'var(--bg-elevated)',
-                    overflow: 'hidden',
-                    marginBottom: '20px',
-                  }}
-                >
-                  <div
-                    style={{
-                      height: '100%',
-                      width: `${roadmaps[0].progress_pct ?? 0}%`,
-                      background: 'var(--accent-primary)',
-                      borderRadius: '100px',
-                      transition: 'width 0.4s ease',
-                    }}
-                  />
-                </div>
-
-                <div style={{ display: 'flex', gap: '12px' }}>
-                  <Link
-                    href={`/roadmap/${roadmaps[0].id}`}
-                    style={{
-                      padding: '10px 20px',
-                      background: 'var(--accent-primary)',
-                      color: 'var(--text-on-accent)',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: 700,
-                      textDecoration: 'none',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                    }}
-                  >
-                    <span>Continue Roadmap</span>
-                    <ArrowRight size={14} />
-                  </Link>
-
-                  <Link
-                    href="/interview"
-                    style={{
-                      padding: '10px 18px',
-                      background: 'var(--bg-elevated)',
-                      border: '1px solid var(--border)',
-                      color: 'var(--text-primary)',
-                      borderRadius: '8px',
-                      fontSize: '13px',
-                      fontWeight: 600,
-                      textDecoration: 'none',
-                    }}
-                  >
-                    Start Practice
-                  </Link>
+                <Progress value={activeRoadmap.progress_pct ?? 0} label="Roadmap progress" />
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <ButtonLink href={`/roadmap/${activeRoadmap.id}`}>
+                    Continue roadmap <ArrowRight size={15} aria-hidden />
+                  </ButtonLink>
+                  <ButtonLink href="/interview" variant="secondary">
+                    Start practice
+                  </ButtonLink>
                 </div>
               </div>
             ) : (
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <Link
-                  href="/roadmap/new"
-                  style={{
-                    padding: '10px 20px',
-                    background: 'var(--accent-primary)',
-                    color: 'var(--text-on-accent)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 700,
-                    textDecoration: 'none',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  <span>Create Custom Roadmap</span>
-                  <ArrowRight size={14} />
-                </Link>
-                <Link
-                  href="/mock-company"
-                  style={{
-                    padding: '10px 18px',
-                    background: 'var(--bg-elevated)',
-                    border: '1px solid var(--border)',
-                    color: 'var(--text-primary)',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    textDecoration: 'none',
-                  }}
-                >
-                  Browse Companies
-                </Link>
+              <div className="mt-5 flex flex-wrap gap-2">
+                <ButtonLink href="/roadmap/new">
+                  <Map size={16} aria-hidden /> Create a roadmap
+                </ButtonLink>
+                <ButtonLink href="/mock-company" variant="secondary">
+                  Browse companies
+                </ButtonLink>
               </div>
             )}
-          </div>
+          </Card>
 
-          {/* High-Yield Practice Drills (High-Interest Widget) */}
-          <div
-            style={{
-              padding: '22px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Zap size={18} color="var(--accent-primary)" />
-                <h3 style={{ fontSize: '15px', fontWeight: 800, color: 'var(--text-primary)' }}>
-                  High-Yield Practice Drills
-                </h3>
-              </div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600 }}>1-Click Launch</span>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '12px' }}>
-              {[
-                {
-                  title: 'Distributed Caching & Redis',
-                  type: 'teach',
-                  topic: 'Distributed Caching & Redis Patterns',
-                  badge: 'Architecture',
-                  icon: BookOpen,
-                },
-                {
-                  title: 'System Design Interview',
-                  type: 'interview',
-                  topic: 'System Design & Scalability',
-                  badge: 'Mock Round',
-                  icon: Target,
-                },
-                {
-                  title: 'React 19 & Next.js Internals',
-                  type: 'teach',
-                  topic: 'React 19 Server Components & Fiber',
-                  badge: 'Deep Dive',
-                  icon: BookOpen,
-                },
-              ].map((drill) => (
-                <Link
-                  key={drill.title}
-                  href={`/interview?mode=${drill.type}&topic=${encodeURIComponent(drill.topic)}`}
-                  style={{
-                    padding: '14px 16px',
-                    background: 'var(--bg-elevated)',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border)',
-                    textDecoration: 'none',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    gap: '10px',
-                    transition: 'border-color 0.2s, transform 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--border)';
-                    e.currentTarget.style.transform = 'translateY(0)';
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                    <span
-                      style={{
-                        fontSize: '10px',
-                        fontWeight: 700,
-                        padding: '2px 7px',
-                        borderRadius: '6px',
-                        background: 'var(--accent-primary-dim)',
-                        color: 'var(--accent-primary)',
-                        textTransform: 'uppercase',
-                      }}
+          {/* Drills: a list, not a wall of cards */}
+          <div>
+            <SectionHeader title="Quick drills" description="One click starts a live session on the topic." />
+            <Card padded={false} className="overflow-hidden">
+              <ul className="divide-y divide-line">
+                {DRILLS.map((drill) => (
+                  <li key={drill.title}>
+                    <Link
+                      href={`/interview?mode=${drill.type}&topic=${encodeURIComponent(drill.topic)}`}
+                      className="group flex items-center gap-4 px-5 py-3.5 transition-colors hover:bg-raised"
                     >
-                      {drill.badge}
-                    </span>
-                    <drill.icon size={15} color="var(--accent-primary)" />
-                  </div>
-                  <div style={{ fontSize: '13px', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.4 }}>
-                    {drill.title}
-                  </div>
-                  <div style={{ fontSize: '11px', color: 'var(--accent-primary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <span>Practice Now</span>
-                    <ArrowRight size={11} />
-                  </div>
-                </Link>
-              ))}
-            </div>
+                      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-control border border-line bg-raised text-signal">
+                        {drill.type === 'teach' ? <BookOpen size={16} aria-hidden /> : <Target size={16} aria-hidden />}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-medium text-fg">{drill.title}</span>
+                        <span className="block text-xs text-fg-3">{drill.badge}</span>
+                      </span>
+                      <ArrowRight size={15} className="shrink-0 text-fg-3 transition-transform group-hover:translate-x-0.5 group-hover:text-fg" aria-hidden />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
           </div>
         </div>
 
-        {/* Right Column: Streak & Quick Shortcuts */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Streak Card */}
-          <div
-            style={{
-              padding: '20px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-            }}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Flame size={16} color="var(--accent-amber)" />
-                <span>Daily Practice Streak</span>
+        <div className="flex min-w-0 flex-col gap-6">
+          {/* Streak */}
+          <Card>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-sm font-semibold text-fg">
+                <Flame size={16} className="text-live" aria-hidden /> Practice streak
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-amber)' }}>
-                {user?.streak_days ?? 0} Days
-              </span>
+              <span className="font-mono text-sm text-live">{streak} {streak === 1 ? 'day' : 'days'}</span>
             </div>
-
-            <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '14px' }}>
-              {(user?.streak_days ?? 0) > 0
-                ? 'Terrific momentum! Keep it going with a quick 5-minute session today.'
-                : 'Complete an interview or tutoring drill today to start your streak!'}
+            <p className="mt-2 text-[13px] text-fg-2">
+              {streak > 0 ? 'A quick 5-minute session today keeps it alive.' : 'Finish an interview or a drill today to start your streak.'}
             </p>
-
-            <div style={{ display: 'flex', gap: '6px' }}>
-              {Array.from({ length: 7 }).map((_, i) => {
-                const active = i < (user?.streak_days ?? 0) % 7;
-                return (
-                  <div
-                    key={i}
-                    style={{
-                      flex: 1,
-                      height: '7px',
-                      borderRadius: '4px',
-                      background: active ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                      transition: 'background 0.2s',
-                    }}
-                  />
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Quick Access Shortcuts */}
-          <div
-            style={{
-              padding: '20px',
-              background: 'var(--bg-surface)',
-              border: '1px solid var(--border)',
-              borderRadius: '16px',
-            }}
-          >
-            <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '14px' }}>
-              Career Studio Shortcuts
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {[
-                { label: 'AI Voice Studio', href: '/interview', icon: Target },
-                { label: 'Mock Companies', href: '/mock-company', icon: Building2 },
-                { label: 'Resume Optimizer', href: '/resume', icon: FileUser },
-                { label: 'Global Leaderboard', href: '/leaderboard', icon: Trophy },
-                { label: 'Study Groups', href: '/groups', icon: Users },
-              ].map(({ label, href, icon: Icon }) => (
-                <Link
-                  key={href}
-                  href={href}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '8px 10px',
-                    borderRadius: '8px',
-                    fontSize: '13px',
-                    color: 'var(--text-secondary)',
-                    textDecoration: 'none',
-                    transition: 'all 0.15s',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--bg-elevated)';
-                    e.currentTarget.style.color = 'var(--accent-primary)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'transparent';
-                    e.currentTarget.style.color = 'var(--text-secondary)';
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <Icon size={15} />
-                    <span>{label}</span>
-                  </div>
-                  <ArrowRight size={12} style={{ opacity: 0.5 }} />
-                </Link>
+            <div className="mt-4 flex gap-1.5" role="img" aria-label={`${streak % 7} of 7 days this week`}>
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className={cn('h-1.5 flex-1 rounded-full', i < streak % 7 ? 'bg-live' : 'bg-raised')} />
               ))}
             </div>
-          </div>
+          </Card>
+
+          {/* Shortcuts */}
+          <Card padded={false} className="overflow-hidden">
+            <div className="px-5 pb-1 pt-4 text-sm font-semibold text-fg">Jump to</div>
+            <ul className="p-2">
+              {SHORTCUTS.map(({ label, href, icon: Icon }) => (
+                <li key={href}>
+                  <Link
+                    href={href}
+                    className="group flex items-center gap-3 rounded-control px-3 py-2 text-sm text-fg-2 transition-colors hover:bg-raised hover:text-fg"
+                  >
+                    <Icon size={16} className="text-fg-3 group-hover:text-signal" aria-hidden />
+                    <span className="flex-1">{label}</span>
+                    <ArrowRight size={13} className="opacity-0 transition-opacity group-hover:opacity-60" aria-hidden />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
         </div>
       </div>
 
-      {/* Recent Activity */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)' }}>Recent AI Sessions</h2>
-          <Link
-            href="/reports"
-            style={{ fontSize: '13px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}
-          >
-            View all reports →
-          </Link>
-        </div>
+      {/* Recent sessions */}
+      <section>
+        <SectionHeader
+          title="Recent sessions"
+          action={
+            <Link href="/reports" className="text-sm font-medium text-signal hover:underline">
+              View all reports
+            </Link>
+          }
+        />
 
         {sessionsLoading ? (
-          <div
-            style={{
-              padding: '36px',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              background: 'var(--bg-surface)',
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-            }}
-          >
-            Loading sessions…
-          </div>
-        ) : sessions.length === 0 ? (
-          <div
-            style={{
-              padding: '40px 24px',
-              textAlign: 'center',
-              background: 'var(--bg-surface)',
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-            }}
-          >
-            <div style={{ width: '48px', height: '48px', borderRadius: '12px', background: 'var(--accent-primary-dim)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
-              <Target size={24} color="var(--accent-primary)" />
-            </div>
-            <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>
-              No practice sessions completed yet
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '20px', maxWidth: '360px', margin: '0 auto 20px' }}>
-              Launch your first technical interview or tutoring session with Alex to receive live feedback and instant scoring.
-            </p>
-            <Link
-              href="/interview"
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '10px 22px',
-                borderRadius: '8px',
-                background: 'var(--accent-primary)',
-                color: 'var(--text-on-accent)',
-                fontWeight: 700,
-                fontSize: '13px',
-                textDecoration: 'none',
-              }}
-            >
-              <Play size={14} fill="currentColor" color="currentColor" />
-              <span>Start First Session</span>
-            </Link>
-          </div>
-        ) : (
-          <div
-            style={{
-              background: 'var(--bg-surface)',
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-              overflow: 'hidden',
-            }}
-          >
-            {sessions.slice(0, 5).map((s, idx) => {
-              const report = s.interview_reports?.[0] || s.reports?.[0];
-              const score = report?.overall_score ?? s.overall_score;
-              const isHigh = typeof score === 'number' && score >= 80;
-              const isMid = typeof score === 'number' && score >= 60;
-              const scoreColor = isHigh ? 'var(--accent-primary)' : isMid ? 'var(--accent-amber)' : 'var(--accent-red)';
-              const sessionTitle = s.plan?.topic || s.plan?.role || s.role || (s.interview_type === 'teach' ? 'Topic Tutoring' : 'Technical Interview');
-
-              return (
-                <div
-                  key={s.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: '16px',
-                    padding: '16px 22px',
-                    borderBottom: idx < Math.min(sessions.length, 5) - 1 ? '1px solid var(--border)' : 'none',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div
-                      style={{
-                        width: '40px',
-                        height: '40px',
-                        borderRadius: '10px',
-                        background: 'var(--bg-elevated)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {s.interview_type === 'teach' || s.plan?.mode === 'teach' ? (
-                        <BookOpen size={18} color="var(--accent-primary)" />
-                      ) : (
-                        <Target size={18} color="var(--accent-primary)" />
-                      )}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                        {sessionTitle}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {new Date(s.created_at).toLocaleDateString('en-US', {
-                          month: 'short',
-                          day: 'numeric',
-                          year: 'numeric',
-                        })}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {typeof score === 'number' && (
-                      <div style={{ textAlign: 'right' }}>
-                        <div style={{ fontSize: '18px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: scoreColor }}>
-                          {score}%
-                        </div>
-                        <div style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: 600 }}>SCORE</div>
-                      </div>
-                    )}
-
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      {report?.id && (
-                        <Link
-                          href={`/reports/${report.id}`}
-                          style={{
-                            padding: '6px 14px',
-                            borderRadius: '6px',
-                            background: 'var(--bg-elevated)',
-                            border: '1px solid var(--border)',
-                            color: 'var(--text-primary)',
-                            fontSize: '12px',
-                            fontWeight: 600,
-                            textDecoration: 'none',
-                          }}
-                        >
-                          Report →
-                        </Link>
-                      )}
-
-                      <Link
-                        href={`/interview?resumeSessionId=${s.id}`}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '5px',
-                          padding: '6px 12px',
-                          borderRadius: '6px',
-                          background: 'var(--accent-primary-dim)',
-                          border: '1px solid var(--accent-primary)',
-                          color: 'var(--accent-primary)',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                          textDecoration: 'none',
-                        }}
-                      >
-                        <RotateCcw size={12} />
-                        <span>Continue</span>
-                      </Link>
-                    </div>
-                  </div>
+          <Card padded={false} className="divide-y divide-line" aria-busy="true">
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="flex items-center gap-4 px-5 py-4">
+                <Skeleton className="h-10 w-10" />
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48 max-w-full" />
+                  <Skeleton className="h-3 w-24" />
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            ))}
+          </Card>
+        ) : sessions.length === 0 ? (
+          <EmptyState
+            icon={<Mic size={20} aria-hidden />}
+            title="No sessions yet"
+            description="Start a mock interview or a tutoring session with Alex to get live feedback and a scored report."
+            action={
+              <ButtonLink href="/interview">
+                <Play size={15} className="fill-current" aria-hidden /> Start your first session
+              </ButtonLink>
+            }
+          />
+        ) : (
+          <Card padded={false} className="overflow-hidden">
+            <ul className="divide-y divide-line">
+              {sessions.slice(0, 5).map((s) => {
+                const report = s.interview_reports?.[0] || s.reports?.[0];
+                const score = report?.overall_score ?? s.overall_score;
+                const hasScore = typeof score === 'number';
+                const scoreTone = !hasScore ? '' : score >= 80 ? 'text-good' : score >= 60 ? 'text-live' : 'text-bad';
+                const sessionTitle = s.plan?.topic || s.plan?.role || s.role || (s.interview_type === 'teach' ? 'Topic tutoring' : 'Technical interview');
+                const isTeach = s.interview_type === 'teach' || s.plan?.mode === 'teach';
+
+                return (
+                  <li key={s.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-4">
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-raised text-signal">
+                        {isTeach ? <BookOpen size={17} aria-hidden /> : <Target size={17} aria-hidden />}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-fg">{sessionTitle}</div>
+                        <div className="text-xs text-fg-3">
+                          {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      {hasScore && (
+                        <div className="text-right">
+                          <div className={cn('font-mono text-lg font-semibold leading-none', scoreTone)}>{score}%</div>
+                          <div className="mt-1 text-[11px] text-fg-3">Score</div>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2">
+                        {report?.id && (
+                          <ButtonLink href={`/reports/${report.id}`} variant="secondary" size="sm">
+                            Report
+                          </ButtonLink>
+                        )}
+                        <ButtonLink href={`/interview?resumeSessionId=${s.id}`} variant="ghost" size="sm">
+                          <RotateCcw size={13} aria-hidden /> Continue
+                        </ButtonLink>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
         )}
-      </div>
+      </section>
     </div>
   );
 }

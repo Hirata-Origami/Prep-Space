@@ -1,69 +1,75 @@
 'use client';
 
 import Link from 'next/link';
-import { useRoadmaps } from '@/lib/hooks/useRoadmaps';
-import { motion } from 'framer-motion';
+import { Map, Plus } from 'lucide-react';
+import { useRoadmaps, type Roadmap } from '@/lib/hooks/useRoadmaps';
+import { Badge, ButtonLink, Card, EmptyState, ErrorState, PageHeader, Progress, Skeleton } from '@/components/ui';
+
+function moduleCount(rm: Roadmap): number {
+  if (rm.module_count != null) return rm.module_count;
+  if (Array.isArray(rm.modules)) return rm.modules[0]?.count ?? 0;
+  return rm.modules?.count ?? 0;
+}
 
 export default function RoadmapPage() {
-  const { roadmaps, isLoading } = useRoadmaps();
-
-  if (isLoading && roadmaps.length === 0) {
-    return (
-      <div className="page-container">
-        <div style={{ width: '100%', height: '200px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ color: 'var(--text-muted)' }}>Loading roadmaps…</div>
-        </div>
-      </div>
-    );
-  }
+  const { roadmaps, isLoading, isError, mutate } = useRoadmaps();
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>My Roadmaps</h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Personalized learning paths powered by your skill graph</p>
-        </div>
-        <Link href="/roadmap/new" className="btn-primary" style={{ fontSize: '14px', padding: '10px 20px', textDecoration: 'none' }}>+ New Roadmap</Link>
-      </div>
+      <PageHeader
+        title="My roadmaps"
+        description="Study plans built from your target role and the job descriptions you add."
+        action={
+          <ButtonLink href="/roadmap/new">
+            <Plus size={16} aria-hidden /> New roadmap
+          </ButtonLink>
+        }
+      />
 
-      {roadmaps.length === 0 ? (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '80px 24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-          <div style={{ fontSize: '64px', marginBottom: '20px' }}>️</div>
-          <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>No roadmaps yet</h2>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)', maxWidth: '420px', lineHeight: 1.7, marginBottom: '28px' }}>
-            Create your first roadmap by picking a career track or uploading a job description. The AI will build a calibrated prep plan for you.
-          </p>
-          <Link href="/roadmap/new" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
-            Create Your First Roadmap →
-          </Link>
-          <p style={{ marginTop: '20px', fontSize: '13px', color: 'var(--text-muted)' }}>
-            Choose from 15 predefined tracks or paste any job description
-          </p>
-        </motion.div>
-      ) : (
-        <div style={{ display: 'grid', gap: '16px', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
-          {roadmaps.map((rm) => (
-            <Link key={rm.id} href={`/roadmap/${rm.id}`} style={{ textDecoration: 'none', display: 'block' }}>
-              <motion.div 
-                whileHover={{ y: -4 }}
-                style={{ padding: '24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', transition: 'border-color 0.2s', cursor: 'pointer' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                  <div style={{ fontSize: '24px' }}>️</div>
-                  <div style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '100px', fontWeight: 600, background: rm.status === 'completed' ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'rgba(var(--accent-violet-rgb), 0.1)', color: rm.status === 'completed' ? 'var(--accent-primary)' : 'var(--accent-violet)', textTransform: 'capitalize' }}>
-                    {rm.status}
-                  </div>
-                </div>
-                <h3 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', lineHeight: 1.4 }}>{rm.title}</h3>
-                <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: 'var(--text-muted)' }}>
-                  <span>{rm.module_count ?? (Array.isArray(rm.modules) ? rm.modules[0]?.count : (rm.modules as any)?.count) ?? 0} Modules</span>
-                  <span>{new Date(rm.created_at).toLocaleDateString()}</span>
-                </div>
-              </motion.div>
-            </Link>
+      {isLoading && roadmaps.length === 0 ? (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading roadmaps">
+          {[0, 1, 2].map(i => (
+            <Skeleton key={i} className="h-36 rounded-panel" />
           ))}
         </div>
+      ) : isError ? (
+        <ErrorState title="Could not load your roadmaps" onRetry={() => mutate()} />
+      ) : roadmaps.length === 0 ? (
+        <EmptyState
+          icon={<Map size={20} aria-hidden />}
+          title="No roadmaps yet"
+          description="Pick a career track or paste a job description. PrepSpace builds a calibrated plan around the gaps."
+          action={<ButtonLink href="/roadmap/new">Create your first roadmap</ButtonLink>}
+        />
+      ) : (
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {roadmaps.map(rm => (
+            <li key={rm.id}>
+              <Link href={`/roadmap/${rm.id}`} className="block h-full rounded-panel">
+                <Card tone="interactive" className="flex h-full flex-col">
+                  <div className="flex items-start justify-between gap-3">
+                    <h2 className="text-base font-semibold leading-snug text-fg">{rm.title}</h2>
+                    <Badge tone={rm.status === 'completed' ? 'good' : rm.status === 'paused' ? 'neutral' : 'signal'} className="shrink-0 capitalize">
+                      {rm.status}
+                    </Badge>
+                  </div>
+                  <div className="mt-2 text-[13px] text-fg-3">
+                    {moduleCount(rm)} modules · Created {new Date(rm.created_at).toLocaleDateString()}
+                  </div>
+                  {typeof rm.progress_pct === 'number' && (
+                    <div className="mt-auto pt-5">
+                      <div className="mb-1.5 flex justify-between text-xs text-fg-3">
+                        <span>Progress</span>
+                        <span className="font-mono text-fg-2">{rm.progress_pct}%</span>
+                      </div>
+                      <Progress value={rm.progress_pct} label={`${rm.title} progress`} tone={rm.status === 'completed' ? 'good' : 'signal'} />
+                    </div>
+                  )}
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
       )}
     </div>
   );

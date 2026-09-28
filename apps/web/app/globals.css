@@ -530,3 +530,8 @@
     scroll-behavior: auto !important;
   }
 }
+
+@keyframes grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}

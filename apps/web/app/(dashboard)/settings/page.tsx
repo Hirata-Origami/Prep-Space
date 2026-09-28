@@ -2,9 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
 import { useUser } from '@/lib/hooks/useUser';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { CheckCircle2, AlertCircle, Sparkles, KeyRound, Palette, Shield, User as UserIcon, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, KeyRound, Palette, Shield, User as UserIcon, Loader2 } from 'lucide-react';
 
 const TABS = ['Profile', 'AI API Key', 'Appearance', 'Privacy'];
 
@@ -17,7 +18,8 @@ export default function SettingsPage() {
   }, []);
   const [saving, setSaving] = useState(false);
   const [validatingKey, setValidatingKey] = useState(false);
-  const [currentTheme, setCurrentTheme] = useState('dark');
+  const { theme, setTheme } = useTheme();
+  const currentTheme = theme === 'light' ? 'light' : 'dark';
   const { user, mutate } = useUser();
 
   const [formData, setFormData] = useState({
@@ -37,20 +39,11 @@ export default function SettingsPage() {
       // Do not populate input with masked key string; placeholder & badge indicate active status
       setGeminiKey('');
     }
-    // Read theme
-    try {
-      const saved = localStorage.getItem('prepspace_theme') || 'light';
-      setCurrentTheme(saved);
-    } catch {}
   }, [user]);
 
-  const handleThemeChange = (theme: 'dark' | 'light') => {
-    setCurrentTheme(theme);
-    try {
-      localStorage.setItem('prepspace_theme', theme);
-      document.documentElement.dataset.theme = theme;
-      toast.success(`Theme switched to ${theme === 'dark' ? 'Dark' : 'Light'}`);
-    } catch {}
+  const handleThemeChange = (choice: 'dark' | 'light') => {
+    setTheme(choice);
+    toast.success(`Theme switched to ${choice === 'dark' ? 'Dark' : 'Light'}`);
   };
 
   const handleValidateKey = async () => {
@@ -79,8 +72,8 @@ export default function SettingsPage() {
       } else {
         toast.error(`Key validation failed: ${data.error || 'Invalid key'}`);
       }
-    } catch (err: any) {
-      toast.error(err.message || 'Validation request failed');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Validation request failed');
     } finally {
       setValidatingKey(false);
     }
@@ -130,8 +123,8 @@ export default function SettingsPage() {
   return (
     <div className="page-container" style={{ maxWidth: '880px', margin: '0 auto' }}>
       <div style={{ marginBottom: '28px' }}>
-        <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Settings</h1>
-        <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Manage your account, preferences, and AI configuration</p>
+        <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Settings</h1>
+        <p className="text-[15px] text-fg-2">Manage your account, preferences, and AI configuration</p>
       </div>
 
       <div className="grid-settings-layout">
@@ -196,7 +189,7 @@ export default function SettingsPage() {
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Update your personal information and career targets</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 900, color: 'var(--text-on-accent)' }} suppressHydrationWarning>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--accent-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 700, color: 'var(--text-on-accent)' }} suppressHydrationWarning>
                   {mounted ? (user?.full_name?.[0]?.toUpperCase() ?? 'U') : 'U'}
                 </div>
                 <div>
@@ -296,14 +289,16 @@ export default function SettingsPage() {
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
-                  { id: 'light', label: 'Light', desc: 'Clean, modern light palette for bright environments', color: '#F8FAFC', border: '#CBD5E1' },
-                  { id: 'dark', label: 'Dark', desc: 'High-contrast midnight theme tailored for code and diagrams', color: 'var(--text-on-accent)', border: '#131D2E' },
+                  { id: 'light', label: 'Light', desc: 'Bright paper theme for daylight', color: '#F5F6FB', border: '#C6CBE0' },
+                  { id: 'dark', label: 'Dark', desc: 'Low-glare ink theme for long practice sessions', color: '#0A0E1A', border: '#2A3350' },
                 ].map((t) => {
                   const isSelected = currentTheme === t.id;
                   return (
-                    <div
+                    <button
+                      type="button"
                       key={t.id}
-                      onClick={() => handleThemeChange(t.id as any)}
+                      aria-pressed={isSelected}
+                      onClick={() => handleThemeChange(t.id as 'dark' | 'light')}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -313,6 +308,8 @@ export default function SettingsPage() {
                         border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border)'}`,
                         background: isSelected ? 'rgba(var(--accent-primary-rgb), 0.04)' : 'var(--bg-elevated)',
                         cursor: 'pointer',
+                        textAlign: 'left',
+                        width: '100%',
                         transition: 'all 0.15s ease',
                       }}
                     >
@@ -323,8 +320,8 @@ export default function SettingsPage() {
                         </div>
                         <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.desc}</div>
                       </div>
-                      {isSelected && <span style={{ color: 'var(--accent-primary)', fontWeight: 800, fontSize: '16px' }}>✓</span>}
-                    </div>
+                      {isSelected && <span aria-hidden style={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: '16px' }}>✓</span>}
+                    </button>
                   );
                 })}
               </div>

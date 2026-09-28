@@ -115,8 +115,8 @@ export default function NewCompanyPage() {
         ← Back to Companies
       </Link>
 
-      <h1 style={{ fontSize: 'clamp(22px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Add Company Interview</h1>
-      <p style={{ fontSize: '15px', color: 'var(--text-muted)', marginBottom: '32px' }}>
+      <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Add Company Interview</h1>
+      <p className="text-[15px] text-fg-2">
         AI researches real interview patterns for any company and makes them available to all users
       </p>
 
@@ -137,7 +137,7 @@ export default function NewCompanyPage() {
                 />
                 <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {['Zepto', 'Zomato', 'Razorpay', 'Figma', 'Linear', 'Notion', 'Vercel', 'Anthropic'].map(c => (
-                    <button key={c} onClick={() => setCompanyName(c)} style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: companyName === c ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: companyName === c ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{c}</button>
+                    <button key={c} onClick={() => setCompanyName(c)} style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: companyName === c ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: companyName === c ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{c}</button>
                   ))}
                 </div>
               </div>
@@ -167,7 +167,7 @@ export default function NewCompanyPage() {
                   <button 
                     onClick={() => fileInputRef.current?.click()}
                     disabled={parsingJd}
-                    style={{ fontSize: '11px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', opacity: parsingJd ? 0.7 : 1 }}
+                    style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', opacity: parsingJd ? 0.7 : 1 }}
                   >
                     {parsingJd ? 'Extracting...' : ' Upload PDF/DOCX'}
                   </button>
@@ -237,7 +237,7 @@ export default function NewCompanyPage() {
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '48px' }}>{generatedCompany.logo_emoji}</span>
                 <div>
-                  <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
+                  <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                     {generatedCompany.industry} • {generatedCompany.size} • Difficulty: <strong style={{ color: generatedCompany.difficulty_rating >= 9 ? 'var(--accent-red)' : 'var(--accent-amber)' }}>{generatedCompany.difficulty_rating}/10</strong>
                   </div>
@@ -255,7 +255,7 @@ export default function NewCompanyPage() {
                       {topics.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                           {topics.map((t: string) => (
-                            <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
+                            <span key={t} style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                           ))}
                         </div>
                       )}
@@ -266,7 +266,7 @@ export default function NewCompanyPage() {
 
               {generatedCompany.known_patterns?.length > 0 && (
                 <div style={{ marginTop: '20px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Known Patterns</div>
+                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>Known Patterns</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                     {generatedCompany.known_patterns.map((p: string, i: number) => (
                       <div key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>

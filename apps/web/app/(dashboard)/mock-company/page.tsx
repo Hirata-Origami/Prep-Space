@@ -52,8 +52,8 @@ export default function MockCompanyPage() {
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Mock Company Interviews</h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Practice with real interview formats from top companies</p>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Mock Company Interviews</h1>
+          <p className="text-[15px] text-fg-2">Practice with real interview formats from top companies</p>
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <input
@@ -98,13 +98,13 @@ export default function MockCompanyPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                   <div style={{ fontSize: '32px', lineHeight: 1 }}>{company.logo_emoji}</div>
                   <div>
-                    <div style={{ fontSize: '17px', fontWeight: 800, color: 'var(--text-primary)' }}>{company.name}</div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{company.industry} • {company.size}</div>
+                    <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>{company.name}</div>
+                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{company.industry} • {company.size}</div>
                   </div>
                 </div>
                 <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '18px', fontWeight: 900, color: difficultyColor(company.difficulty_rating) }}>{company.difficulty_rating?.toFixed(1)}</div>
-                  <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: 700, textTransform: 'uppercase' }}>Difficulty</div>
+                  <div style={{ fontSize: '18px', fontWeight: 700, color: difficultyColor(company.difficulty_rating) }}>{company.difficulty_rating?.toFixed(1)}</div>
+                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, }}>Difficulty</div>
                 </div>
               </div>
 
@@ -114,18 +114,18 @@ export default function MockCompanyPage() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                 {(company.rounds || []).slice(0, 3).map((r: string) => (
-                  <span key={r} style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)' }}>
+                  <span key={r} style={{ fontSize: '12px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)' }}>
                     {r}
                   </span>
                 ))}
                 {(company.rounds || []).length > 3 && (
-                  <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
                     +{company.rounds.length - 3}
                   </span>
                 )}
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
                 <span>Pass rate: <strong style={{ color: company.community_pass_rate > 65 ? 'var(--accent-primary)' : company.community_pass_rate > 55 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>{company.community_pass_rate}%</strong></span>
                 {selected?.id === company.id ? <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}> Selected</span> : <span style={{ color: 'var(--text-muted)' }}>Click to select</span>}
               </div>
@@ -147,7 +147,7 @@ export default function MockCompanyPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
                   <span style={{ fontSize: '36px' }}>{selected.logo_emoji}</span>
                   <div>
-                    <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>{selected.name}</h2>
+                    <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{selected.name}</h2>
                     <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{selected.interview_culture}</p>
                   </div>
                 </div>
@@ -155,7 +155,7 @@ export default function MockCompanyPage() {
                 {/* Known Patterns */}
                 {selected.known_patterns?.length > 0 && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Known Patterns</div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', }}>Known Patterns</div>
                     {selected.known_patterns.map((p: string, i: number) => (
                       <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--text-secondary)' }}>
                         <span style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }}>→</span> {p}
@@ -193,10 +193,10 @@ export default function MockCompanyPage() {
                 {/* Show topics for selected round */}
                 {((selected.round_topics?.[selectedRound]?.length) ?? 0) > 0 && (
                   <div>
-                    <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Topics Covered</div>
+                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Topics Covered</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                       {(selected.round_topics?.[selectedRound] ?? []).map(t => (
-                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
+                        <span key={t} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                       ))}
                     </div>
                   </div>

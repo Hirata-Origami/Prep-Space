@@ -1,5 +1,7 @@
 'use client';
 
+import { Skeleton } from '@/components/ui';
+
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -71,8 +73,8 @@ export default function GroupsPage() {
     <div className="page-container">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
         <div>
-          <h1 style={{ fontSize: 'clamp(20px, 5vw, 28px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '6px' }}>Groups & Collaborative Roadmaps</h1>
-          <p style={{ fontSize: '15px', color: 'var(--text-muted)' }}>Study together, compete on leaderboards, hit deadlines as a cohort</p>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Groups & Collaborative Roadmaps</h1>
+          <p className="text-[15px] text-fg-2">Study together, compete on leaderboards, hit deadlines as a cohort</p>
         </div>
       </div>
 
@@ -88,7 +90,7 @@ export default function GroupsPage() {
 
       {tab === 'My Groups' && (
         isLoading && groups.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Loading groups…</div>
+          <div className="grid gap-4 md:grid-cols-2" aria-busy="true" aria-label="Loading groups"><Skeleton className="h-32 rounded-panel" /><Skeleton className="h-32 rounded-panel" /></div>
         ) : groups.length === 0 ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
             <div style={{ fontSize: '56px', marginBottom: '16px' }}></div>
@@ -105,7 +107,7 @@ export default function GroupsPage() {
               <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                   <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
-                  <span className="badge badge-mint" style={{ fontSize: '10px' }}>{g.access_type}</span>
+                  <span className="badge badge-mint" style={{ fontSize: '12px' }}>{g.access_type}</span>
                 </div>
                 <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>{g.description || 'Collaborative study space.'}</div>
                 <Link href={`/groups/${g.id}`} className="btn-primary" style={{ display: 'flex', width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px', textDecoration: 'none' }}>Open Dashboard</Link>
@@ -128,7 +130,7 @@ export default function GroupsPage() {
                 <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
                     <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
-                    <span className="badge badge-muted" style={{ fontSize: '10px' }}>{g.access_type}</span>
+                    <span className="badge badge-muted" style={{ fontSize: '12px' }}>{g.access_type}</span>
                   </div>
                   <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>{g.description || 'Public study group.'}</div>
                   <button onClick={() => handleJoin(g.id)} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px' }}>Join Group</button>

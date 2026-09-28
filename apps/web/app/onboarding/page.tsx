@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useUser } from '@/lib/hooks/useUser';
 import { useRouter } from 'next/navigation';
-import { Zap, ChevronRight, Check } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
+import { AuthShell } from '@/components/auth/AuthShell';
+import { Button } from '@/components/ui/Button';
+import { Field, Input } from '@/components/ui/Field';
+import { cn } from '@/lib/cn';
 
 export default function OnboardingPage() {
   const { user, mutate, isLoading } = useUser();
   const router = useRouter();
-  
+
   const [formData, setFormData] = useState({
     target_role: '',
     target_company: '',
@@ -28,12 +31,12 @@ export default function OnboardingPage() {
 
   const handleSave = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    
+
     if (!formData.target_role || !formData.target_company || !formData.gemini_api_key) {
       toast.error('All fields are required to secure your PrepSpace experience.');
       return;
     }
-    
+
     setSaving(true);
     try {
       const res = await fetch('/api/user/profile', {
@@ -60,69 +63,92 @@ export default function OnboardingPage() {
   if (isLoading || !user) return null;
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)', padding: '40px 16px 24px' }}>
-      <div style={{ maxWidth: '480px', width: '100%', position: 'relative' }}>
-        {/* Background Decor */}
-        <div style={{ position: 'absolute', top: '-100px', left: '50%', transform: 'translateX(-50%)', width: '300px', height: '300px', background: 'radial-gradient(circle, var(--accent-primary-dim), transparent 70%)', opacity: 0.15, zIndex: 0 }} />
-
-        <div className="card p-6 sm:p-10" style={{ position: 'relative', zIndex: 1, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}>
-          <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-cyan))', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(var(--accent-primary-rgb), 0.2)' }}>
-              <Zap size={24} color="var(--text-on-accent)" strokeWidth={3} />
-            </div>
-            <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Finalize Your Edge</h1>
-            <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>Help PrepSpace calibrate your training environment.</p>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <AnimatePresence mode="wait">
-              {step === 1 ? (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} key="step1">
-                  <div style={{ marginBottom: '16px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Target Role</label>
-                    <input className="input" value={formData.target_role} onChange={e => setFormData(p => ({ ...p, target_role: e.target.value }))} placeholder="e.g. Senior Software Engineer" style={{ width: '100%' }} />
-                  </div>
-                  <div style={{ marginBottom: '24px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Dream Company</label>
-                    <input className="input" value={formData.target_company} onChange={e => setFormData(p => ({ ...p, target_company: e.target.value }))} placeholder="e.g. Google, Stripe, Meta" style={{ width: '100%' }} />
-                  </div>
-                  <button onClick={() => setStep(2)} disabled={!formData.target_role || !formData.target_company} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
-                    Next Step <ChevronRight size={16} />
-                  </button>
-                </motion.div>
-              ) : (
-                <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} key="step2">
-                  <div style={{ marginBottom: '10px' }}>
-                    <label style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>AI Provider API Key (Gemini)</label>
-                    <input className="input" type="password" value={formData.gemini_api_key} onChange={e => setFormData(p => ({ ...p, gemini_api_key: e.target.value }))} placeholder="Enter your Gemini/AI API key" style={{ width: '100%' }} />
-                  </div>
-                  <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '24px', lineHeight: 1.5 }}>
-                    Your key is required for live AI interaction. It is stored securely and never shared. <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>Get a free key here →</a>
-                  </p>
-                  <div style={{ display: 'flex', gap: '10px' }}>
-                    <button onClick={() => setStep(1)} className="btn-secondary" style={{ flex: 1, justifyContent: 'center' }}>Back</button>
-                    <button onClick={() => handleSave()} disabled={!formData.gemini_api_key || saving} className="btn-primary" style={{ flex: 2, justifyContent: 'center' }}>
-                      {saving ? 'Finalizing...' : 'Complete Setup'}
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div style={{ marginTop: '32px', display: 'flex', justifyContent: 'center', gap: '8px' }}>
-            {[1, 2].map(s => (
-              <div key={s} style={{ width: '24px', height: '4px', background: step === s ? 'var(--accent-primary)' : 'rgba(255,255,255,0.1)', borderRadius: '2px', transition: 'all 0.3s' }} />
-            ))}
-          </div>
+    <AuthShell
+      showBack={false}
+      title={step === 1 ? 'What are you preparing for?' : 'Connect your Gemini key'}
+      description={
+        step === 1
+          ? 'PrepSpace tunes questions and roadmaps to your target.'
+          : 'Live voice interviews run on your own key. It is stored securely and never shared.'
+      }
+      footer={
+        <div className="flex items-center gap-2" role="img" aria-label={`Step ${step} of 2`}>
+          {[1, 2].map(s => (
+            <span key={s} className={cn('h-1 w-8 rounded-full transition-colors', step >= s ? 'bg-signal' : 'bg-raised')} />
+          ))}
+          <span className="ml-1">Step {step} of 2</span>
         </div>
-
-        {/* Security badge */}
-        <div style={{ marginTop: '20px', textAlign: 'center', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', opacity: 0.6 }}>
-          <Check size={14} color="var(--accent-primary)" />
-          <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.05em' }}>END-TO-END ENCRYPTED CONFIGURATION</span>
-        </div>
-      </div>
-    </div>
+      }
+    >
+      {step === 1 ? (
+        <form
+          className="space-y-5"
+          onSubmit={e => {
+            e.preventDefault();
+            if (formData.target_role && formData.target_company) setStep(2);
+          }}
+        >
+          <Field label="Target role">
+            {a11y => (
+              <Input
+                {...a11y}
+                value={formData.target_role}
+                onChange={e => setFormData(p => ({ ...p, target_role: e.target.value }))}
+                placeholder="Senior Software Engineer"
+                autoFocus
+              />
+            )}
+          </Field>
+          <Field label="Target company">
+            {a11y => (
+              <Input
+                {...a11y}
+                value={formData.target_company}
+                onChange={e => setFormData(p => ({ ...p, target_company: e.target.value }))}
+                placeholder="Google, Stripe, Meta"
+              />
+            )}
+          </Field>
+          <Button type="submit" size="lg" className="w-full" disabled={!formData.target_role || !formData.target_company}>
+            Continue <ChevronRight size={16} aria-hidden />
+          </Button>
+        </form>
+      ) : (
+        <form className="space-y-5" onSubmit={handleSave}>
+          <Field
+            label="Gemini API key"
+            hint="Create a free key in Google AI Studio (aistudio.google.com/app/apikey), then paste it here."
+          >
+            {a11y => (
+              <Input
+                {...a11y}
+                type="password"
+                autoComplete="off"
+                value={formData.gemini_api_key}
+                onChange={e => setFormData(p => ({ ...p, gemini_api_key: e.target.value }))}
+                placeholder="Paste your key"
+                autoFocus
+              />
+            )}
+          </Field>
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-block text-sm font-medium text-signal hover:underline"
+          >
+            Open Google AI Studio
+          </a>
+          <div className="flex gap-3">
+            <Button variant="secondary" size="lg" className="flex-1" onClick={() => setStep(1)}>
+              Back
+            </Button>
+            <Button type="submit" size="lg" className="flex-[2]" disabled={!formData.gemini_api_key} loading={saving}>
+              {saving ? 'Saving…' : 'Finish setup'}
+            </Button>
+          </div>
+        </form>
+      )}
+    </AuthShell>
   );
 }

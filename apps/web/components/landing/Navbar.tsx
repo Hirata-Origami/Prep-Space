@@ -1,272 +1,98 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { Menu, X } from 'lucide-react';
+import { Menu, Moon, Sun, X } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { cn } from '@/lib/cn';
+import { ButtonLink } from '@/components/ui/Button';
 
 const NAV_LINKS = [
+  { label: 'How it works', href: '#how' },
   { label: 'Features', href: '#features' },
-  { label: 'How It Works', href: '#demo' },
-  { label: 'Reviews', href: '#reviews' },
+  { label: 'Newsletter', href: '#newsletter' },
 ];
-
-type Theme = 'light' | 'dark';
 
 export function Navbar() {
   const [scrolled, setScrolled] = useState(false);
-  const [theme, setTheme] = useState<Theme>('light');
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
+  const { resolvedTheme, setTheme } = useTheme();
+  const isDark = resolvedTheme !== 'light';
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener('scroll', onScroll);
-
-    // Init theme from localStorage
-    try {
-      const saved = localStorage.getItem('prepspace_theme');
-      const validTheme: Theme = saved === 'dark' ? 'dark' : 'light';
-      setTheme(validTheme);
-      document.documentElement.dataset.theme = validTheme;
-    } catch { }
-
+    const onScroll = () => setScrolled(window.scrollY > 16);
+    onScroll();
+    window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  const toggleTheme = useCallback(() => {
-    const next: Theme = theme === 'light' ? 'dark' : 'light';
-    setTheme(next);
-    try {
-      localStorage.setItem('prepspace_theme', next);
-      document.documentElement.dataset.theme = next;
-    } catch { }
-  }, [theme]);
-
-  const isDark = theme === 'dark';
-
   return (
-    <>
-      <motion.nav
-        initial={{ y: -80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 100,
-          padding: '0 16px',
-          height: '64px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          background: scrolled || mobileMenuOpen
-            ? isDark
-              ? 'rgba(8, 12, 20, 0.95)'
-              : 'rgba(255, 255, 255, 0.97)'
-            : 'transparent',
-          backdropFilter: scrolled || mobileMenuOpen ? 'blur(20px)' : 'none',
-          borderBottom: scrolled || mobileMenuOpen ? '1px solid var(--border)' : 'none',
-          transition: 'background 0.3s ease, border-color 0.3s ease',
-        }}
-      >
-        {/* Logo */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: '10px', textDecoration: 'none' }}>
-          <Image src="/prepspace-logo.png" alt="PrepSpace" width={32} height={32} style={{ borderRadius: '8px' }} />
-          <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Prep<span style={{ color: 'var(--accent-primary)' }}>Space</span>
-          </span>
+    <header
+      className={cn(
+        'fixed inset-x-0 top-0 z-[100] transition-[background-color,border-color] duration-200',
+        scrolled || open ? 'border-b border-line bg-canvas/85 backdrop-blur-xl' : 'border-b border-transparent'
+      )}
+    >
+      <div className="mx-auto flex h-16 max-w-[1200px] items-center justify-between px-4 sm:px-6">
+        <Link href="/" className="flex items-center gap-2.5 rounded-control" aria-label="PrepSpace home">
+          <Image src="/prepspace-logo.png" alt="" width={30} height={30} className="rounded-lg" priority />
+          <span className="font-display text-[19px] font-bold tracking-tight text-fg">PrepSpace</span>
         </Link>
 
-        {/* Nav links — Desktop only */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '28px' }} className="hidden md:flex">
-          {NAV_LINKS.map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              style={{ fontSize: '14px', fontWeight: 500, color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.2s' }}
-              onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-              onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}
-            >
-              {item.label}
+        <nav aria-label="Main" className="hidden items-center gap-1 md:flex">
+          {NAV_LINKS.map(l => (
+            <a key={l.href} href={l.href} className="rounded-control px-3 py-2 text-sm font-medium text-fg-2 transition-colors hover:text-fg">
+              {l.label}
             </a>
           ))}
-        </div>
+        </nav>
 
-        {/* Right actions — Desktop */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }} className="hidden md:flex">
-          {/* Theme Toggle - Sun / Moon */}
+        <div className="flex items-center gap-1.5">
           <button
-            onClick={toggleTheme}
-            title={isDark ? 'Switch to Light mode' : 'Switch to Dark mode'}
-            aria-label="Toggle theme"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '50%',
-              border: '1.5px solid var(--border)',
-              background: 'var(--bg-elevated)',
-              color: 'var(--text-secondary)',
-              fontSize: '18px',
-              cursor: 'pointer',
-              transition: 'all 0.2s ease',
-              lineHeight: 1,
-            }}
-            onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.color = 'var(--text-primary)'; e.currentTarget.style.transform = 'scale(1.1)'; }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.transform = 'scale(1)'; }}
+            onClick={() => setTheme(isDark ? 'light' : 'dark')}
+            aria-label={isDark ? 'Switch to light theme' : 'Switch to dark theme'}
+            className="flex h-10 w-10 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-raised hover:text-fg"
           >
-            {isDark ? '☀️' : '🌙'}
+            {isDark ? <Sun size={18} /> : <Moon size={18} />}
           </button>
-
-          <Link href="/auth/login" style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-muted)', textDecoration: 'none', padding: '7px 14px', borderRadius: '8px', border: '1.5px solid var(--border)', background: 'transparent', transition: 'all .15s' }}
-            onMouseEnter={(e: any) => { e.currentTarget.style.borderColor = 'var(--border-hover)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
-            onMouseLeave={(e: any) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
-          >
-            Log In
-          </Link>
-          <Link href="/auth/signup" className="btn-primary" style={{ padding: '7px 18px', fontSize: '13px' }}>
-            Get Started
-          </Link>
-        </div>
-
-        {/* Mobile Action buttons & hamburger */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }} className="flex md:hidden">
-          {/* Theme Toggle Mobile */}
+          <ButtonLink href="/auth/login" variant="ghost" className="hidden sm:inline-flex">
+            Log in
+          </ButtonLink>
+          <ButtonLink href="/auth/signup" size="md" className="hidden sm:inline-flex">
+            Get started
+          </ButtonLink>
           <button
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '36px',
-              height: '36px',
-              borderRadius: '8px',
-              border: '1px solid var(--border)',
-              background: 'var(--bg-elevated)',
-              fontSize: '16px',
-              cursor: 'pointer',
-            }}
+            onClick={() => setOpen(v => !v)}
+            aria-expanded={open}
+            aria-controls="mobile-menu"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            className="flex h-10 w-10 items-center justify-center rounded-control text-fg-2 transition-colors hover:bg-raised hover:text-fg md:hidden"
           >
-            {isDark ? '☀️' : '🌙'}
-          </button>
-
-          {/* Hamburger toggle */}
-          <button
-            onClick={() => setMobileMenuOpen(prev => !prev)}
-            aria-label="Toggle menu"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '38px',
-              height: '38px',
-              borderRadius: '8px',
-              border: `1px solid ${mobileMenuOpen ? 'var(--accent-primary)' : 'var(--border)'}`,
-              background: mobileMenuOpen ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)',
-              color: mobileMenuOpen ? 'var(--accent-primary)' : 'var(--text-primary)',
-              cursor: 'pointer',
-            }}
-          >
-            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {open ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
-      </motion.nav>
+      </div>
 
-      {/* Mobile Menu Dropdown */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.2 }}
-            style={{
-              position: 'fixed',
-              top: '64px',
-              left: 0,
-              right: 0,
-              background: isDark ? 'rgba(8, 12, 20, 0.98)' : 'rgba(255, 255, 255, 0.98)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              borderBottom: '1px solid var(--border)',
-              zIndex: 99,
-              padding: '20px 16px 24px',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '16px',
-              boxShadow: '0 12px 32px rgba(0,0,0,0.3)',
-            }}
-            className="md:hidden"
-          >
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              {NAV_LINKS.map(item => (
-                <a
-                  key={item.label}
-                  href={item.href}
-                  onClick={() => setMobileMenuOpen(false)}
-                  style={{
-                    fontSize: '16px',
-                    fontWeight: 600,
-                    color: 'var(--text-primary)',
-                    textDecoration: 'none',
-                    padding: '10px 12px',
-                    borderRadius: '8px',
-                    background: 'var(--bg-elevated)',
-                  }}
-                >
-                  {item.label}
-                </a>
-              ))}
-            </div>
-
-            <div style={{ height: '1px', background: 'var(--border)' }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              <Link
-                href="/auth/login"
-                onClick={() => setMobileMenuOpen(false)}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  border: '1px solid var(--border)',
-                  color: 'var(--text-primary)',
-                  textDecoration: 'none',
-                  fontSize: '15px',
-                  fontWeight: 600,
-                  background: 'var(--bg-surface)',
-                }}
-              >
-                Log In
-              </Link>
-              <Link
-                href="/auth/signup"
-                onClick={() => setMobileMenuOpen(false)}
-                className="btn-primary"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '12px',
-                  borderRadius: '10px',
-                  fontSize: '15px',
-                  fontWeight: 700,
-                }}
-              >
-                Get Started
-              </Link>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+      {open && (
+        <div id="mobile-menu" className="border-t border-line px-4 pb-5 pt-3 md:hidden">
+          <nav aria-label="Mobile" className="flex flex-col">
+            {NAV_LINKS.map(l => (
+              <a key={l.href} href={l.href} onClick={() => setOpen(false)} className="rounded-control px-2 py-3 text-base font-medium text-fg-2 hover:text-fg">
+                {l.label}
+              </a>
+            ))}
+          </nav>
+          <div className="mt-3 flex gap-2">
+            <ButtonLink href="/auth/login" variant="secondary" className="flex-1">
+              Log in
+            </ButtonLink>
+            <ButtonLink href="/auth/signup" className="flex-1">
+              Get started
+            </ButtonLink>
+          </div>
+        </div>
+      )}
+    </header>
   );
 }

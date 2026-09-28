@@ -1,280 +1,85 @@
-'use client';
+import { ButtonLink } from '@/components/ui/Button';
+import { Wave } from '@/components/ui/Wave';
 
-import { useRef, useEffect, useState } from 'react';
-import { motion, useMotionValue, useTransform, animate } from 'framer-motion';
-import Link from 'next/link';
-
-const ROLES = ['Frontend Engineer', 'ML Engineer', 'Product Manager', 'Backend Engineer', 'System Architect', 'Data Scientist'];
-
-function AnimatedCounter({ target, suffix = '' }: { target: number; suffix?: string }) {
-  const [count, setCount] = useState(0);
-  useEffect(() => {
-    const controls = animate(0, target, {
-      duration: 2,
-      ease: 'easeOut',
-      onUpdate: v => setCount(Math.round(v)),
-    });
-    return controls.stop;
-  }, [target]);
-  return <>{count.toLocaleString()}{suffix}</>;
-}
-
-const STATS = [
-  { value: 14000, suffix: '+', label: 'Candidates Placed' },
-  { value: 94, suffix: '%', label: 'Success Rate' },
-  { value: 50, suffix: 'ms', label: 'AI Response Latency' },
-  { value: 200, suffix: '+', label: 'Companies Covered' },
+const SCORES = [
+  { label: 'Clarity', value: 82 },
+  { label: 'Structure', value: 74 },
+  { label: 'Technical depth', value: 68 },
 ];
 
-export function HeroSection() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [roleIndex, setRoleIndex] = useState(0);
-  const [displayText, setDisplayText] = useState('');
-  const [mounted, setMounted] = useState(false);
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  // Particle canvas
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    const resize = () => {
-      if (!canvas) return;
-      canvas.width = canvas.offsetWidth;
-      canvas.height = canvas.offsetHeight;
-    };
-    resize();
-    window.addEventListener('resize', resize);
-
-    const particles: { x: number; y: number; vx: number; vy: number; size: number; alpha: number }[] = [];
-
-    for (let i = 0; i < 130; i++) {
-      particles.push({
-        x: Math.random() * (canvas.width || 1200),
-        y: Math.random() * (canvas.height || 800),
-        vx: (Math.random() - 0.5) * 0.45,
-        vy: (Math.random() - 0.5) * 0.45,
-        size: Math.random() * 2.8 + 2.4,
-        alpha: Math.random() * 0.45 + 0.35,
-      });
-    }
-
-    let animId: number;
-    const draw = () => {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const isLight = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'light';
-      // High contrast emerald/teal in light mode, neon mint in dark mode
-      const pRgb = isLight ? '4, 120, 87' : '77, 255, 160';
-      const alphaBoost = isLight ? 1.55 : 1.0;
-      const lineOpacityFactor = isLight ? 0.28 : 0.15;
-      const lineWidth = isLight ? 0.9 : 0.6;
-
-      particles.forEach(p => {
-        p.x += p.vx;
-        p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, isLight ? p.size * 1.1 : p.size, 0, Math.PI * 2);
-        const finalAlpha = Math.min(0.92, p.alpha * alphaBoost);
-        ctx.fillStyle = `rgba(${pRgb},${finalAlpha})`;
-        ctx.fill();
-      });
-      // Draw connection lines
-      particles.forEach((a, i) => {
-        particles.slice(i + 1).forEach(b => {
-          const dist = Math.hypot(a.x - b.x, a.y - b.y);
-          if (dist < 130) {
-            ctx.beginPath();
-            ctx.moveTo(a.x, a.y);
-            ctx.lineTo(b.x, b.y);
-            ctx.strokeStyle = `rgba(${pRgb},${lineOpacityFactor * (1 - dist / 130)})`;
-            ctx.lineWidth = lineWidth;
-            ctx.stroke();
-          }
-        });
-      });
-      animId = requestAnimationFrame(draw);
-    };
-    draw();
-    return () => {
-      cancelAnimationFrame(animId);
-      window.removeEventListener('resize', resize);
-    };
-  }, [mounted]);
-
-  // Typewriter effect
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    const role = ROLES[roleIndex];
-    let i = 0;
-    let deleting = false;
-    setDisplayText('');
-
-    const type = () => {
-      if (!deleting && i <= role.length) {
-        setDisplayText(role.slice(0, i++));
-        timeout = setTimeout(type, 60);
-      } else if (!deleting && i > role.length) {
-        deleting = true;
-        timeout = setTimeout(type, 2000);
-      } else if (deleting && i >= 0) {
-        setDisplayText(role.slice(0, i--));
-        timeout = setTimeout(type, 30);
-      } else {
-        setRoleIndex(prev => (prev + 1) % ROLES.length);
-      }
-    };
-    timeout = setTimeout(type, 200);
-    return () => clearTimeout(timeout);
-  }, [roleIndex]);
-
+/** A labelled sample of the real product: the one animated moment on the page. */
+function SampleSession() {
   return (
-    <section style={{
-      position: 'relative',
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'center',
-      overflow: 'hidden',
-      background: 'radial-gradient(ellipse 80% 60% at 50% -10%, var(--hero-glow-1) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 80% 80%, var(--hero-glow-2) 0%, transparent 60%), var(--bg-base)',
-    }}>
-      {/* Particle canvas */}
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', opacity: 1 }} />
-
-      {/* Orbital rings - purely decorative */}
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
-        {[600, 800, 1000].map((size, i) => (
-          <div key={size} style={{
-            position: 'absolute',
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            border: `1px solid var(--border)`,
-            opacity: 0.6 - i * 0.15,
-            animation: `spin-slow ${20 + i * 8}s linear infinite ${i % 2 === 1 ? 'reverse' : ''}`,
-          }} />
-        ))}
+    <div
+      className="overflow-hidden rounded-hero border border-line-strong bg-panel shadow-[var(--shadow-float)]"
+      role="img"
+      aria-label="Sample interview session: live waveform, transcript excerpt and a scorecard"
+    >
+      <div className="flex items-center justify-between border-b border-line px-5 py-3">
+        <div className="flex items-center gap-2.5 text-sm font-medium text-fg">
+          <span className="live-dot" aria-hidden />
+          Live with Alex
+        </div>
+        <span className="font-mono text-sm text-fg-3">12:41</span>
       </div>
 
-      {/* Grid overlay */}
-      <div style={{
-        position: 'absolute',
-        inset: 0,
-        backgroundImage: 'linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px)',
-        backgroundSize: '60px 60px',
-        opacity: 0.4,
-        maskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%)',
-        WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 50% 50%, black 0%, transparent 70%)',
-      }} />
+      <div className="px-5 pb-2 pt-5">
+        <Wave bars={44} live className="h-14 w-full justify-between" />
+      </div>
 
-      {/* Content */}
-      <div style={{ position: 'relative', zIndex: 2, maxWidth: '900px', margin: '0 auto', padding: '90px 16px 40px', textAlign: 'center' }}>
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', padding: '6px 16px', background: 'var(--accent-primary-dim)', border: '1px solid var(--accent-primary)', borderRadius: '100px', marginBottom: '24px' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block', animation: 'pulse-mint 2s infinite' }} />
-            <span style={{ fontSize: '13px', color: 'var(--accent-primary)', fontWeight: 600, letterSpacing: '0.04em' }}>AI-Native Engineering Interviews</span>
-          </div>
-        </motion.div>
+      <div className="space-y-3 px-5 pb-5 pt-3 text-[14px] leading-relaxed">
+        <p className="text-fg-3">
+          <span className="font-semibold text-fg-2">Alex</span> How would you design a rate limiter for a public API?
+        </p>
+        <p className="rounded-control border border-line bg-raised px-3.5 py-3 text-fg">
+          I would start with a token bucket per API key, kept in Redis so limits hold across instances…
+        </p>
+      </div>
 
-        <motion.h1
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.1 }}
-          style={{
-            fontSize: 'clamp(32px, 6.5vw, 82px)',
-            fontWeight: 900,
-            fontFamily: 'var(--font-display)',
-            lineHeight: 1.2,
-            letterSpacing: '-0.025em',
-            marginBottom: '20px',
-            color: 'var(--text-primary)',
-            paddingBottom: '12px',
-          }}
-        >
-          Ace your interview
-          <br />
-          <span style={{
-            background: 'var(--hero-title-gradient)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            display: 'inline-block',
-            paddingBottom: '4px',
-          }}>as a&nbsp;</span>
-          <span style={{
-            background: 'var(--hero-typewriter-gradient)',
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            backgroundClip: 'text',
-            borderRight: mounted ? '3px solid var(--accent-primary)' : 'none',
-            paddingRight: '6px',
-            paddingBottom: '6px',
-            minWidth: '20px',
-            display: 'inline-block',
-            verticalAlign: 'bottom',
-          }}>
-            {displayText}
-          </span>
-        </motion.h1>
-
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.25 }}
-          style={{ fontSize: 'clamp(15px, 2vw, 20px)', color: 'var(--hero-subtext, var(--text-secondary))', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto 36px', fontWeight: 500 }}
-        >
-          The first AI interview platform with <strong style={{ color: 'var(--text-primary)' }}>real-time voice interaction</strong>, adaptive skill graphs, and evidence-backed scoring — not just flashcards.
-        </motion.p>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-          style={{ display: 'flex', gap: '14px', justifyContent: 'center', flexWrap: 'wrap', marginBottom: '48px' }}
-        >
-          <Link href="/auth/signup" style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '14px 32px',
-            background: 'var(--accent-primary)',
-            color: 'var(--text-on-accent)',
-            borderRadius: '12px',
-            fontSize: '16px',
-            fontWeight: 800,
-            textDecoration: 'none',
-            boxShadow: '0 4px 24px var(--accent-primary-glow)',
-            transition: 'all 0.2s',
-          }}>
-            Start Now →
-          </Link>
-        </motion.div>
-
-        {/* Stats — 2 columns on mobile, 4 on desktop */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.55 }}
-          style={{ gap: '1px', background: 'var(--border)', borderRadius: '16px', overflow: 'hidden', border: '1px solid var(--border)', backdropFilter: 'blur(12px)' }}
-          className="grid grid-cols-2 md:grid-cols-4"
-        >
-          {STATS.map(({ value, suffix, label }) => (
-            <div key={label} style={{ padding: '20px 12px', background: 'var(--bg-surface)', textAlign: 'center' }}>
-              <div style={{ fontSize: 'clamp(22px, 3vw, 36px)', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', lineHeight: 1, marginBottom: '6px' }}>
-                {mounted ? <AnimatedCounter target={value} suffix={suffix} /> : `${value}${suffix}`}
-              </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, letterSpacing: '0.04em' }}>{label}</div>
-            </div>
+      <div className="border-t border-line bg-raised/50 px-5 py-4">
+        <div className="mb-3 text-[13px] font-medium text-fg-2">Scorecard</div>
+        <ul className="space-y-2.5">
+          {SCORES.map((s, i) => (
+            <li key={s.label} className="flex items-center gap-3 text-[13px]">
+              <span className="w-32 shrink-0 text-fg-2">{s.label}</span>
+              <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-line">
+                <span
+                  className="block h-full origin-left rounded-full bg-signal"
+                  style={{ width: `${s.value}%`, animation: `grow 1.1s cubic-bezier(0.22,1,0.36,1) ${0.5 + i * 0.18}s both` }}
+                />
+              </span>
+              <span className="w-8 text-right font-mono text-fg">{s.value}</span>
+            </li>
           ))}
-        </motion.div>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+export function HeroSection() {
+  return (
+    <section className="relative overflow-hidden pt-28 sm:pt-32 lg:pt-36">
+      <div className="mx-auto grid max-w-[1200px] items-center gap-12 px-4 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:pb-28">
+        <div>
+          <h1 className="font-display text-[42px] font-bold leading-[1.04] tracking-[-0.03em] text-fg sm:text-[56px] lg:text-[64px]">
+            Practice the interview out loud before the real one.
+          </h1>
+          <p className="mt-6 max-w-[34rem] text-[17px] leading-relaxed text-fg-2">
+            PrepSpace runs live voice interviews with an AI interviewer, then scores every answer and plays back the exact moments that cost you points.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <ButtonLink href="/auth/signup" size="lg">
+              Start free
+            </ButtonLink>
+            <ButtonLink href="#how" variant="secondary" size="lg">
+              See how it works
+            </ButtonLink>
+          </div>
+          <p className="mt-5 text-sm text-fg-3">Free during beta. Sign in with Google, bring your own Gemini key.</p>
+        </div>
+
+        <SampleSession />
       </div>
     </section>
   );

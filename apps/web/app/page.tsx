@@ -1,7 +1,6 @@
 import { HeroSection } from '@/components/landing/HeroSection';
-import { DemoTeaser } from '@/components/landing/DemoTeaser';
+import { HowItWorks } from '@/components/landing/HowItWorks';
 import { FeatureBlocks } from '@/components/landing/FeatureBlocks';
-import { Testimonials } from '@/components/landing/Testimonials';
 import { SubscribeSection } from '@/components/landing/SubscribeSection';
 import { FooterSection } from '@/components/landing/FooterSection';
 import { Navbar } from '@/components/landing/Navbar';
@@ -18,14 +17,15 @@ export default async function LandingPage() {
   }
 
   return (
-    <main style={{ background: 'var(--bg-base)', overflowX: 'hidden' }}>
+    <>
       <Navbar />
-      <HeroSection />
-      <DemoTeaser />
-      <FeatureBlocks />
-      <Testimonials />
-      <SubscribeSection />
+      <main className="overflow-x-hidden bg-canvas">
+        <HeroSection />
+        <HowItWorks />
+        <FeatureBlocks />
+        <SubscribeSection />
+      </main>
       <FooterSection />
-    </main>
+    </>
   );
 }

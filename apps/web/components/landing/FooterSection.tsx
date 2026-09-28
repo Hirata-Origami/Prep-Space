@@ -1,69 +1,61 @@
-'use client';
-
 import Image from 'next/image';
+import Link from 'next/link';
 
-const FOOTER_LINKS = {
-  Product: ['Roadmap Engine', 'AI Interviews', 'Mock Companies', 'Resume Builder', 'Groups'],
-  Resources: ['Interview Questions', 'Company Guides', 'Tech Stack Roadmaps', 'System Design Cheatsheet'],
-  Company: ['About', 'Blog', 'Careers', 'Status', 'Changelog'],
-  Legal: ['Privacy Policy', 'Terms of Service', 'Cookie Policy', 'Security'],
-};
+const FOOTER_LINKS = [
+  {
+    heading: 'Product',
+    links: [
+      { label: 'How it works', href: '#how' },
+      { label: 'Features', href: '#features' },
+      { label: 'Newsletter', href: '#newsletter' },
+    ],
+  },
+  {
+    heading: 'Account',
+    links: [
+      { label: 'Log in', href: '/auth/login' },
+      { label: 'Create account', href: '/auth/signup' },
+    ],
+  },
+];
 
 export function FooterSection() {
   return (
-    <footer style={{ background: 'var(--bg-surface)', borderTop: '1px solid var(--border)', padding: '56px 16px 36px' }}>
-      <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-        {/* Top grid: 1 col on mobile, 2 col on tablet, 5 col on desktop */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10 mb-12">
-          {/* Brand */}
-          <div className="sm:col-span-2 lg:col-span-1">
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-              <Image src="/prepspace-logo.png" alt="PrepSpace" width={32} height={32} style={{ borderRadius: '8px' }} />
-              <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>PrepSpace</span>
-            </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.7, marginBottom: '20px' }}>
-              Train like it&apos;s real. Land what you deserve. The AI-native interview platform built for engineers, by engineers.
-            </p>
-            {/* Social links */}
-            <div style={{ display: 'flex', gap: '10px' }}>
-              {['𝕏', 'in', 'gh'].map((icon, i) => (
-                <a key={i} href="#" style={{ width: '34px', height: '34px', background: 'var(--bg-elevated)', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', border: '1px solid var(--border)', transition: 'all 0.2s' }}
-                  onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-primary)'; e.currentTarget.style.color = 'var(--accent-primary)'; }}
-                  onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--text-muted)'; }}>
-                  {icon}
-                </a>
-              ))}
-            </div>
+    <footer className="border-t border-line bg-panel/40">
+      <div className="mx-auto flex max-w-[1200px] flex-col gap-10 px-4 py-12 sm:px-6 md:flex-row md:justify-between">
+        <div className="max-w-xs">
+          <div className="flex items-center gap-2.5">
+            <Image src="/prepspace-logo.png" alt="" width={28} height={28} className="rounded-lg" />
+            <span className="font-display text-lg font-bold tracking-tight text-fg">PrepSpace</span>
           </div>
+          <p className="mt-3 text-sm leading-relaxed text-fg-3">Train like it is real. Land what you deserve.</p>
+        </div>
 
-          {/* Link columns */}
-          {Object.entries(FOOTER_LINKS).map(([cat, links]) => (
-            <div key={cat}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-primary)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '14px' }}>{cat}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {links.map(l => (
-                  <a key={l} href="#" style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'none', transition: 'color 0.15s' }}
-                    onMouseEnter={e => (e.currentTarget.style.color = 'var(--text-primary)')}
-                    onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-muted)')}>
-                    {l}
-                  </a>
+        <nav aria-label="Footer" className="flex gap-16">
+          {FOOTER_LINKS.map(group => (
+            <div key={group.heading}>
+              <div className="text-sm font-semibold text-fg">{group.heading}</div>
+              <ul className="mt-3 space-y-2">
+                {group.links.map(l => (
+                  <li key={l.label}>
+                    {l.href.startsWith('#') ? (
+                      <a href={l.href} className="text-sm text-fg-3 transition-colors hover:text-fg">
+                        {l.label}
+                      </a>
+                    ) : (
+                      <Link href={l.href} className="text-sm text-fg-3 transition-colors hover:text-fg">
+                        {l.label}
+                      </Link>
+                    )}
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           ))}
-        </div>
-
-        {/* Bottom bar */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: '24px', borderTop: '1px solid var(--border)', flexWrap: 'wrap', gap: '12px' }}>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-            © {new Date().getFullYear()} PrepSpace. All rights reserved.
-          </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <span className="badge badge-mint" style={{ fontSize: '11px' }}>Free for Beta</span>
-            <span className="badge badge-muted" style={{ fontSize: '11px' }}>GDPR Compliant</span>
-            <span className="badge badge-muted" style={{ fontSize: '11px' }}>SOC2 (In Progress)</span>
-          </div>
-        </div>
+        </nav>
+      </div>
+      <div className="border-t border-line">
+        <div className="mx-auto max-w-[1200px] px-4 py-5 text-[13px] text-fg-3 sm:px-6">© {new Date().getFullYear()} PrepSpace</div>
       </div>
     </footer>
   );

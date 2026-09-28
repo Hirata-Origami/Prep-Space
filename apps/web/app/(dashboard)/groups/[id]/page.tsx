@@ -1,5 +1,7 @@
 'use client';
 
+import { Skeleton } from '@/components/ui';
+
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -189,7 +191,12 @@ export default function GroupDashboardPage() {
   };
 
   if (loading) {
-    return <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px' }}>Loading group dashboard…</div>;
+    return (
+      <div className="page-container" aria-busy="true" aria-label="Loading group">
+        <Skeleton className="mb-3 h-9 w-72 max-w-full" />
+        <Skeleton className="h-48 rounded-panel" />
+      </div>
+    );
   }
 
   if (!group) return null;
@@ -203,7 +210,7 @@ export default function GroupDashboardPage() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em' }}>{group.name}</h1>
+            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">{group.name}</h1>
             <span className="badge badge-mint">{group.access_type}</span>
           </div>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>{group.description}</p>
@@ -255,7 +262,7 @@ export default function GroupDashboardPage() {
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span className={`badge ${m.role === 'admin' ? 'badge-violet' : 'badge-muted'}`} style={{ fontSize: '11px' }}>{m.role}</span>
+                  <span className={`badge ${m.role === 'admin' ? 'badge-violet' : 'badge-muted'}`} style={{ fontSize: '12px' }}>{m.role}</span>
                   
                   {myRole === 'admin' && m.role !== 'admin' && (
                     <div className="dropdown">

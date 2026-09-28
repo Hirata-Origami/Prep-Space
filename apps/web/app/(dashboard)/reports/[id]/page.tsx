@@ -1,5 +1,7 @@
 'use client';
 
+import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
+
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
@@ -80,19 +82,25 @@ export default function ReportDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(var(--accent-primary-rgb), 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
-        Analyzing your interview data...
+      <div className="page-container" aria-busy="true" aria-label="Loading report">
+        <Skeleton className="mb-3 h-9 w-72 max-w-full" />
+        <Skeleton className="mb-8 h-4 w-96 max-w-full" />
+        <div className="grid gap-4 md:grid-cols-2">
+          <Skeleton className="h-48 rounded-panel" />
+          <Skeleton className="h-48 rounded-panel" />
+        </div>
       </div>
     );
   }
 
   if (!report) {
     return (
-      <div className="page-container" style={{ textAlign: 'center', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ fontSize: '48px', marginBottom: '20px' }}>!</div>
-        <h2 style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '10px' }}>Report not found</h2>
-        <Link href="/reports" style={{ color: 'var(--accent-primary)', textDecoration: 'none' }}>← Back to Reports</Link>
+      <div className="page-container">
+        <EmptyState
+          title="Report not found"
+          description="It may still be processing, or the link is wrong."
+          action={<ButtonLink href="/reports" variant="secondary">Back to reports</ButtonLink>}
+        />
       </div>
     );
   }
@@ -156,10 +164,10 @@ export default function ReportDetailPage() {
           <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
             ← Back to Reports
           </Link>
-          <h1 style={{ fontSize: 'clamp(22px, 5vw, 32px)', fontWeight: 900, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: '4px' }}>Performance Report</h1>
+          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Performance Report</h1>
           <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>{report.interview_sessions?.plan?.role || 'Software Engineer'}</p>
         </div>
-        <button onClick={handleDownloadPDF} className="btn-secondary" style={{ padding: '10px 24px', fontWeight: 800 }}>
+        <button onClick={handleDownloadPDF} className="btn-secondary" style={{ padding: '10px 24px', fontWeight: 700 }}>
           Export PDF
         </button>
       </div>
@@ -167,13 +175,13 @@ export default function ReportDetailPage() {
       {/* Main Score Card */}
       <div className="surface" style={{ padding: 'clamp(20px, 4vw, 40px)', display: 'flex', gap: 'clamp(16px, 4vw, 32px)', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap' }}>
         <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'rgba(var(--accent-primary-rgb), 0.06)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <div style={{ fontSize: '34px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
-          <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Overall</div>
+          <div style={{ fontSize: '34px', fontWeight: 700, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
+          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', }}>Overall</div>
         </div>
         <div style={{ flex: '1 1 240px', minWidth: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-             <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '100px', fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', color: 'var(--accent-primary)' }}>Recommendation</span>
-             <span style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{report.hire_recommendation}</span>
+             <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '100px', fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)' }}>Recommendation</span>
+             <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{report.hire_recommendation}</span>
           </div>
           <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
             {analysis.summary}
@@ -185,8 +193,8 @@ export default function ReportDetailPage() {
       <div className="grid-responsive-4" style={{ marginBottom: '36px' }}>
         {Object.entries(scores).map(([key, val]: [string, any]) => (
           <div key={key} className="surface" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.05em', wordBreak: 'break-word' }}>{key.replace(/_/g, ' ')}</div>
+            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, wordBreak: 'break-word' }}>{key.replace(/_/g, ' ')}</div>
           </div>
         ))}
       </div>
@@ -197,7 +205,7 @@ export default function ReportDetailPage() {
           {/* Audio Evidence */}
           {audioUrl && (
             <section className="surface" style={{ padding: '24px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '20px' }}>Technical Evidence</h2>
+              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>Technical Evidence</h2>
               <audio ref={audioRef} controls src={audioUrl} style={{ width: '100%', marginBottom: '20px' }} className="no-print" />
               
               <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
@@ -207,8 +215,8 @@ export default function ReportDetailPage() {
                     <div key={i} onClick={() => { if(audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }} 
                       style={{ minWidth: '220px', padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderTop: `4px solid ${color}`, borderRadius: '12px', cursor: 'pointer' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '10px', fontWeight: 800, color, textTransform: 'uppercase' }}>{m.type}</span>
-                        <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>{m.start_time}</span>
+                        <span style={{ fontSize: '12px', fontWeight: 700, color, }}>{m.type}</span>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.start_time}</span>
                       </div>
                       <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{m.annotation}</div>
                     </div>
@@ -220,22 +228,22 @@ export default function ReportDetailPage() {
 
           {/* Detailed Breakdown */}
           <section>
-            <h2 style={{ fontSize: '18px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '24px' }}>Technical Breakdown</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>Technical Breakdown</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               {sampleAnswers.map((item: any, i: number) => (
                 <div key={i} className="surface" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>{i + 1}. {item.question}</div>
-                    <div style={{ fontWeight: 800, color: item.score > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
+                    <div style={{ fontWeight: 700, color: item.score > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '8px' }}>Candidate Response</div>
+                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>Candidate Response</div>
                       <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.user_answer}</div>
                     </div>
                     {item.ideal_answer && (
                       <div style={{ padding: '16px', background: 'rgba(var(--accent-primary-rgb), 0.03)', borderRadius: '10px', border: '1px solid rgba(var(--accent-primary-rgb), 0.1)' }}>
-                        <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Model Feedback</div>
+                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>Model Feedback</div>
                         <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.ideal_answer}</div>
                       </div>
                     )}
@@ -250,30 +258,30 @@ export default function ReportDetailPage() {
         <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
           {/* Analytics */}
           <section className="surface" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '20px' }}>Communication</h3>
+            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '20px' }}>Communication</h3>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
               <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Words/min</div>
-                <div style={{ fontSize: '20px', fontWeight: 800 }}>{metrics.wpm || '--'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Words/min</div>
+                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics.wpm || '--'}</div>
               </div>
               <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler words</div>
-                <div style={{ fontSize: '20px', fontWeight: 800 }}>{metrics.filler_words_count ?? '--'}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler words</div>
+                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics.filler_words_count ?? '--'}</div>
               </div>
             </div>
             
             <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px' }}>
-              <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Global Percentile</div>
-              <div style={{ fontSize: '18px', fontWeight: 800 }}>
+              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>Global Percentile</div>
+              <div style={{ fontSize: '18px', fontWeight: 700 }}>
                  {report.overall_score >= 90 ? 'Top 5%' : report.overall_score >= 80 ? 'Top 20%' : report.overall_score >= 70 ? 'Top 40%' : 'Standard'}
               </div>
-              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>Based on peer performance</div>
+              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Based on peer performance</div>
             </div>
           </section>
 
           {/* Lists */}
           <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-primary)' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '16px' }}>Core Strengths</h3>
+            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '16px' }}>Core Strengths</h3>
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {strengths.map((s: string, i: number) => (
                 <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
@@ -284,7 +292,7 @@ export default function ReportDetailPage() {
           </section>
 
           <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-amber)' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-amber)', textTransform: 'uppercase', marginBottom: '16px' }}>Next Focus Areas</h3>
+            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-amber)', marginBottom: '16px' }}>Next Focus Areas</h3>
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {improvements.map((s: string, i: number) => (
                 <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
@@ -312,12 +320,12 @@ export default function ReportDetailPage() {
           border: 'none', 
           cursor: 'pointer', 
           zIndex: 100, 
-          boxShadow: '0 4px 20px rgba(var(--accent-primary-rgb), 0.3)', 
+          
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
           fontSize: '20px', 
-          fontWeight: 900 
+          fontWeight: 700 
         }}
       >?</button>
 
@@ -346,7 +354,7 @@ export default function ReportDetailPage() {
             }}
           >
             <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: 'var(--text-on-accent)' }}>A</div>
+              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'var(--text-on-accent)' }}>A</div>
               <div style={{ fontSize: '14px', fontWeight: 700 }}>Career Coach</div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -358,7 +366,7 @@ export default function ReportDetailPage() {
             </div>
             <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
               <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Ask something..." style={{ flex: 1, padding: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff' }} />
-              <button onClick={sendChat} style={{ padding: '8px 16px', background: 'var(--accent-primary)', borderRadius: '8px', border: 'none', fontWeight: 800 }}>Send</button>
+              <button onClick={sendChat} style={{ padding: '8px 16px', background: 'var(--accent-primary)', borderRadius: '8px', border: 'none', fontWeight: 700 }}>Send</button>
             </div>
           </motion.div>
         )}
