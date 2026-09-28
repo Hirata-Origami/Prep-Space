@@ -1028,7 +1028,7 @@ function InterviewStudioContent() {
                 background: 'var(--accent-red)', color: '#fff',
                 border: 'none', fontWeight: 700, fontSize: '13px',
                 cursor: 'pointer', fontFamily: 'var(--font-body)',
-                boxShadow: '0 2px 12px rgba(255,77,106,0.25)',
+                boxShadow: '0 2px 12px rgba(var(--accent-red-rgb), 0.25)',
               }}
             >
               <PhoneOff size={15} />
@@ -1186,7 +1186,7 @@ function InterviewStudioContent() {
                       padding: '9px 13px',
                       borderRadius: '12px',
                       background: entry.role === 'user' ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)',
-                      border: `1px solid ${entry.role === 'user' ? 'rgba(77,255,160,0.25)' : 'var(--border)'}`,
+                      border: `1px solid ${entry.role === 'user' ? 'rgba(var(--accent-primary-rgb), 0.25)' : 'var(--border)'}`,
                       color: 'var(--text-primary)',
                       fontSize: '13.5px',
                       lineHeight: 1.55,
@@ -1260,7 +1260,7 @@ function InterviewStudioContent() {
                   style={{
                     display: 'inline-flex', alignItems: 'center', gap: '8px',
                     padding: '12px 24px', borderRadius: '10px',
-                    background: 'var(--accent-primary)', color: '#080C14',
+                    background: 'var(--accent-primary)', color: 'var(--text-on-accent)',
                     fontWeight: 700, fontSize: '14px', textDecoration: 'none',
                     boxShadow: '0 4px 20px var(--accent-primary-glow)',
                   }}
@@ -1563,8 +1563,8 @@ function InterviewStudioContent() {
                       width: '40px',
                       height: '40px',
                       borderRadius: '10px',
-                      background: 'rgba(77,255,160,0.08)',
-                      border: '1px solid rgba(77,255,160,0.2)',
+                      background: 'rgba(var(--accent-primary-rgb), 0.08)',
+                      border: '1px solid rgba(var(--accent-primary-rgb), 0.2)',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -1593,7 +1593,7 @@ function InterviewStudioContent() {
                         </div>
                       </div>
                     ) : (
-                      <div style={{ fontSize: '12px', color: '#FFB547', fontWeight: 600 }}>
+                      <div style={{ fontSize: '12px', color: 'var(--accent-amber)', fontWeight: 600 }}>
                         {session.state === 'IN_PROGRESS' ? '● In Progress' : '● Incomplete'}
                       </div>
                     )}

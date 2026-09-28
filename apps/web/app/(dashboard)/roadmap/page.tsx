@@ -51,7 +51,7 @@ export default function RoadmapPage() {
                 style={{ padding: '24px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', transition: 'border-color 0.2s', cursor: 'pointer' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                   <div style={{ fontSize: '24px' }}>️</div>
-                  <div style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '100px', fontWeight: 600, background: rm.status === 'completed' ? 'rgba(77,255,160,0.1)' : 'rgba(123,97,255,0.1)', color: rm.status === 'completed' ? 'var(--accent-primary)' : '#7B61FF', textTransform: 'capitalize' }}>
+                  <div style={{ padding: '4px 10px', fontSize: '12px', borderRadius: '100px', fontWeight: 600, background: rm.status === 'completed' ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'rgba(var(--accent-violet-rgb), 0.1)', color: rm.status === 'completed' ? 'var(--accent-primary)' : 'var(--accent-violet)', textTransform: 'capitalize' }}>
                     {rm.status}
                   </div>
                 </div>

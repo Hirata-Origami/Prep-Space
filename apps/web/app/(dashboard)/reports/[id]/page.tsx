@@ -81,7 +81,7 @@ export default function ReportDetailPage() {
   if (isLoading) {
     return (
       <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(var(--accent-primary-rgb), 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
         Analyzing your interview data...
       </div>
     );
@@ -166,7 +166,7 @@ export default function ReportDetailPage() {
 
       {/* Main Score Card */}
       <div className="surface" style={{ padding: 'clamp(20px, 4vw, 40px)', display: 'flex', gap: 'clamp(16px, 4vw, 32px)', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap' }}>
-        <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'rgba(77,255,160,0.06)', border: '1px solid rgba(77,255,160,0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'rgba(var(--accent-primary-rgb), 0.06)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
           <div style={{ fontSize: '34px', fontWeight: 900, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
           <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Overall</div>
         </div>
@@ -202,7 +202,7 @@ export default function ReportDetailPage() {
               
               <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
                 {markers.map((m: any, i: number) => {
-                  const color = m.type === 'strong' ? 'var(--accent-primary)' : m.type === 'missed' ? '#FF4D6A' : '#FFB547';
+                  const color = m.type === 'strong' ? 'var(--accent-primary)' : m.type === 'missed' ? 'var(--accent-red)' : 'var(--accent-amber)';
                   return (
                     <div key={i} onClick={() => { if(audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }} 
                       style={{ minWidth: '220px', padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderTop: `4px solid ${color}`, borderRadius: '12px', cursor: 'pointer' }}>
@@ -226,7 +226,7 @@ export default function ReportDetailPage() {
                 <div key={i} className="surface" style={{ padding: '24px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>{i + 1}. {item.question}</div>
-                    <div style={{ fontWeight: 800, color: item.score > 80 ? 'var(--accent-primary)' : '#FFB547' }}>{item.score}%</div>
+                    <div style={{ fontWeight: 800, color: item.score > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
@@ -234,7 +234,7 @@ export default function ReportDetailPage() {
                       <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.user_answer}</div>
                     </div>
                     {item.ideal_answer && (
-                      <div style={{ padding: '16px', background: 'rgba(77,255,160,0.03)', borderRadius: '10px', border: '1px solid rgba(77,255,160,0.1)' }}>
+                      <div style={{ padding: '16px', background: 'rgba(var(--accent-primary-rgb), 0.03)', borderRadius: '10px', border: '1px solid rgba(var(--accent-primary-rgb), 0.1)' }}>
                         <div style={{ fontSize: '10px', fontWeight: 800, color: 'var(--accent-primary)', textTransform: 'uppercase', marginBottom: '8px' }}>Model Feedback</div>
                         <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.ideal_answer}</div>
                       </div>
@@ -283,12 +283,12 @@ export default function ReportDetailPage() {
             </ul>
           </section>
 
-          <section className="surface" style={{ padding: '24px', borderTop: '4px solid #FFB547' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 800, color: '#FFB547', textTransform: 'uppercase', marginBottom: '16px' }}>Next Focus Areas</h3>
+          <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-amber)' }}>
+            <h3 style={{ fontSize: '12px', fontWeight: 800, color: 'var(--accent-amber)', textTransform: 'uppercase', marginBottom: '16px' }}>Next Focus Areas</h3>
             <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {improvements.map((s: string, i: number) => (
                 <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
-                  <span style={{ color: '#FFB547' }}>●</span> {s}
+                  <span style={{ color: 'var(--accent-amber)' }}>●</span> {s}
                 </li>
               ))}
             </ul>
@@ -308,11 +308,11 @@ export default function ReportDetailPage() {
           height: '52px', 
           borderRadius: '50%', 
           background: 'var(--accent-primary)', 
-          color: '#080C14', 
+          color: 'var(--text-on-accent)', 
           border: 'none', 
           cursor: 'pointer', 
           zIndex: 100, 
-          boxShadow: '0 4px 20px rgba(77,255,160,0.3)', 
+          boxShadow: '0 4px 20px rgba(var(--accent-primary-rgb), 0.3)', 
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
@@ -346,12 +346,12 @@ export default function ReportDetailPage() {
             }}
           >
             <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: '#080C14' }}>A</div>
+              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: 'var(--text-on-accent)' }}>A</div>
               <div style={{ fontSize: '14px', fontWeight: 700 }}>Career Coach</div>
             </div>
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
               {chatMessages.map((m, i) => (
-                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: m.role === 'coach' ? '1px solid var(--border)' : 'none', color: m.role === 'user' ? '#080C14' : 'var(--text-primary)', padding: '10px 14px', borderRadius: '12px', maxWidth: '85%', fontSize: '13px' }}>{m.content}</div>
+                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: m.role === 'coach' ? '1px solid var(--border)' : 'none', color: m.role === 'user' ? 'var(--text-on-accent)' : 'var(--text-primary)', padding: '10px 14px', borderRadius: '12px', maxWidth: '85%', fontSize: '13px' }}>{m.content}</div>
               ))}
               {chatLoading && <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Thinking...</div>}
               <div ref={chatEndRef} />

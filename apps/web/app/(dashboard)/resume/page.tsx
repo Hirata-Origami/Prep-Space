@@ -581,7 +581,7 @@ export default function ResumeBuilderPage() {
                     {skillsCat[key] && (
                       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px' }}>
                         {skillsCat[key].split(',').map(s => s.trim()).filter(Boolean).map(s => (
-                          <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '100px', background: 'var(--accent-primary-dim)', color: 'var(--accent-primary)', fontWeight: 600, border: '1px solid rgba(77,255,160,0.2)' }}>{s}</span>
+                          <span key={s} style={{ fontSize: '11px', padding: '3px 10px', borderRadius: '100px', background: 'var(--accent-primary-dim)', color: 'var(--accent-primary)', fontWeight: 600, border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>{s}</span>
                         ))}
                       </div>
                     )}

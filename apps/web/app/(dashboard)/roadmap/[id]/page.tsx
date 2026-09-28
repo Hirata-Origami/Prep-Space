@@ -113,7 +113,7 @@ export default function RoadmapDetailPage() {
   if (isLoading) {
     return (
       <div className="page-container" style={{ textAlign: 'center', color: 'var(--text-muted)', paddingTop: '60px', paddingBottom: '60px' }}>
-        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
+        <div style={{ width: '40px', height: '40px', border: '3px solid rgba(var(--accent-primary-rgb), 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
         Calibrating your learning path...
       </div>
     );
@@ -134,8 +134,8 @@ export default function RoadmapDetailPage() {
   const progressPct = sortedModules.length > 0 ? Math.round((completedCount / sortedModules.length) * 100) : 0;
 
   const statusColor = (status: string) => {
-    if (status === 'completed') return { bg: 'rgba(77,255,160,0.1)', color: 'var(--accent-primary)', border: 'rgba(77,255,160,0.3)' };
-    if (status === 'in_progress') return { bg: 'rgba(123,97,255,0.1)', color: '#7B61FF', border: 'rgba(123,97,255,0.3)' };
+    if (status === 'completed') return { bg: 'rgba(var(--accent-primary-rgb), 0.1)', color: 'var(--accent-primary)', border: 'rgba(var(--accent-primary-rgb), 0.3)' };
+    if (status === 'in_progress') return { bg: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: 'rgba(var(--accent-violet-rgb), 0.3)' };
     return { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'var(--border)' };
   };
 
@@ -169,7 +169,7 @@ export default function RoadmapDetailPage() {
                 </label>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
                   {sortedModules.map((mod, i) => (
-                    <label key={mod.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', background: selectedModuleIds.includes(mod.id) ? 'rgba(77,255,160,0.06)' : 'var(--bg-elevated)', border: `1px solid ${selectedModuleIds.includes(mod.id) ? 'rgba(77,255,160,0.3)' : 'var(--border)'}`, transition: 'all 0.15s' }}>
+                    <label key={mod.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', background: selectedModuleIds.includes(mod.id) ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'var(--bg-elevated)', border: `1px solid ${selectedModuleIds.includes(mod.id) ? 'rgba(var(--accent-primary-rgb), 0.3)' : 'var(--border)'}`, transition: 'all 0.15s' }}>
                       <input
                         type="checkbox"
                         checked={selectedModuleIds.includes(mod.id)}
@@ -216,7 +216,7 @@ export default function RoadmapDetailPage() {
                 >
                   {isEditing ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                       Updating with AI…
                     </span>
                   ) : ' Update Roadmap'}
@@ -240,8 +240,8 @@ export default function RoadmapDetailPage() {
                 borderRadius: '100px',
                 fontSize: '11px',
                 fontWeight: 700,
-                background: roadmap.status === 'completed' ? 'rgba(77,255,160,0.1)' : 'rgba(123,97,255,0.1)',
-                color: roadmap.status === 'completed' ? 'var(--accent-primary)' : '#7B61FF',
+                background: roadmap.status === 'completed' ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'rgba(var(--accent-violet-rgb), 0.1)',
+                color: roadmap.status === 'completed' ? 'var(--accent-primary)' : 'var(--accent-violet)',
                 textTransform: 'uppercase'
               }}>
                 {roadmap.status}
@@ -271,7 +271,7 @@ export default function RoadmapDetailPage() {
                 initial={{ width: 0 }}
                 animate={{ width: `${progressPct}%` }}
                 transition={{ duration: 0.8, ease: 'easeOut' }}
-                style={{ height: '100%', background: progressPct >= 80 ? 'var(--accent-primary)' : 'linear-gradient(90deg, #7B61FF, var(--accent-primary))', borderRadius: '100px', boxShadow: '0 0 8px rgba(77,255,160,0.4)' }}
+                style={{ height: '100%', background: progressPct >= 80 ? 'var(--accent-primary)' : 'linear-gradient(90deg, var(--accent-violet), var(--accent-primary))', borderRadius: '100px', boxShadow: '0 0 8px rgba(var(--accent-primary-rgb), 0.4)' }}
               />
             </div>
           </div>
@@ -295,8 +295,8 @@ export default function RoadmapDetailPage() {
               style={{
                 padding: '24px',
                 position: 'relative',
-                border: `1px solid ${isCompleted ? 'rgba(77,255,160,0.2)' : 'var(--border)'}`,
-                background: isCompleted ? 'rgba(77,255,160,0.02)' : undefined,
+                border: `1px solid ${isCompleted ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'var(--border)'}`,
+                background: isCompleted ? 'rgba(var(--accent-primary-rgb), 0.02)' : undefined,
                 transition: 'all 0.3s'
               }}
             >
@@ -312,7 +312,7 @@ export default function RoadmapDetailPage() {
                   justifyContent: 'center',
                   fontSize: '14px',
                   fontWeight: 800,
-                  color: isCompleted ? '#080C14' : 'var(--text-muted)',
+                  color: isCompleted ? 'var(--text-on-accent)' : 'var(--text-muted)',
                   flexShrink: 0,
                   transition: 'all 0.3s'
                 }}>
@@ -346,7 +346,7 @@ export default function RoadmapDetailPage() {
                   {topics.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
                       {topics.slice(0, 6).map((t: string) => (
-                        <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(123,97,255,0.1)', color: '#7B61FF', border: '1px solid rgba(123,97,255,0.2)', fontWeight: 600 }}>
+                        <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>
                           {t}
                         </span>
                       ))}
@@ -412,7 +412,7 @@ export default function RoadmapDetailPage() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ marginTop: '32px', padding: 'clamp(20px, 4vw, 32px)', background: 'rgba(77,255,160,0.05)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '16px', textAlign: 'center' }}
+          style={{ marginTop: '32px', padding: 'clamp(20px, 4vw, 32px)', background: 'rgba(var(--accent-primary-rgb), 0.05)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', borderRadius: '16px', textAlign: 'center' }}
         >
           <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
           <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>

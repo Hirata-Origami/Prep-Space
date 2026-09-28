@@ -211,7 +211,7 @@ export default function GroupDashboardPage() {
         {myRole !== 'admin' && (
           <button
             onClick={handleLeaveGroup}
-            style={{ padding: '8px 18px', background: 'rgba(255,77,106,0.08)', border: '1px solid rgba(255,77,106,0.25)', color: '#FF4D6A', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-body)' }}
+            style={{ padding: '8px 18px', background: 'rgba(var(--accent-red-rgb), 0.08)', border: '1px solid rgba(var(--accent-red-rgb), 0.25)', color: 'var(--accent-red)', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-body)' }}
           >
             Leave Group
           </button>
@@ -291,7 +291,7 @@ export default function GroupDashboardPage() {
                       View
                     </Link>
                     {myRole === 'admin' && (
-                      <button onClick={() => handleAssignRoadmap(r.id, 'remove')} className="btn-secondary" style={{ color: '#FF4D6A', borderColor: 'rgba(255,77,106,0.2)' }}>
+                      <button onClick={() => handleAssignRoadmap(r.id, 'remove')} className="btn-secondary" style={{ color: 'var(--accent-red)', borderColor: 'rgba(var(--accent-red-rgb), 0.2)' }}>
                         Remove
                       </button>
                     )}

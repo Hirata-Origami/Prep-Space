@@ -48,11 +48,11 @@ export function ProblemSection() {
             initial={{ opacity: 0, x: -30 }} animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="card"
-            style={{ borderColor: 'rgba(255,77,106,0.3)' }}
+            style={{ borderColor: 'rgba(var(--accent-red-rgb), 0.3)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
-              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#FF4D6A', display: 'inline-block' }} />
-              <span style={{ fontSize: '13px', color: '#FF4D6A', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Without PrepSpace</span>
+              <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-red)', display: 'inline-block' }} />
+              <span style={{ fontSize: '13px', color: 'var(--accent-red)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Without PrepSpace</span>
             </div>
             <div style={{ background: 'var(--bg-elevated)', borderRadius: '8px', padding: '16px', fontFamily: 'var(--font-mono)', fontSize: '14px', color: 'var(--text-muted)', lineHeight: 1.8, minHeight: '160px', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
               <span style={{ color: 'var(--text-muted)', opacity: 0.7 }}>Candidate: </span>
@@ -60,7 +60,7 @@ export function ProblemSection() {
             </div>
             <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
               {['Missing technical precision', 'No structured answer', 'Filler words: 5x "like", 4x "um"'].map(flag => (
-                <div key={flag} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#FF4D6A' }}>
+                <div key={flag} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: 'var(--accent-red)' }}>
                   <span></span> {flag}
                 </div>
               ))}
@@ -72,7 +72,7 @@ export function ProblemSection() {
             initial={{ opacity: 0, x: 30 }} animate={isInView ? { opacity: 1, x: 0 } : {}}
             transition={{ duration: 0.6, delay: 0.35 }}
             className="card"
-            style={{ borderColor: 'rgba(77,255,160,0.3)' }}
+            style={{ borderColor: 'rgba(var(--accent-primary-rgb), 0.3)' }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px' }}>
               <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'inline-block' }} />

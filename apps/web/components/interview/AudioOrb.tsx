@@ -53,10 +53,10 @@ export function AudioOrb({ status, waveData = [], className }: AudioOrbProps) {
       }
 
       // Color scheme based on state
-      let coreColor1 = 'rgba(77, 255, 160, 0.9)';   // emerald
+      let coreColor1 = 'rgba(var(--accent-primary-rgb), 0.9)';   // emerald
       let coreColor2 = 'rgba(0, 210, 255, 0.8)';   // cyan
-      let outerGlow = 'rgba(77, 255, 160, 0.25)';
-      let rimColor = '#4DFFA0';
+      let outerGlow = 'rgba(var(--accent-primary-rgb), 0.25)';
+      let rimColor = 'var(--accent-primary)';
 
       if (status === 'speaking') {
         coreColor1 = 'rgba(0, 240, 255, 0.95)';

@@ -43,8 +43,8 @@ export default function MockCompanyPage() {
   };
 
   const difficultyColor = (d: number) => {
-    if (d >= 9) return '#FF4D6A';
-    if (d >= 8) return '#FFB547';
+    if (d >= 9) return 'var(--accent-red)';
+    if (d >= 8) return 'var(--accent-amber)';
     return 'var(--accent-primary)';
   };
 
@@ -89,7 +89,7 @@ export default function MockCompanyPage() {
                 padding: '22px',
                 cursor: 'pointer',
                 border: selected?.id === company.id ? '1px solid var(--accent-primary)' : '1px solid var(--border)',
-                background: selected?.id === company.id ? 'rgba(77,255,160,0.04)' : undefined,
+                background: selected?.id === company.id ? 'rgba(var(--accent-primary-rgb), 0.04)' : undefined,
                 transition: 'all 0.15s',
               }}
               whileHover={{ y: -3 }}
@@ -114,7 +114,7 @@ export default function MockCompanyPage() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
                 {(company.rounds || []).slice(0, 3).map((r: string) => (
-                  <span key={r} style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(77,255,160,0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(77,255,160,0.15)' }}>
+                  <span key={r} style={{ fontSize: '10px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)' }}>
                     {r}
                   </span>
                 ))}
@@ -126,7 +126,7 @@ export default function MockCompanyPage() {
               </div>
 
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px', color: 'var(--text-muted)' }}>
-                <span>Pass rate: <strong style={{ color: company.community_pass_rate > 65 ? 'var(--accent-primary)' : company.community_pass_rate > 55 ? '#FFB547' : '#FF4D6A' }}>{company.community_pass_rate}%</strong></span>
+                <span>Pass rate: <strong style={{ color: company.community_pass_rate > 65 ? 'var(--accent-primary)' : company.community_pass_rate > 55 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>{company.community_pass_rate}%</strong></span>
                 {selected?.id === company.id ? <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}> Selected</span> : <span style={{ color: 'var(--text-muted)' }}>Click to select</span>}
               </div>
             </motion.div>
@@ -141,7 +141,7 @@ export default function MockCompanyPage() {
           animate={{ opacity: 1, y: 0 }}
           style={{ marginTop: '28px' }}
         >
-          <div className="card" style={{ padding: '28px', border: '1px solid rgba(77,255,160,0.25)', background: 'rgba(77,255,160,0.02)' }}>
+          <div className="card" style={{ padding: '28px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)', background: 'rgba(var(--accent-primary-rgb), 0.02)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
               <div style={{ flex: 1, minWidth: '280px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
@@ -196,7 +196,7 @@ export default function MockCompanyPage() {
                     <div style={{ fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '6px' }}>Topics Covered</div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                       {(selected.round_topics?.[selectedRound] ?? []).map(t => (
-                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(123,97,255,0.1)', color: '#7B61FF', border: '1px solid rgba(123,97,255,0.2)', fontWeight: 600 }}>{t}</span>
+                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                       ))}
                     </div>
                   </div>

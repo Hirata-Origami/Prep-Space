@@ -67,7 +67,7 @@ export default function ReportsPage() {
 
       {showLoading ? (
         <div style={{ padding: '80px', textAlign: 'center', color: 'var(--text-muted)' }}>
-          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(77,255,160,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
+          <div style={{ width: '40px', height: '40px', border: '3px solid rgba(var(--accent-primary-rgb), 0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto 20px' }} />
           Loading your reports...
         </div>
       ) : sessions.length === 0 ? (
@@ -105,7 +105,7 @@ export default function ReportsPage() {
                   background: 'var(--bg-surface)',
                   flexWrap: 'wrap',
                 }}
-                onMouseEnter={e => report && (e.currentTarget.style.borderColor = 'rgba(77,255,160,0.3)')}
+                onMouseEnter={e => report && (e.currentTarget.style.borderColor = 'rgba(var(--accent-primary-rgb), 0.3)')}
                 onMouseLeave={e => report && (e.currentTarget.style.borderColor = 'var(--border)')}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '16px', minWidth: 0, flex: 1 }}>
@@ -113,8 +113,8 @@ export default function ReportsPage() {
                     width: '44px',
                     height: '44px',
                     borderRadius: '12px',
-                    background: 'rgba(77,255,160,0.08)',
-                    border: '1px solid rgba(77,255,160,0.2)',
+                    background: 'rgba(var(--accent-primary-rgb), 0.08)',
+                    border: '1px solid rgba(var(--accent-primary-rgb), 0.2)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -141,7 +141,7 @@ export default function ReportsPage() {
                       <div style={{ fontSize: '10px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Score</div>
                     </div>
                   ) : (
-                    <div style={{ fontSize: '12px', color: '#FFB547', fontWeight: 600, whiteSpace: 'nowrap' }}>
+                    <div style={{ fontSize: '12px', color: 'var(--accent-amber)', fontWeight: 600, whiteSpace: 'nowrap' }}>
                       {session.state === 'IN_PROGRESS' ? '● In Progress' : '● Processing...'}
                     </div>
                   )}

@@ -157,7 +157,7 @@ export default function GroupsPage() {
                   { id: 'public', icon: '', label: 'Public', desc: 'Anyone can join, read-only admin view', limit: 'Unlimited' },
                 ].map(a => (
                   <div key={a.id} onClick={() => setAccessType(a.id as typeof accessType)}
-                    style={{ display: 'flex', gap: '12px', padding: '12px 14px', borderRadius: '8px', border: `1px solid ${accessType === a.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: accessType === a.id ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)', cursor: 'pointer' }}>
+                    style={{ display: 'flex', gap: '12px', padding: '12px 14px', borderRadius: '8px', border: `1px solid ${accessType === a.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: accessType === a.id ? 'rgba(var(--accent-primary-rgb), 0.04)' : 'var(--bg-elevated)', cursor: 'pointer' }}>
                     <span style={{ fontSize: '20px' }}>{a.icon}</span>
                     <div>
                       <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{a.label}</div>

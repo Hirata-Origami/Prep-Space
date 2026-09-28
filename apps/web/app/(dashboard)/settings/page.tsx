@@ -161,7 +161,7 @@ export default function SettingsPage() {
               {getTabIcon(tab)}
               <span>{tab}</span>
               {tab === 'AI API Key' && !user?.has_gemini_key && (
-                <span style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: '#FFB547', flexShrink: 0 }} />
+                <span style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-amber)', flexShrink: 0 }} />
               )}
             </button>
           ))}
@@ -180,7 +180,7 @@ export default function SettingsPage() {
               fontFamily: 'var(--font-body)',
               textAlign: 'left',
               background: 'transparent',
-              color: '#FF4D6A',
+              color: 'var(--accent-red)',
             }}
           >
             Sign Out
@@ -196,7 +196,7 @@ export default function SettingsPage() {
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Update your personal information and career targets</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, #7B61FF, #4DFFA0)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 900, color: '#080C14' }} suppressHydrationWarning>
+                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-violet), var(--accent-primary))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 900, color: 'var(--text-on-accent)' }} suppressHydrationWarning>
                   {mounted ? (user?.full_name?.[0]?.toUpperCase() ?? 'U') : 'U'}
                 </div>
                 <div>
@@ -226,14 +226,14 @@ export default function SettingsPage() {
 
               <div style={{
                 padding: '16px',
-                background: user?.has_gemini_key ? 'rgba(77,255,160,0.06)' : 'rgba(255,181,71,0.06)',
-                border: `1px solid ${user?.has_gemini_key ? 'rgba(77,255,160,0.2)' : 'rgba(255,181,71,0.2)'}`,
+                background: user?.has_gemini_key ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'rgba(var(--accent-amber-rgb), 0.06)',
+                border: `1px solid ${user?.has_gemini_key ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'rgba(var(--accent-amber-rgb), 0.2)'}`,
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '12px',
               }}>
-                {user?.has_gemini_key ? <CheckCircle2 size={24} color="#4DFFA0" /> : <AlertCircle size={24} color="#FFB547" />}
+                {user?.has_gemini_key ? <CheckCircle2 size={24} color="var(--accent-primary)" /> : <AlertCircle size={24} color="var(--accent-amber)" />}
                 <div>
                   <div style={{ fontSize: '14px', fontWeight: 700, color: user?.has_gemini_key ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>
                     {user?.has_gemini_key ? 'AI API key is active' : 'No personal API key saved'}
@@ -297,7 +297,7 @@ export default function SettingsPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {[
                   { id: 'light', label: 'Light', desc: 'Clean, modern light palette for bright environments', color: '#F8FAFC', border: '#CBD5E1' },
-                  { id: 'dark', label: 'Dark', desc: 'High-contrast midnight theme tailored for code and diagrams', color: '#080C14', border: '#131D2E' },
+                  { id: 'dark', label: 'Dark', desc: 'High-contrast midnight theme tailored for code and diagrams', color: 'var(--text-on-accent)', border: '#131D2E' },
                 ].map((t) => {
                   const isSelected = currentTheme === t.id;
                   return (
@@ -311,7 +311,7 @@ export default function SettingsPage() {
                         padding: '16px',
                         borderRadius: '12px',
                         border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border)'}`,
-                        background: isSelected ? 'rgba(77,255,160,0.04)' : 'var(--bg-elevated)',
+                        background: isSelected ? 'rgba(var(--accent-primary-rgb), 0.04)' : 'var(--bg-elevated)',
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
@@ -347,7 +347,7 @@ export default function SettingsPage() {
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</div>
                   </div>
                   <div style={{ width: '44px', height: '24px', borderRadius: '12px', background: on ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: on ? 'none' : '1px solid var(--border)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-                    <div style={{ position: 'absolute', top: '3px', left: on ? '22px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: on ? '#080C14' : 'var(--text-muted)', transition: 'left 0.2s' }} />
+                    <div style={{ position: 'absolute', top: '3px', left: on ? '22px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: on ? 'var(--text-on-accent)' : 'var(--text-muted)', transition: 'left 0.2s' }} />
                   </div>
                 </div>
               ))}

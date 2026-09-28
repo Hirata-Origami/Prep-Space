@@ -137,7 +137,7 @@ export default function NewCompanyPage() {
                 />
                 <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                   {['Zepto', 'Zomato', 'Razorpay', 'Figma', 'Linear', 'Notion', 'Vercel', 'Anthropic'].map(c => (
-                    <button key={c} onClick={() => setCompanyName(c)} style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: companyName === c ? 'rgba(77,255,160,0.1)' : 'var(--bg-elevated)', color: companyName === c ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{c}</button>
+                    <button key={c} onClick={() => setCompanyName(c)} style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '11px', fontWeight: 600, border: '1px solid var(--border)', background: companyName === c ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: companyName === c ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{c}</button>
                   ))}
                 </div>
               </div>
@@ -201,7 +201,7 @@ export default function NewCompanyPage() {
                 />
               </div>
 
-              <div style={{ padding: '12px 14px', background: 'rgba(77,255,160,0.04)', border: '1px solid rgba(77,255,160,0.2)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
+              <div style={{ padding: '12px 14px', background: 'rgba(var(--accent-primary-rgb), 0.04)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
                  AI will research known interview patterns at <strong style={{ color: 'var(--accent-primary)' }}>{companyName || 'this company'}</strong> and create a realistic interview format with per-round topic coverage.
               </div>
 
@@ -213,7 +213,7 @@ export default function NewCompanyPage() {
               >
                 {generating ? (
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <span style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                    <span style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                     Researching interview patterns…
                   </span>
                 ) : ' Generate Company Profile'}
@@ -233,13 +233,13 @@ export default function NewCompanyPage() {
               </div>
             </div>
 
-            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', border: '1px solid rgba(77,255,160,0.2)' }}>
+            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '48px' }}>{generatedCompany.logo_emoji}</span>
                 <div>
                   <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 800, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    {generatedCompany.industry} • {generatedCompany.size} • Difficulty: <strong style={{ color: generatedCompany.difficulty_rating >= 9 ? '#FF4D6A' : '#FFB547' }}>{generatedCompany.difficulty_rating}/10</strong>
+                    {generatedCompany.industry} • {generatedCompany.size} • Difficulty: <strong style={{ color: generatedCompany.difficulty_rating >= 9 ? 'var(--accent-red)' : 'var(--accent-amber)' }}>{generatedCompany.difficulty_rating}/10</strong>
                   </div>
                 </div>
               </div>
@@ -255,7 +255,7 @@ export default function NewCompanyPage() {
                       {topics.length > 0 && (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
                           {topics.map((t: string) => (
-                            <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(123,97,255,0.1)', color: '#7B61FF', border: '1px solid rgba(123,97,255,0.2)', fontWeight: 600 }}>{t}</span>
+                            <span key={t} style={{ fontSize: '11px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                           ))}
                         </div>
                       )}

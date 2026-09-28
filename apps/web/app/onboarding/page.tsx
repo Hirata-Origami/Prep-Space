@@ -67,8 +67,8 @@ export default function OnboardingPage() {
 
         <div className="card p-6 sm:p-10" style={{ position: 'relative', zIndex: 1, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}>
           <div style={{ textAlign: 'center', marginBottom: '28px' }}>
-            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--accent-primary), #00D4FF)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(77, 255, 160, 0.2)' }}>
-              <Zap size={24} color="#080C14" strokeWidth={3} />
+            <div style={{ width: '48px', height: '48px', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-cyan))', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', boxShadow: '0 0 30px rgba(var(--accent-primary-rgb), 0.2)' }}>
+              <Zap size={24} color="var(--text-on-accent)" strokeWidth={3} />
             </div>
             <h1 style={{ fontSize: 'clamp(20px, 3vw, 24px)', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>Finalize Your Edge</h1>
             <p style={{ fontSize: '13.5px', color: 'var(--text-muted)' }}>Help PrepSpace calibrate your training environment.</p>

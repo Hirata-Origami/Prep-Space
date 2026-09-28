@@ -62,9 +62,9 @@ export function PricingSection() {
 
           {/* Annual toggle */}
           <div style={{ display: 'inline-flex', alignItems: 'center', gap: '12px', background: 'var(--bg-elevated)', borderRadius: '100px', padding: '6px 12px' }}>
-            <button onClick={() => setIsAnnual(false)} style={{ padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', background: !isAnnual ? 'var(--accent-primary)' : 'transparent', color: !isAnnual ? '#080C14' : 'var(--text-muted)', transition: 'all 0.2s' }}>Monthly</button>
-            <button onClick={() => setIsAnnual(true)} style={{ padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', background: isAnnual ? 'var(--accent-primary)' : 'transparent', color: isAnnual ? '#080C14' : 'var(--text-muted)', transition: 'all 0.2s' }}>
-              Annual <span style={{ color: isAnnual ? '#080C14' : 'var(--accent-amber)', fontSize: '11px', fontWeight: 700 }}>-20%</span>
+            <button onClick={() => setIsAnnual(false)} style={{ padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', background: !isAnnual ? 'var(--accent-primary)' : 'transparent', color: !isAnnual ? 'var(--text-on-accent)' : 'var(--text-muted)', transition: 'all 0.2s' }}>Monthly</button>
+            <button onClick={() => setIsAnnual(true)} style={{ padding: '6px 16px', borderRadius: '100px', fontSize: '13px', fontWeight: 600, border: 'none', cursor: 'pointer', fontFamily: 'var(--font-body)', background: isAnnual ? 'var(--accent-primary)' : 'transparent', color: isAnnual ? 'var(--text-on-accent)' : 'var(--text-muted)', transition: 'all 0.2s' }}>
+              Annual <span style={{ color: isAnnual ? 'var(--text-on-accent)' : 'var(--accent-amber)', fontSize: '11px', fontWeight: 700 }}>-20%</span>
             </button>
           </div>
         </motion.div>
@@ -76,10 +76,10 @@ export function PricingSection() {
               initial={{ opacity: 0, y: 30 }} animate={isInView ? { opacity: 1, y: 0 } : {}}
               transition={{ duration: 0.6, delay: i * 0.1 }}
               className={plan.name === 'Pro' ? 'card glow-mint' : 'card'}
-              style={{ display: 'flex', flexDirection: 'column', position: 'relative', borderColor: plan.name === 'Pro' ? 'rgba(77,255,160,0.35)' : undefined }}
+              style={{ display: 'flex', flexDirection: 'column', position: 'relative', borderColor: plan.name === 'Pro' ? 'rgba(var(--accent-primary-rgb), 0.35)' : undefined }}
             >
               {plan.badge && (
-                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-primary)', color: '#080C14', fontSize: '11px', fontWeight: 800, padding: '4px 12px', borderRadius: '100px', whiteSpace: 'nowrap' }}>
+                <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--accent-primary)', color: 'var(--text-on-accent)', fontSize: '11px', fontWeight: 800, padding: '4px 12px', borderRadius: '100px', whiteSpace: 'nowrap' }}>
                   {plan.badge}
                 </div>
               )}

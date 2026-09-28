@@ -76,22 +76,22 @@ export default function LeaderboardPage() {
                 {top3[1] ? (
                   <>
                     <div style={{ fontSize: '36px', marginBottom: '8px' }}>🥈</div>
-                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #B8C4E0, #6B7A99)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: '#080C14', margin: '0 auto 10px' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--text-secondary), var(--text-muted))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px', fontWeight: 800, color: 'var(--text-on-accent)', margin: '0 auto 10px' }}>
                       {top3[1].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{top3[1].full_name}</div>
                     <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px' }}>{top3[1].target_role ?? 'Candidate'}</div>
-                    <div style={{ fontSize: '20px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: '#B8C4E0' }}>{(top3[1].xp).toLocaleString()} XP</div>
+                    <div style={{ fontSize: '20px', fontWeight: 900, fontFamily: 'var(--font-mono)', color: 'var(--text-secondary)' }}>{(top3[1].xp).toLocaleString()} XP</div>
                   </>
                 ) : <div style={{ opacity: 0.3, fontSize: '32px' }}>—</div>}
               </div>
 
               {/* 1st */}
-              <div className="card glow-mint" style={{ padding: '24px', textAlign: 'center', borderColor: 'rgba(77,255,160,0.4)', background: 'rgba(77,255,160,0.04)' }}>
+              <div className="card glow-mint" style={{ padding: '24px', textAlign: 'center', borderColor: 'rgba(var(--accent-primary-rgb), 0.4)', background: 'rgba(var(--accent-primary-rgb), 0.04)' }}>
                 {top3[0] ? (
                   <>
                     <div style={{ fontSize: '44px', marginBottom: '8px' }}>🥇</div>
-                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, #4DFFA0, #00D4FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, color: '#080C14', margin: '0 auto 10px' }}>
+                    <div style={{ width: '56px', height: '56px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-cyan))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '22px', fontWeight: 900, color: 'var(--text-on-accent)', margin: '0 auto 10px' }}>
                       {top3[0].full_name?.[0]?.toUpperCase() ?? '?'}
                     </div>
                     <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)' }}>{top3[0].full_name}</div>
@@ -146,7 +146,7 @@ export default function LeaderboardPage() {
                         </div>
                       </td>
                       <td style={{ padding: '14px 16px', fontFamily: 'var(--font-mono)', fontSize: '14px', fontWeight: 700, color: 'var(--accent-primary)' }}>{(u.xp).toLocaleString()} XP</td>
-                      <td style={{ padding: '14px 16px', fontSize: '13px', color: u.streak_days > 0 ? '#FFB547' : 'var(--text-muted)' }}>{u.streak_days > 0 ? `🔥 ${u.streak_days}d` : '—'}</td>
+                      <td style={{ padding: '14px 16px', fontSize: '13px', color: u.streak_days > 0 ? 'var(--accent-amber)' : 'var(--text-muted)' }}>{u.streak_days > 0 ? `🔥 ${u.streak_days}d` : '—'}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -164,9 +164,9 @@ export default function LeaderboardPage() {
 
           {/* Your position */}
           {data?.userRank && (
-            <div style={{ marginTop: '16px', padding: '16px 20px', background: 'rgba(77,255,160,0.06)', borderRadius: '10px', border: '1px solid rgba(77,255,160,0.2)', display: 'flex', alignItems: 'center', gap: '14px' }}>
+            <div style={{ marginTop: '16px', padding: '16px 20px', background: 'rgba(var(--accent-primary-rgb), 0.06)', borderRadius: '10px', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', gap: '14px' }}>
               <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>#{data.userRank}</div>
-              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #4DFFA0, #7B61FF)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: '#080C14' }}>Y</div>
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, var(--accent-primary), var(--accent-violet))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 800, color: 'var(--text-on-accent)' }}>Y</div>
               <div>
                 <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>You</div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Your current global rank</div>

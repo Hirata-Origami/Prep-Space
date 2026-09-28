@@ -171,7 +171,7 @@ export default function NewRoadmapPage() {
               exit={{ opacity: 0, height: 0 }}
               style={{ overflow: 'hidden', marginBottom: '24px' }}
             >
-              <div className="card" style={{ padding: '24px', border: '1px solid rgba(77,255,160,0.25)', background: 'rgba(77,255,160,0.02)' }}>
+              <div className="card" style={{ padding: '24px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)', background: 'rgba(var(--accent-primary-rgb), 0.02)' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '4px' }}>Refine this Roadmap</h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
                   Select specific modules to update (or leave empty for full roadmap changes), then describe what to change.
@@ -192,7 +192,7 @@ export default function NewRoadmapPage() {
                         cursor: 'pointer',
                         fontFamily: 'var(--font-body)',
                         transition: 'all 0.15s',
-                        background: selectedModuleIds.includes(i.toString()) ? 'rgba(77,255,160,0.15)' : 'var(--bg-elevated)',
+                        background: selectedModuleIds.includes(i.toString()) ? 'rgba(var(--accent-primary-rgb), 0.15)' : 'var(--bg-elevated)',
                         borderColor: selectedModuleIds.includes(i.toString()) ? 'var(--accent-primary)' : 'var(--border)',
                         color: selectedModuleIds.includes(i.toString()) ? 'var(--accent-primary)' : 'var(--text-muted)',
                       }}
@@ -228,7 +228,7 @@ export default function NewRoadmapPage() {
           )}
         </AnimatePresence>
 
-        <div className="card" style={{ marginBottom: '20px', border: '1px solid rgba(77,255,160,0.25)' }}>
+        <div className="card" style={{ marginBottom: '20px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)' }}>
           <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--text-primary)', marginBottom: '8px' }}>{generatedRoadmap.title}</div>
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>{generatedRoadmap.description}</div>
         </div>
@@ -237,14 +237,14 @@ export default function NewRoadmapPage() {
           {(generatedRoadmap.modules ?? []).map((m: any, i: number) => (
             <div key={i} className="card" style={{ padding: '20px', transition: 'all 0.2s' }}>
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(77,255,160,0.1)', border: '1px solid rgba(77,255,160,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(var(--accent-primary-rgb), 0.1)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 800, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{m.title}</div>
                   <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '10px' }}>{m.description}</div>
                   {m.interview_topics?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                       {m.interview_topics.slice(0, 5).map((t: string) => (
-                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(123,97,255,0.1)', color: '#7B61FF', border: '1px solid rgba(123,97,255,0.2)', fontWeight: 600 }}>{t}</span>
+                        <span key={t} style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
                       ))}
                       {m.interview_topics.length > 5 && <span style={{ fontSize: '10px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{m.interview_topics.length - 5}</span>}
                     </div>
@@ -252,7 +252,7 @@ export default function NewRoadmapPage() {
                   {m.skills?.length > 0 && (
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
                       {m.skills.map((s: string) => (
-                        <span key={s} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(77,255,160,0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
+                        <span key={s} style={{ fontSize: '11px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
                       ))}
                     </div>
                   )}
@@ -291,7 +291,7 @@ export default function NewRoadmapPage() {
           { id: 'custom', icon: '️', label: 'Manual', desc: 'Build it yourself' },
         ] as { id: Mode; icon: string; label: string; desc: string }[]).map(({ id, icon, label, desc }) => (
           <button key={id} onClick={() => setMode(id)}
-            style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${mode === id ? 'var(--accent-primary)' : 'var(--border)'}`, background: mode === id ? 'rgba(77,255,160,0.06)' : 'var(--bg-elevated)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
+            style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${mode === id ? 'var(--accent-primary)' : 'var(--border)'}`, background: mode === id ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'var(--bg-elevated)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
             <div style={{ fontSize: '24px', marginBottom: '8px' }}>{icon}</div>
             <div style={{ fontSize: '14px', fontWeight: 700, color: mode === id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{label}</div>
             <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</div>
@@ -307,7 +307,7 @@ export default function NewRoadmapPage() {
             <input className="input" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Senior Frontend Engineer at Google" style={{ width: '100%', marginBottom: '16px' }} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
               {['Frontend Engineer', 'ML Engineer', 'Product Manager', 'Backend Engineer', 'Data Scientist', 'DevOps Engineer', 'Systems Engineer', 'Mobile Engineer'].map(r => (
-                <button key={r} onClick={() => setRole(r)} style={{ padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: role === r ? 'rgba(77,255,160,0.1)' : 'var(--bg-elevated)', color: role === r ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>{r}</button>
+                <button key={r} onClick={() => setRole(r)} style={{ padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: role === r ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: role === r ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>{r}</button>
               ))}
             </div>
           </div>
@@ -317,7 +317,7 @@ export default function NewRoadmapPage() {
           <div>
             <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Job Description</label>
             <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(77,255,160,0.03)', border: '1px dashed rgba(77,255,160,0.3)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s', opacity: parsing ? 0.6 : 1 }}>
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(var(--accent-primary-rgb), 0.03)', border: '1px dashed rgba(var(--accent-primary-rgb), 0.3)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s', opacity: parsing ? 0.6 : 1 }}>
                 <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsing} />
                 <span style={{ fontSize: '24px', marginBottom: '8px' }}>{parsing ? '⌛' : ''}</span>
                 <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{parsing ? 'Parsing File...' : 'Upload JD (PDF, DOCX, TXT)'}</span>
@@ -339,13 +339,13 @@ export default function NewRoadmapPage() {
 
         {mode !== 'custom' && (
           <>
-            <div style={{ padding: '10px 14px', background: 'rgba(77,255,160,0.04)', border: '1px solid rgba(77,255,160,0.15)', borderRadius: '8px', marginBottom: '14px', fontSize: '12px', color: 'var(--text-muted)' }}>
+            <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-primary-rgb), 0.04)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', borderRadius: '8px', marginBottom: '14px', fontSize: '12px', color: 'var(--text-muted)' }}>
                Will generate <strong style={{ color: 'var(--accent-primary)' }}>16-20 comprehensive modules</strong> covering 90%+ of knowledge needed to crack this role
             </div>
             <button onClick={handleGenerate} disabled={loading || (mode === 'generate' && !role) || (mode === 'jd' && !jd)} className="btn-primary" style={{ width: '100%', fontSize: '15px', padding: '14px', opacity: loading ? 0.7 : 1 }}>
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: '#080C14', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
+                  <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
                   Generating 16+ modules…
                 </span>
               ) : ' Generate Roadmap with AI'}
@@ -355,9 +355,9 @@ export default function NewRoadmapPage() {
       </div>
 
       {!user?.has_gemini_key && (
-        <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(255,181,71,0.06)', border: '1px solid rgba(255,181,71,0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(var(--accent-amber-rgb), 0.06)', border: '1px solid rgba(var(--accent-amber-rgb), 0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
           <span>️</span>
-          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: '#FFB547', fontWeight: 600 }}>Add one in Settings →</a></span>
+          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Add one in Settings →</a></span>
         </div>
       )}
     </div>

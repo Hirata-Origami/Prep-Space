@@ -1,18 +1,12 @@
 'use client';
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
+import { ThemeProvider } from 'next-themes';
 import { Toaster } from 'sonner';
 import { SWRConfig } from 'swr';
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  useEffect(() => {
-    try {
-      const savedTheme = localStorage.getItem('prepspace_theme') || 'light';
-      document.documentElement.dataset.theme = savedTheme;
-    } catch {}
-  }, []);
-
   const [queryClient] = useState(
     () =>
       new QueryClient({
@@ -26,36 +20,49 @@ export function Providers({ children }: { children: React.ReactNode }) {
   );
 
   return (
-    <SWRConfig
-      value={{
-        fetcher: (url: string) => fetch(url).then(res => res.json()),
-        provider: () => {
-          if (typeof window === 'undefined') return new Map();
-          const map = new Map(JSON.parse(localStorage.getItem('app-cache') || '[]'));
-          window.addEventListener('beforeunload', () => {
-            const appCache = JSON.stringify(Array.from(map.entries()));
-            localStorage.setItem('app-cache', appCache);
-          });
-          return map;
-        },
-        revalidateOnFocus: false,
-        revalidateIfStale: true,
-      }}
+    <ThemeProvider
+      attribute="data-theme"
+      defaultTheme="dark"
+      themes={['light', 'dark']}
+      storageKey="prepspace_theme"
+      enableSystem={false}
+      disableTransitionOnChange
     >
-      <QueryClientProvider client={queryClient}>
-        {children}
-        <Toaster
-          position="bottom-right"
-          toastOptions={{
-            style: {
-              background: 'var(--bg-elevated)',
-              border: '1px solid var(--border)',
-              color: 'var(--text-primary)',
-              fontFamily: 'var(--font-body)',
-            },
-          }}
-        />
-      </QueryClientProvider>
-    </SWRConfig>
+      <SWRConfig
+        value={{
+          fetcher: (url: string) => fetch(url).then(res => res.json()),
+          provider: () => {
+            if (typeof window === 'undefined') return new Map();
+            const map = new Map(JSON.parse(localStorage.getItem('app-cache') || '[]'));
+            window.addEventListener('beforeunload', () => {
+              const appCache = JSON.stringify(Array.from(map.entries()));
+              localStorage.setItem('app-cache', appCache);
+            });
+            return map;
+          },
+          revalidateOnFocus: false,
+          revalidateIfStale: true,
+        }}
+      >
+        <QueryClientProvider client={queryClient}>
+          {children}
+          <Toaster
+            position="bottom-right"
+            closeButton
+            toastOptions={{
+              style: {
+                background: 'var(--bg-elevated)',
+                border: '1px solid var(--border-hover)',
+                borderRadius: 'var(--radius-panel)',
+                color: 'var(--text-primary)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '14px',
+                boxShadow: 'var(--shadow-float)',
+              },
+            }}
+          />
+        </QueryClientProvider>
+      </SWRConfig>
+    </ThemeProvider>
   );
 }

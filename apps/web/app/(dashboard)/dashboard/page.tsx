@@ -123,8 +123,8 @@ function GeminiKeyBanner({ hasKey }: { hasKey: boolean }) {
     <div
       style={{
         padding: '16px 22px',
-        background: 'linear-gradient(135deg, rgba(123,97,255,0.12), rgba(77,255,160,0.08))',
-        border: '1px solid rgba(123,97,255,0.3)',
+        background: 'linear-gradient(135deg, rgba(var(--accent-violet-rgb), 0.12), rgba(var(--accent-primary-rgb), 0.08))',
+        border: '1px solid rgba(var(--accent-violet-rgb), 0.3)',
         borderRadius: '14px',
         display: 'flex',
         alignItems: 'center',
@@ -365,7 +365,7 @@ export default function DashboardPage() {
           label="Average Score"
           value={avgScore !== null ? `${avgScore}%` : '—'}
           icon={TrendingUp}
-          color="#7B61FF"
+          color="var(--accent-violet)"
           trend={avgScore && avgScore >= 75 ? 'Ready' : undefined}
           subtitle={avgScore ? 'Performance' : 'Awaiting 1st Score'}
         />
@@ -373,7 +373,7 @@ export default function DashboardPage() {
           label="Active Day Streak"
           value={user?.streak_days ?? 0}
           icon={Flame}
-          color="#FFB547"
+          color="var(--accent-amber)"
           trend={(user?.streak_days ?? 0) > 0 ? `${user?.streak_days}d fire` : undefined}
           subtitle="Daily Habit"
         />
@@ -654,10 +654,10 @@ export default function DashboardPage() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                <Flame size={16} color="#FFB547" />
+                <Flame size={16} color="var(--accent-amber)" />
                 <span>Daily Practice Streak</span>
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 700, color: '#FFB547' }}>
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-amber)' }}>
                 {user?.streak_days ?? 0} Days
               </span>
             </div>
@@ -820,7 +820,7 @@ export default function DashboardPage() {
               const score = report?.overall_score ?? s.overall_score;
               const isHigh = typeof score === 'number' && score >= 80;
               const isMid = typeof score === 'number' && score >= 60;
-              const scoreColor = isHigh ? 'var(--accent-primary)' : isMid ? '#FFB547' : '#FF4D6A';
+              const scoreColor = isHigh ? 'var(--accent-primary)' : isMid ? 'var(--accent-amber)' : 'var(--accent-red)';
               const sessionTitle = s.plan?.topic || s.plan?.role || s.role || (s.interview_type === 'teach' ? 'Topic Tutoring' : 'Technical Interview');
 
               return (
