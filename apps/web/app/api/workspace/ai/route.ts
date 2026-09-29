@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel } from '@/lib/gemini';
-import { CODE_ACTIONS, DIAGRAM_ACTIONS, runCodeAction, runDiagramAction, type CodeAction, type DiagramAction } from '@/lib/workspace/ai';
+import { CODE_ACTIONS, DIAGRAM_ACTIONS, runCodeAction, runDiagramAction, runJudgeAction, type CodeAction, type DiagramAction } from '@/lib/workspace/ai';
 import { LANGUAGES, sanitizeDiagram, type LanguageId } from '@/lib/workspace/types';
 import { mergeIntoExisting } from '@/lib/workspace/layout';
 
@@ -16,12 +16,16 @@ interface Body {
   code?: string;
   diagram?: unknown;
   notes?: string;
+  docId?: string;
+  problemTitle?: string;
+  track?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
 }
 
 /**
- * POST -> the model writes or draws.
- * code target:    { action: review|explain|fix|solve|optimize|tests, language, code, instruction? } -> { message, code? }
- * diagram target: { action: draw|edit|critique|writeup, instruction, diagram, notes? }             -> { message, diagram?, writeup? }
+ * POST -> the model writes, judges, or draws.
+ * code target:    { action: review|explain|fix|solve|optimize|tests|problem|judge, language, code, instruction?, docId?, problemTitle?, track?, difficulty? } -> { message, code?, judge? }
+ * diagram target: { action: draw|edit|critique|writeup, instruction, diagram, notes? }                                                          -> { message, diagram?, writeup? }
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
@@ -31,7 +35,7 @@ export async function POST(request: Request) {
   const body = (await request.json()) as Body;
   const instruction = (body.instruction ?? '').trim();
 
-  const { data: profile } = await supabase.from('users').select('gemini_api_key').eq('supabase_uid', user.id).single();
+  const { data: profile } = await supabase.from('users').select('id, gemini_api_key').eq('supabase_uid', user.id).single();
   let model;
   try {
     model = getModel(profile?.gemini_api_key, 'FLASH');
@@ -48,6 +52,52 @@ export async function POST(request: Request) {
       if (action === 'solve' && !instruction && !body.code?.trim()) {
         return NextResponse.json({ error: 'Describe the problem, or paste it into the editor.' }, { status: 400 });
       }
+
+      if (action === 'judge') {
+        const problemContext = body.notes || instruction || body.code?.slice(0, 500) || '';
+        const judgeResult = await runJudgeAction(model, language, body.code ?? '', problemContext);
+
+        // Try saving submission to coding_submissions and award XP
+        if (profile?.id) {
+          try {
+            const track = body.track || (language === 'sql' ? 'SQL Practice' : 'Algorithms & Data Structures');
+            const difficulty = body.difficulty || 'medium';
+            const title = body.problemTitle || (body.notes ? body.notes.split('\n')[0].replace(/^#*\s*/, '').slice(0, 100) : 'Coding Challenge');
+
+            const { data: sub } = await supabase.from('coding_submissions').insert({
+              user_id: profile.id,
+              workspace_doc_id: body.docId || null,
+              title: title || 'Coding Problem',
+              language,
+              track,
+              difficulty,
+              status: judgeResult.status,
+              score: judgeResult.score,
+              time_complexity: judgeResult.timeComplexity,
+              space_complexity: judgeResult.spaceComplexity,
+              feedback: judgeResult.feedback,
+              test_results: judgeResult.testResults,
+              code: body.code ?? '',
+            }).select('id').single();
+
+            if (sub?.id) {
+              judgeResult.submissionId = sub.id;
+            }
+
+            if (judgeResult.xpAwarded > 0) {
+              await supabase.rpc('increment_xp', { user_id: profile.id, amount: judgeResult.xpAwarded });
+            }
+          } catch (dbErr) {
+            console.warn('Could not record coding submission:', dbErr);
+          }
+        }
+
+        return NextResponse.json({
+          message: judgeResult.message,
+          judge: judgeResult,
+        });
+      }
+
       return NextResponse.json(await runCodeAction(model, action, language, body.code ?? '', instruction));
     }
 

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Download, MessageCircle, Send, X } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Download, Link2, Link2Off, MessageCircle, Send, X } from 'lucide-react';
 import { Badge, Button, ButtonLink, Card, EmptyState, Input, PageHeader, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
@@ -43,11 +43,26 @@ interface ChatMessage {
 
 const scoreTone = (n: number) => (n >= 80 ? 'text-good' : n >= 60 ? 'text-live' : 'text-bad');
 
+interface ShareRecord {
+  id: string;
+  share_token: string;
+  is_active: boolean;
+  view_count: number;
+  expires_at?: string | null;
+  created_at: string;
+}
+
 export default function ReportDetailPage() {
   const { id } = useParams();
   const [report, setReport] = useState<Report | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const audioRef = useRef<HTMLAudioElement>(null);
+
+  // Share state
+  const [share, setShare] = useState<ShareRecord | null>(null);
+  const [shareLoading, setShareLoading] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -96,10 +111,17 @@ export default function ReportDetailPage() {
   useEffect(() => {
     async function fetchReport() {
       try {
-        const res = await fetch(`/api/reports/${id}`);
-        if (res.ok) {
-          const data = await res.json();
+        const [reportRes, shareRes] = await Promise.all([
+          fetch(`/api/reports/${id}`),
+          fetch(`/api/reports/${id}/share`),
+        ]);
+        if (reportRes.ok) {
+          const data = await reportRes.json();
           setReport(data.report);
+        }
+        if (shareRes.ok) {
+          const data = await shareRes.json();
+          setShare(data.share);
         }
       } catch (err) {
         console.error('Failed to fetch report:', err);
@@ -109,6 +131,55 @@ export default function ReportDetailPage() {
     }
     fetchReport();
   }, [id]);
+
+  const shareUrl = share?.is_active
+    ? `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/${share.share_token}`
+    : null;
+
+  const handleCreateShare = async () => {
+    setShareLoading(true);
+    try {
+      const res = await fetch(`/api/reports/${id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'create', expires_days: 30 }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setShare(data.share);
+      toast.success('Share link created (valid 30 days)');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create link');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleRevokeShare = async () => {
+    if (!confirm('Revoke this share link? Anyone with the URL will lose access.')) return;
+    setShareLoading(true);
+    try {
+      await fetch(`/api/reports/${id}/share`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'revoke' }),
+      });
+      setShare(null);
+      toast.success('Share link revoked');
+    } catch {
+      toast.error('Failed to revoke link');
+    } finally {
+      setShareLoading(false);
+    }
+  };
+
+  const handleCopyLink = () => {
+    if (!shareUrl) return;
+    navigator.clipboard.writeText(shareUrl);
+    setCopied(true);
+    toast.success('Link copied!');
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   if (isLoading) {
     return (
@@ -198,8 +269,56 @@ export default function ReportDetailPage() {
       <PageHeader
         title="Performance report"
         description={report.interview_sessions?.plan?.role || 'Software Engineer'}
-        action={<Button variant="secondary" onClick={handleDownloadPDF} className="no-print"><Download size={15} aria-hidden /> Export PDF</Button>}
+        action={
+          <div className="flex items-center gap-2 no-print">
+            <Button variant="secondary" onClick={() => setShareOpen(!shareOpen)} className="gap-1.5">
+              <Link2 size={14} /> Share
+            </Button>
+            <Button variant="secondary" onClick={handleDownloadPDF}><Download size={15} aria-hidden /> Export PDF</Button>
+          </div>
+        }
       />
+
+      {/* Share Panel */}
+      {shareOpen && (
+        <div className="no-print mb-4 rounded-panel border border-line bg-panel p-4 space-y-3 animate-in fade-in">
+          <div className="flex items-center justify-between">
+            <div className="text-sm font-semibold text-fg flex items-center gap-2">
+              <Link2 size={14} className="text-signal" /> Share with mentor
+            </div>
+            <button type="button" onClick={() => setShareOpen(false)} className="text-fg-3 hover:text-fg"><X size={15} /></button>
+          </div>
+          {shareUrl ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2 rounded-control border border-line bg-raised/40 p-2">
+                <span className="flex-1 truncate text-xs text-fg-2 font-mono">{shareUrl}</span>
+                <button type="button" onClick={handleCopyLink} className="shrink-0 text-signal hover:text-signal/70">
+                  {copied ? <Check size={14} /> : <Copy size={14} />}
+                </button>
+              </div>
+              <div className="flex items-center justify-between text-xs text-fg-3">
+                <span>{share?.view_count ?? 0} view{(share?.view_count ?? 0) !== 1 ? 's' : ''}</span>
+                {share?.expires_at && <span>Expires: {new Date(share.expires_at).toLocaleDateString()}</span>}
+              </div>
+              <button
+                type="button"
+                disabled={shareLoading}
+                onClick={handleRevokeShare}
+                className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 disabled:opacity-50"
+              >
+                <Link2Off size={12} /> Revoke link
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-xs text-fg-3">Generate a public link that mentors can view without logging in. Valid for 30 days.</p>
+              <Button onClick={handleCreateShare} loading={shareLoading} size="sm" className="gap-1.5">
+                <Link2 size={13} /> Create share link
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Overall */}
       <Card className="print-card mb-6 flex flex-wrap items-center gap-6 p-5 sm:p-8">

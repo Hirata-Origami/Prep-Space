@@ -12,6 +12,7 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 - **Live AI interview.** Real-time voice conversation with an interviewer (Gemini Live). The interviewer also sees your camera.
 - **Performance report.** Scores for technical depth, communication, problem solving, conciseness and confidence, with question-by-question feedback, timestamped audio markers, words per minute and filler words.
 - **On-camera analysis.** The report also scores eye contact, posture, expression, framing and lighting, and focus, with notes tied to timestamps. See [How video analysis works](#how-video-analysis-works).
+- **Story bank and flashcards.** Save STAR stories for behavioural interview practice and review due flashcards by difficulty.
 - **Shared board.** Inside a live interview you can open a board, write code or sketch a diagram, and share it so the interviewer reacts to it.
 - **Roadmaps.** Paste a job description and get a study plan with modules and topics.
 - **Mock companies, groups and a leaderboard** for community practice.

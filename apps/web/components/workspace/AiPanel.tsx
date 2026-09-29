@@ -2,10 +2,31 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { Bug, ClipboardCheck, FileText, FlaskConical, Shapes, Gauge, Lightbulb, MessageSquareWarning, PenLine, Send, Sparkles, Wand2 } from 'lucide-react';
-import { Button, Card, Textarea } from '@/components/ui';
+import {
+  AlertCircle,
+  Award,
+  Bug,
+  CheckCircle2,
+  ChevronDown,
+  ChevronRight,
+  ClipboardCheck,
+  FileText,
+  FlaskConical,
+  Gauge,
+  Lightbulb,
+  MessageSquareWarning,
+  PenLine,
+  Scale,
+  Send,
+  Shapes,
+  Sparkles,
+  Wand2,
+  XCircle,
+} from 'lucide-react';
+import { Badge, Button, Card, Textarea } from '@/components/ui';
 import { Markdownish } from './Markdownish';
 import type { Diagram, LanguageId } from '@/lib/workspace/types';
+import type { JudgeVerdict } from '@/lib/workspace/practice';
 import { cn } from '@/lib/cn';
 
 type Target = 'code' | 'diagram';
@@ -18,6 +39,7 @@ interface Entry {
   code?: string;
   writeup?: string;
   applied?: boolean;
+  judge?: JudgeVerdict;
 }
 
 interface AiPanelProps {
@@ -26,19 +48,22 @@ interface AiPanelProps {
   code: string;
   notes: string;
   diagram: Diagram;
+  docId?: string;
+  docTitle?: string;
   onApplyCode: (code: string) => void;
   onDiagram: (next: Diagram) => void;
   onInsertNotes: (markdown: string) => void;
 }
 
 const CODE_ACTIONS = [
+  { id: 'judge', label: 'AI Judge', icon: Scale },
+  { id: 'problem', label: 'Give me a problem', icon: Shapes },
   { id: 'review', label: 'Review', icon: ClipboardCheck },
   { id: 'explain', label: 'Explain', icon: Lightbulb },
   { id: 'fix', label: 'Fix bugs', icon: Bug },
   { id: 'optimize', label: 'Optimize', icon: Gauge },
   { id: 'tests', label: 'Write tests', icon: FlaskConical },
   { id: 'solve', label: 'Solve it', icon: Wand2 },
-  { id: 'problem', label: 'Give me a problem', icon: Shapes },
 ] as const;
 
 const DIAGRAM_ACTIONS = [
@@ -52,7 +77,18 @@ const DRAW_EXAMPLES = [
   'Video upload and streaming pipeline',
 ];
 
-export function AiPanel({ target, language, code, notes, diagram, onApplyCode, onDiagram, onInsertNotes }: AiPanelProps) {
+export function AiPanel({
+  target,
+  language,
+  code,
+  notes,
+  diagram,
+  docId,
+  docTitle,
+  onApplyCode,
+  onDiagram,
+  onInsertNotes,
+}: AiPanelProps) {
   const [entries, setEntries] = useState<Entry[]>([]);
   const [text, setText] = useState('');
   const [busy, setBusy] = useState<string | null>(null);
@@ -76,7 +112,17 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
       const res = await fetch('/api/workspace/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target, action, instruction, language, code, notes, diagram }),
+        body: JSON.stringify({
+          target,
+          action,
+          instruction,
+          language,
+          code,
+          notes,
+          diagram,
+          docId,
+          problemTitle: docTitle,
+        }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'The AI request failed');
@@ -87,7 +133,23 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
         onDiagram(json.diagram as Diagram);
         push({ who: 'ai', text: json.message });
       } else {
-        push({ who: 'ai', text: json.message || 'Done.', code: json.code || undefined, writeup: json.writeup || undefined });
+        push({
+          who: 'ai',
+          text: json.message || 'Done.',
+          code: json.code || undefined,
+          writeup: json.writeup || undefined,
+          judge: json.judge || undefined,
+        });
+
+        if (json.judge) {
+          if (json.judge.status === 'passed') {
+            toast.success(`Passed! +${json.judge.xpAwarded} XP earned.`);
+          } else if (json.judge.status === 'partial') {
+            toast('Partial pass. Check test cases.', { icon: '⚠️' });
+          } else {
+            toast.error('Test cases failed. Review feedback.');
+          }
+        }
       }
       setText('');
     } catch (e: unknown) {
@@ -129,7 +191,7 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
     <div className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-panel border border-line bg-panel">
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <Sparkles size={15} className="text-signal" aria-hidden />
-        <h2 className="text-sm font-semibold text-fg">{target === 'code' ? 'Coach' : 'Diagram assistant'}</h2>
+        <h2 className="text-sm font-semibold text-fg">{target === 'code' ? 'Coach & Judge' : 'Diagram assistant'}</h2>
         {target === 'diagram' && canUndoAi && (
           <Button size="sm" variant="ghost" className="ml-auto" onClick={undoDiagram}>Undo last AI change</Button>
         )}
@@ -139,7 +201,7 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
         {entries.length === 0 && (
           <div className="space-y-3 text-[13px] leading-relaxed text-fg-3">
             {target === 'code' ? (
-              <p>Write code or SQL, then ask for a review, a fix, tests or a full solution. Paste a problem statement in the editor and pick <span className="text-fg-2">Solve it</span> to get one written for you.</p>
+              <p>Write code or SQL, then click <span className="font-semibold text-fg">AI Judge</span> to test your solution across edge cases and score your complexity, or use <span className="text-fg-2">Review</span> and <span className="text-fg-2">Solve it</span> for coaching.</p>
             ) : (
               <>
                 <p>Describe a system and the AI draws it. Then ask for changes such as <span className="text-fg-2">&ldquo;add a cache before the database&rdquo;</span> and it edits the same diagram, keeping your layout.</p>
@@ -161,7 +223,11 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
               <div className="max-w-[90%] rounded-panel bg-signal/15 px-3 py-2 text-[13px] text-fg">{e.text}</div>
             ) : (
               <Card padded={false} className="space-y-3 p-3.5">
-                <Markdownish text={e.text} />
+                {e.judge ? (
+                  <JudgeView judge={e.judge} />
+                ) : (
+                  <Markdownish text={e.text} />
+                )}
                 {e.code && (
                   <div className="flex flex-wrap gap-2">
                     <Button size="sm" onClick={() => applyCode(e)} disabled={e.applied}><PenLine size={13} aria-hidden /> {e.applied ? 'Applied' : 'Replace my code'}</Button>
@@ -207,7 +273,7 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
             placeholder={target === 'diagram' ? (diagram.nodes.length ? 'Change something: add a cache, split the API…' : 'Describe the system to draw…') : 'Ask about your code, or describe the problem…'}
             className="min-h-0 resize-none"
           />
-          <Button onClick={submit} loading={!!busy && (busy === 'draw' || busy === 'edit' || busy === 'review' || busy === 'solve')} disabled={!!busy || (target === 'diagram' && !text.trim())} aria-label="Send">
+          <Button onClick={submit} loading={!!busy && (busy === 'draw' || busy === 'edit' || busy === 'review' || busy === 'solve' || busy === 'judge')} disabled={!!busy || (target === 'diagram' && !text.trim())} aria-label="Send">
             <Send size={15} aria-hidden />
           </Button>
         </div>
@@ -215,3 +281,110 @@ export function AiPanel({ target, language, code, notes, diagram, onApplyCode, o
     </div>
   );
 }
+
+function JudgeView({ judge }: { judge: JudgeVerdict }) {
+  const [showTests, setShowTests] = useState(true);
+
+  const statusConfig = {
+    passed: {
+      badge: 'Passed',
+      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
+      icon: CheckCircle2,
+    },
+    partial: {
+      badge: 'Partial',
+      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
+      icon: AlertCircle,
+    },
+    failed: {
+      badge: 'Failed',
+      color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
+      icon: XCircle,
+    },
+  }[judge.status];
+
+  const StatusIcon = statusConfig.icon;
+
+  return (
+    <div className="space-y-3">
+      {/* Header Verdict */}
+      <div className={cn('flex items-center justify-between rounded-control border p-2.5', statusConfig.color)}>
+        <div className="flex items-center gap-2">
+          <StatusIcon size={16} />
+          <span className="text-sm font-semibold">{statusConfig.badge}</span>
+          <span className="text-xs opacity-80">• Score {judge.score}/100</span>
+        </div>
+        {judge.xpAwarded > 0 && (
+          <span className="inline-flex items-center gap-1 rounded bg-black/20 px-2 py-0.5 text-xs font-medium">
+            <Award size={12} /> +{judge.xpAwarded} XP
+          </span>
+        )}
+      </div>
+
+      {/* Complexity stats */}
+      <div className="grid grid-cols-2 gap-2 text-xs">
+        <div className="rounded-control border border-line bg-raised/50 p-2">
+          <div className="text-fg-3">Time Complexity</div>
+          <div className="font-mono font-medium text-fg">{judge.timeComplexity}</div>
+        </div>
+        <div className="rounded-control border border-line bg-raised/50 p-2">
+          <div className="text-fg-3">Space Complexity</div>
+          <div className="font-mono font-medium text-fg">{judge.spaceComplexity}</div>
+        </div>
+      </div>
+      {judge.optimalComplexity && (
+        <div className="text-[11px] text-fg-3">
+          Target: <span className="font-mono text-fg-2">{judge.optimalComplexity}</span>
+        </div>
+      )}
+
+      {/* Test cases */}
+      {judge.testResults && judge.testResults.length > 0 && (
+        <div className="space-y-1.5 border-t border-line/60 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowTests(!showTests)}
+            className="flex w-full items-center justify-between text-xs font-medium text-fg-2 hover:text-fg"
+          >
+            <span>Test Cases ({judge.testResults.filter(t => t.passed).length}/{judge.testResults.length} passed)</span>
+            {showTests ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+          </button>
+
+          {showTests && (
+            <div className="space-y-1.5 pt-1">
+              {judge.testResults.map((t, idx) => (
+                <div
+                  key={t.id || idx}
+                  className={cn(
+                    'rounded-control border p-2 text-xs font-mono',
+                    t.passed ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-rose-500/20 bg-rose-500/5'
+                  )}
+                >
+                  <div className="flex items-center justify-between text-[11px] font-sans font-medium">
+                    <span className={t.passed ? 'text-emerald-400' : 'text-rose-400'}>
+                      Test {idx + 1}: {t.passed ? 'Passed' : 'Failed'}
+                    </span>
+                    {t.note && <span className="text-fg-3 font-normal">{t.note}</span>}
+                  </div>
+                  <div className="mt-1 text-fg-3">Input: <span className="text-fg-2">{t.input}</span></div>
+                  <div className="text-fg-3">Expected: <span className="text-emerald-400/90">{t.expected}</span></div>
+                  {!t.passed && (
+                    <div className="text-fg-3">Actual: <span className="text-rose-400/90">{t.actual}</span></div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Feedback markdown */}
+      {judge.feedback && (
+        <div className="border-t border-line/60 pt-2 text-xs">
+          <Markdownish text={judge.feedback} />
+        </div>
+      )}
+    </div>
+  );
+}
+

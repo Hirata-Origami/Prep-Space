@@ -196,6 +196,8 @@ export default function WorkspaceDocPage() {
             code={content}
             notes={content}
             diagram={diagram}
+            docId={id}
+            docTitle={title}
             onApplyCode={update.content}
             onDiagram={update.diagram}
             onInsertNotes={md => update.content(content.trim() ? `${content.trimEnd()}\n\n${md}\n` : `${md}\n`)}

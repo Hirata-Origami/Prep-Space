@@ -3,10 +3,12 @@ import { withRetry } from '@/lib/gemini';
 import { parseJsonReply } from '@/lib/resume/merge';
 import { NODE_KINDS, sanitizeDiagram, type Diagram, type LanguageId } from './types';
 
-export type CodeAction = 'review' | 'explain' | 'fix' | 'solve' | 'optimize' | 'tests' | 'problem';
+import type { JudgeVerdict } from './practice';
+
+export type CodeAction = 'review' | 'explain' | 'fix' | 'solve' | 'optimize' | 'tests' | 'problem' | 'judge';
 export type DiagramAction = 'draw' | 'edit' | 'critique' | 'writeup';
 
-export const CODE_ACTIONS: CodeAction[] = ['review', 'explain', 'fix', 'solve', 'optimize', 'tests', 'problem'];
+export const CODE_ACTIONS: CodeAction[] = ['review', 'explain', 'fix', 'solve', 'optimize', 'tests', 'problem', 'judge'];
 export const DIAGRAM_ACTIONS: DiagramAction[] = ['draw', 'edit', 'critique', 'writeup'];
 
 const CODE_TASK: Record<CodeAction, string> = {
@@ -18,6 +20,8 @@ const CODE_TASK: Record<CodeAction, string> = {
   problem:
     'Write ONE fresh interview practice problem in this language (for SQL: a schema, sample rows and a question). Match the difficulty or topic in the request, otherwise medium. Give a short statement, one or two examples, and constraints. Do not reveal the solution. Put starter code (a function signature, or the CREATE TABLE and INSERT statements for SQL) in "code".',
   tests: 'Write focused test cases (including edge cases) for this code. For SQL, provide sample data and the expected result.',
+  judge:
+    'Judge this candidate solution strictly and fairly against interview standards. Check correctness across edge cases, compute actual time and space complexity, and compare against optimal.',
 };
 
 const codePrompt = (action: CodeAction, language: LanguageId, code: string, instruction: string) => `You are a staff engineer coaching a candidate in a technical interview workspace.
@@ -47,6 +51,80 @@ export async function runCodeAction(
   const parsed = parseJsonReply<{ message?: string; code?: string }>(result.response.text());
   return { message: (parsed.message ?? '').trim(), code: (parsed.code ?? '').replace(/^```\w*\n?|```$/g, '').trimEnd() };
 }
+
+const judgePrompt = (language: LanguageId, code: string, problemContext: string) => `You are an automated technical interview judge for a candidate practicing ${language === 'markdown' ? 'code' : language}.
+Evaluate the candidate's solution for correctness, edge case handling, and algorithmic complexity.
+
+Problem statement or context:
+${problemContext || 'Infer the problem from comments, function names, and starter doc.'}
+
+--- CANDIDATE CODE ---
+${code}
+--- END ---
+
+Simulate running at least 4 test cases:
+- Test 1: Standard primary happy-path case
+- Test 2: Secondary variation / typical input
+- Test 3: Edge case (e.g. empty collection, single item, 0, null, or extreme values)
+- Test 4: Boundary or large input scale case
+
+Return ONLY this JSON structure:
+{
+  "status": "passed" | "failed" | "partial",
+  "score": 0-100,
+  "timeComplexity": "e.g. O(N)",
+  "spaceComplexity": "e.g. O(1)",
+  "optimalComplexity": "e.g. Time: O(N), Space: O(1)",
+  "testResults": [
+    {
+      "id": 1,
+      "input": "e.g. nums = [2,7,11,15], target = 9",
+      "expected": "e.g. [0, 1]",
+      "actual": "e.g. [0, 1]",
+      "passed": true,
+      "note": "brief observation or why it passed/failed"
+    }
+  ],
+  "feedback": "2-3 short bullet points in markdown summarizing correctness, code quality, and edge case resilience.",
+  "message": "Concise verdict summary (e.g. 'Passed all 4 test cases with optimal O(N) time complexity!')"
+}`;
+
+export async function runJudgeAction(
+  model: GenerativeModel,
+  language: LanguageId,
+  code: string,
+  problemContext: string
+): Promise<JudgeVerdict & { message: string }> {
+  const result = await withRetry(() =>
+    model.generateContent([{ text: judgePrompt(language, code.slice(0, 20000), problemContext.slice(0, 3000)) }])
+  );
+  const parsed = parseJsonReply<{
+    status?: 'passed' | 'failed' | 'partial';
+    score?: number;
+    timeComplexity?: string;
+    spaceComplexity?: string;
+    optimalComplexity?: string;
+    testResults?: JudgeVerdict['testResults'];
+    feedback?: string;
+    message?: string;
+  }>(result.response.text());
+
+  const status = parsed.status === 'passed' || parsed.status === 'partial' ? parsed.status : 'failed';
+  const score = typeof parsed.score === 'number' ? Math.max(0, Math.min(100, Math.round(parsed.score))) : (status === 'passed' ? 100 : status === 'partial' ? 60 : 20);
+
+  return {
+    status,
+    score,
+    timeComplexity: parsed.timeComplexity || 'O(?)',
+    spaceComplexity: parsed.spaceComplexity || 'O(?)',
+    optimalComplexity: parsed.optimalComplexity || 'Not specified',
+    testResults: Array.isArray(parsed.testResults) ? parsed.testResults : [],
+    feedback: parsed.feedback || '',
+    message: parsed.message || (status === 'passed' ? 'All tests passed!' : 'Some tests failed.'),
+    xpAwarded: status === 'passed' ? 100 : status === 'partial' ? 40 : 10,
+  };
+}
+
 
 const KIND_LIST = NODE_KINDS.map(k => k.id).join(', ');
 

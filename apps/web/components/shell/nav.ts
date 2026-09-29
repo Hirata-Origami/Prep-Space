@@ -9,6 +9,9 @@ import {
   Trophy,
   Send,
   PenTool,
+  BrainCircuit,
+  MessageSquareCode,
+  DollarSign,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -51,6 +54,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: FileUser, label: 'Resume Builder', href: '/resume' },
       { icon: PenTool, label: 'Workspace', href: '/workspace' },
       { icon: Send, label: 'Applications', href: '/applications' },
+      { icon: BrainCircuit, label: 'Flashcards', href: '/flashcards' },
+      { icon: MessageSquareCode, label: 'STAR Stories', href: '/behavioral' },
+      { icon: DollarSign, label: 'Offer Coach', href: '/negotiation' },
       { icon: Trophy, label: 'Leaderboard', href: '/leaderboard' },
     ],
   },
