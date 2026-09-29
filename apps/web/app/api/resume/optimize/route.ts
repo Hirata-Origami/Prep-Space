@@ -2,11 +2,19 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel, withRetry } from '@/lib/gemini';
 import mammoth from 'mammoth';
-import { generateResumeLatex } from '@/lib/resume/templates';
+import { generateResumeLatex, normalizeProjects } from '@/lib/resume/templates';
+import { applyAiEdits, coerceTemplateId, parseJsonReply, type AiEdits } from '@/lib/resume/merge';
 import type { ResumeData, ResumeTemplateId } from '@/lib/hooks/useResume';
 
 export const dynamic = 'force-dynamic';
 
+/**
+ * POST /api/resume/optimize
+ *
+ * Tailors the candidate's resume to a job description and saves the result as a
+ * named version. The master resume is never overwritten, and nothing is invented:
+ * the model may reword and emphasise, and edits that drop facts are rejected.
+ */
 export async function POST(req: Request) {
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -36,28 +44,26 @@ export async function POST(req: Request) {
     let targetRole = '';
     let selectedRole = '';
     let templateId: ResumeTemplateId = 'modern-two-column';
+    let clientResumeData: Partial<ResumeData> | null = null;
 
     const contentType = req.headers.get('content-type') || '';
 
-    let clientResumeData: Partial<ResumeData> | null = null;
-
     if (contentType.includes('multipart/form-data')) {
       const formData = await req.formData();
-      const file = formData.get('file') as Blob | null;
+      const file = formData.get('file') as (Blob & { name?: string }) | null;
       jdText = (formData.get('jd_text') as string) || '';
       targetCompany = (formData.get('company') as string) || '';
       targetRole = (formData.get('role') as string) || '';
       selectedRole = (formData.get('selected_role') as string) || '';
-      templateId = ((formData.get('template_id') as string) || 'modern-two-column') as ResumeTemplateId;
+      templateId = coerceTemplateId(formData.get('template_id'));
       const rawResume = formData.get('resume_data') as string | null;
       if (rawResume) {
-        try { clientResumeData = JSON.parse(rawResume); } catch {}
+        try { clientResumeData = JSON.parse(rawResume); } catch { /* ignore malformed client data */ }
       }
 
       if (file) {
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-        const fileName = (file as any).name?.toLowerCase() || '';
+        const buffer = Buffer.from(await file.arrayBuffer());
+        const fileName = file.name?.toLowerCase() || '';
         const mimeType = file.type;
 
         if (fileName.endsWith('.docx') || mimeType.includes('wordprocessingml')) {
@@ -82,7 +88,7 @@ export async function POST(req: Request) {
       targetCompany = body.company || '';
       targetRole = body.role || '';
       selectedRole = body.selected_role || '';
-      templateId = (body.template_id || 'modern-two-column') as ResumeTemplateId;
+      templateId = coerceTemplateId(body.template_id);
       clientResumeData = body.resume_data || null;
     }
 
@@ -108,10 +114,9 @@ Return ONLY a valid JSON object (no markdown):
   "roles": ["string"]
 }`;
       const roleResult = await withRetry(() => model.generateContent([{ text: roleDetectionPrompt }]));
-      const roleJsonStr = roleResult.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
 
       try {
-        const parsed = JSON.parse(roleJsonStr);
+        const parsed = parseJsonReply<{ company?: string; roles?: string[] }>(roleResult.response.text());
         const roles = Array.isArray(parsed.roles) ? parsed.roles : [];
         const detectedCompany = parsed.company || targetCompany || 'Company';
 
@@ -133,144 +138,82 @@ Return ONLY a valid JSON object (no markdown):
     const finalRole = selectedRole || targetRole || dbUser.target_role || 'Software Engineer';
     const finalCompany = targetCompany || dbUser.target_company || 'Target Company';
 
-    // Step 2: Fetch existing resume data from Supabase and merge with client form state
+    // Step 2: Start from what the client sent, falling back to the saved master resume
     const { data: resumeRecord } = await supabase
       .from('resumes')
-      .select('profile_sections, raw_profile')
+      .select('profile_sections')
       .eq('user_id', dbUser.id)
       .order('created_at', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    const dbData = (resumeRecord?.profile_sections || {}) as Partial<ResumeData>;
-    const mergedProfile: ResumeData['profile'] = {
-      name: '',
-      email: '',
-      phone: '',
-      linkedin: '',
-      github: '',
-      ...(dbData.profile || {}),
-      ...(clientResumeData?.profile || {}),
-    };
-    const mergedSkillsCat: ResumeData['skills_categorized'] = (dbData.skills_categorized || clientResumeData?.skills_categorized) ? {
-      languages: '',
-      frameworks: '',
-      cloud_and_databases: '',
-      tools_and_architecture: '',
-      area_of_interest: '',
-      ...(dbData.skills_categorized || {}),
-      ...(clientResumeData?.skills_categorized || {}),
-    } : undefined;
-
-    const existingData: Partial<ResumeData> = {
-      ...dbData,
-      ...(clientResumeData || {}),
-      profile: mergedProfile,
-      skills_categorized: mergedSkillsCat,
+    const saved = (resumeRecord?.profile_sections || {}) as Partial<ResumeData>;
+    const source: Partial<ResumeData> = { ...saved, ...(clientResumeData || {}) };
+    const base: ResumeData = {
+      templateId,
+      profile: { name: '', email: '', phone: '', linkedin: '', github: '', ...(saved.profile || {}), ...(clientResumeData?.profile || {}) },
+      experience: source.experience ?? [],
+      projects: source.projects ?? [],
+      education: source.education ?? [],
+      skills: source.skills ?? '',
+      skills_categorized: source.skills_categorized,
+      achievements: source.achievements ?? '',
+      certifications: source.certifications ?? '',
+      latex_code: '',
     };
 
-    // Step 3: Ask Gemini to tailor and densely fill content to the JD
-    const optimizePrompt = `You are a world-class ATS resume optimizer.
-Tailor and enhance the candidate's resume for the following role at ${finalCompany}.
+    // Step 3: Ask Gemini to tailor wording to the JD, under the no-loss / no-invention rules
+    const { workExperience, projects } = normalizeProjects(base);
+    const optimizePrompt = `You are an ATS resume editor. Tailor this candidate's resume to the job below by rewording and re-emphasising what is already true.
 
 TARGET ROLE: ${finalRole}
 TARGET COMPANY: ${finalCompany}
 
-JOB DESCRIPTION:
+JOB DESCRIPTION
 """
 ${jdText.substring(0, 12000)}
 """
 
-CANDIDATE DATA:
-${JSON.stringify(existingData, null, 2)}
+HARD RULES
+1. Do not invent anything: no employers, projects, technologies, numbers, dates, links, or achievements. If the JD asks for something the candidate has not done, leave it out.
+2. Return EVERY experience entry and EVERY project, in the same order as the input, using the same count.
+3. Each entry keeps at least as many bullets as the input. Every number, technology, product name, client and partner mentioned in a bullet must still appear.
+4. Use the JD's own wording for skills and responsibilities the candidate genuinely has. Put the most relevant bullet first.
+5. Summary: 3-4 sentences aimed at ${finalRole}, using only facts present in the resume.
+6. Plain text only. No markdown, no asterisks.
+7. skills_additions may only list skills that appear in the JD AND are clearly used in the resume text below.
 
-CRITICAL DENSITY & ATS REQUIREMENTS:
-1. PAGE-FILLING DENSITY: The resulting resume MUST have enough rich, substantive content to completely fill an entire single A4/Letter page. It must NEVER be sparse or empty.
-2. WORK EXPERIENCE: Rewrite and expand work experience bullet points to directly incorporate JD keywords, action verbs, and quantifiable impact (3-4 bullets per experience entry). If input has no experience, synthesize a top-tier relevant role matching ${finalRole}.
-3. PROJECTS: There MUST be at least 3-4 substantial, impressive technical projects. If the input has fewer than 3 projects, generate additional realistic, top-tier projects highlighting key technologies required in the JD, complete with tech stack context, GitHub URL, demo URL, and 2-3 detailed bullet points.
-4. SKILLS: Populate all 5 categories (languages, frameworks, cloud_and_databases, tools_and_architecture, area_of_interest) prioritizing the exact tech stack mentioned in the JD.
-5. SUMMARY: Write a new, dense 3-4 sentence professional summary tailored directly to ${finalRole} at ${finalCompany}.
-6. FORMATTING: Do NOT use markdown asterisks (*), bold (**text**), or any markdown formatting in your output. Plain text only.
+RESUME
+${JSON.stringify({
+  summary: base.profile.summary ?? '',
+  experience: workExperience.map(e => ({ role: e.role, company: e.company, bullets: e.bullets })),
+  projects: projects.map(p => ({ title: p.title, context: p.context ?? '', bullets: p.bullets })),
+  skills: base.skills_categorized ?? base.skills,
+}, null, 1)}
 
-Return ONLY a valid JSON object matching this schema (no markdown code blocks, no explanations):
+Return ONLY this JSON:
 {
-  "profile": {
-    "name": "${existingData.profile?.name || 'Candidate Name'}",
-    "email": "${existingData.profile?.email || ''}",
-    "phone": "${existingData.profile?.phone || ''}",
-    "linkedin": "${existingData.profile?.linkedin || ''}",
-    "github": "${existingData.profile?.github || ''}",
-    "location": "${existingData.profile?.location || ''}",
-    "summary": "3-4 dense sentences tailored to ${finalRole} at ${finalCompany}. Plain text only."
-  },
-  "experience": [
-    {
-      "role": "Role Title",
-      "company": "Company Name",
-      "start": "MM/YYYY",
-      "end": "MM/YYYY or Present",
-      "location": "City, Country",
-      "bullets": "3-4 detailed bullets incorporating JD keywords, one per line. Plain text only.",
-      "type": "work"
-    }
-  ],
-  "projects": [
-    {
-      "title": "Project Title – Subtitle",
-      "repo_url": "https://github.com/username/project",
-      "demo_url": "https://demo.app",
-      "context": "Technologies / attribution",
-      "bullets": "2-3 detailed bullets showcasing JD requirements, one per line. Plain text only."
-    }
-  ],
-  "skills_categorized": {
-    "languages": "comma-separated languages matching JD",
-    "frameworks": "comma-separated frameworks matching JD",
-    "cloud_and_databases": "comma-separated cloud/db matching JD",
-    "tools_and_architecture": "comma-separated tools matching JD",
-    "area_of_interest": "comma-separated competencies matching JD"
-  },
-  "skills": "flat comma-separated list of all skills",
-  "achievements": "${existingData.achievements || 'Hackathon finalist or key technical achievement'}"
+  "summary": "string",
+  "experience": [{ "bullets": "one bullet per line" }],
+  "projects": [{ "bullets": "one bullet per line" }],
+  "skills_additions": { "languages": "", "frameworks": "", "cloud_and_databases": "", "tools_and_architecture": "", "area_of_interest": "" }
 }`;
 
-    let tailoredData: Partial<ResumeData> = { ...existingData };
+    let tailored: ResumeData = base;
+    let usedAi = false;
     try {
-      const latexResult = await withRetry(() => model.generateContent([{ text: optimizePrompt }]));
-      const text = latexResult.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-      const tailored = JSON.parse(text);
-      tailoredData = { ...existingData, ...tailored };
+      const result = await withRetry(() => model.generateContent([{ text: optimizePrompt }]));
+      tailored = applyAiEdits(base, parseJsonReply<AiEdits>(result.response.text()));
+      usedAi = true;
     } catch (e) {
       console.warn('Tailoring failed, using existing data:', e);
     }
 
-    // Build flat skills if missing
-    let finalSkills = tailoredData.skills || existingData.skills || '';
-    if (tailoredData.skills_categorized) {
-      const sc = tailoredData.skills_categorized;
-      const parts = [sc.languages, sc.frameworks, sc.cloud_and_databases, sc.tools_and_architecture, sc.area_of_interest].filter(Boolean);
-      if (parts.length > 0) finalSkills = parts.join(', ');
-    }
-
-    const finalResumeData: ResumeData = {
-      templateId,
-      profile: (tailoredData.profile || existingData.profile || { name: '', email: '', phone: '', linkedin: '', github: '' }) as ResumeData['profile'],
-      experience: (tailoredData.experience && tailoredData.experience.length > 0) ? tailoredData.experience : (existingData.experience || []),
-      projects: (tailoredData.projects && tailoredData.projects.length > 0) ? tailoredData.projects : (existingData.projects || []),
-      education: tailoredData.education || existingData.education || [],
-      skills: finalSkills,
-      skills_categorized: tailoredData.skills_categorized || existingData.skills_categorized,
-      achievements: tailoredData.achievements || existingData.achievements || '',
-      latex_code: '',
-    };
-
-    // Step 4: Generate LaTeX via deterministic template engine
-    const latexCode = generateResumeLatex(finalResumeData, templateId);
-    finalResumeData.latex_code = latexCode;
-
+    // Step 4: Generate LaTeX via the deterministic template engine
+    const latexCode = generateResumeLatex(tailored, templateId);
     const versionName = `${finalCompany} — ${finalRole}`;
 
-    // Step 5: Save to resume_versions
+    // Step 5: Save as a version. The master resume in `resumes` is left untouched.
     const { data: savedVersion, error: saveError } = await supabase
       .from('resume_versions')
       .insert({
@@ -288,39 +231,15 @@ Return ONLY a valid JSON object matching this schema (no markdown code blocks, n
       console.error('Failed to save resume version:', saveError);
     }
 
-    // Step 6: Also update the resumes table so this becomes the candidate's active profile
-    try {
-      if (resumeRecord?.profile_sections) {
-        await supabase.from('resumes').update({
-          profile_sections: finalResumeData,
-          target_role: finalRole,
-          target_company: finalCompany,
-        }).eq('user_id', dbUser.id);
-      } else {
-        await supabase.from('resumes').insert({
-          user_id: dbUser.id,
-          profile_sections: finalResumeData,
-          raw_profile: finalResumeData,
-          target_role: finalRole,
-          target_company: finalCompany,
-          version: 1,
-        });
-      }
-    } catch (upsertErr) {
-      console.warn('Failed to update active resume from optimization:', upsertErr);
-    }
-
-    if (saveError) {
-      console.error('Failed to save resume version:', saveError);
-    }
-
     return NextResponse.json({
       success: true,
       version_name: versionName,
       company: finalCompany,
       role: finalRole,
       latex_code: latexCode,
+      resume_data: { ...tailored, latex_code: latexCode },
       version_id: savedVersion?.id,
+      tailored: usedAi,
     });
 
   } catch (err: unknown) {

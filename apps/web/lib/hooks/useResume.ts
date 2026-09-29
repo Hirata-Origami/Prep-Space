@@ -8,6 +8,9 @@ export interface ResumeProfile {
   phone: string;
   linkedin: string;
   github: string;
+  /** Visible text for the link when it should differ from the URL (for example a short vanity form). */
+  linkedinLabel?: string;
+  githubLabel?: string;
   location?: string;
   summary?: string;
   targetRole?: string;
@@ -50,7 +53,12 @@ export interface SkillCategories {
   area_of_interest: string;
 }
 
-export type ResumeTemplateId = 'modern-two-column' | 'classic-single' | 'minimal-tech';
+export type ResumeTemplateId =
+  | 'modern-two-column'
+  | 'classic-single'
+  | 'minimal-tech'
+  | 'accent-single'
+  | 'executive-serif';
 
 export interface ResumeData {
   templateId?: ResumeTemplateId;
@@ -61,6 +69,8 @@ export interface ResumeData {
   skills: string; // flat string for quick editing
   skills_categorized?: SkillCategories;
   achievements?: string;
+  /** Newline-separated certifications and courses. */
+  certifications?: string;
   latex_code: string;
 }
 

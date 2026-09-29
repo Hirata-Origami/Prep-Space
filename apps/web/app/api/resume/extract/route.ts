@@ -1,7 +1,55 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { getModel } from '@/lib/gemini';
+import { getModel, withRetry } from '@/lib/gemini';
+import { parseResumeLatex } from '@/lib/resume/parseLatex';
+import { parseJsonReply } from '@/lib/resume/merge';
 import mammoth from 'mammoth';
+
+interface ExtractedResume {
+  profile?: Record<string, string>;
+  education?: { degree?: string; institution?: string; year?: string; score?: string }[] | Record<string, string>;
+  experience?: { company?: string; role?: string; start?: string; end?: string; location?: string; bullets?: string; type?: string }[];
+  projects?: { title?: string; repo_url?: string; demo_url?: string; context?: string; bullets?: string }[];
+  skills_categorized?: Record<string, string>;
+  skills?: string;
+  achievements?: string | string[] | null;
+  certifications?: string | string[] | null;
+}
+
+const EXTRACTION_PROMPT = `You are a meticulous resume parser. Copy the resume into the JSON structure below WITHOUT summarising, shortening, merging, or rewording anything.
+
+Return ONLY valid JSON. No markdown fences, no commentary.
+
+{
+  "profile": {
+    "name": "", "email": "", "phone": "",
+    "linkedin": "full URL as linked, if any", "github": "full URL as linked, if any",
+    "location": "as written, including postcode if present",
+    "summary": "the summary / profile / objective paragraph, verbatim"
+  },
+  "education": [{ "degree": "", "institution": "", "year": "as written, e.g. 2022 – 2027 (Expected)", "score": "as written, e.g. CGPA: 8.31/10.00" }],
+  "experience": [{ "company": "", "role": "", "start": "", "end": "", "location": "", "bullets": "EVERY bullet, one per line, verbatim", "type": "work" }],
+  "projects": [{ "title": "full title", "repo_url": "", "demo_url": "live demo link", "context": "the italic client / partner / tech-stack line under the title, verbatim", "bullets": "EVERY bullet, one per line, verbatim" }],
+  "skills_categorized": {
+    "languages": "", "frameworks": "", "cloud_and_databases": "", "tools_and_architecture": "", "area_of_interest": ""
+  },
+  "skills": "every skill as one comma-separated list",
+  "achievements": "each achievement / award / hackathon on its own line, verbatim",
+  "certifications": "each certification or course on its own line, verbatim"
+}
+
+RULES
+- Every bullet in the source must appear in the output. Never drop a bullet, number, link, or client name.
+- Keep the source order of entries and bullets.
+- Bullets are plain text: no asterisks, no markdown, no leading bullet symbols.
+- Internships and jobs go in "experience"; personal, academic, client and open-source work goes in "projects".
+- Use an empty string for anything that is not in the resume. Never invent content.
+- "education" is always an array.
+- Group skills by the heading used in the resume when there is one; otherwise group sensibly.`;
+
+const GITHUB_REPO = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/?$/;
+
+const asText = (v: string | string[] | null | undefined) => (Array.isArray(v) ? v.join('\n') : v ?? '');
 
 export async function POST(req: Request) {
   const supabase = await createClient();
@@ -17,10 +65,6 @@ export async function POST(req: Request) {
     .eq('supabase_uid', user.id)
     .single();
 
-  if (!dbUser?.gemini_api_key) {
-    return NextResponse.json({ error: 'Please save your Gemini API key in Settings first.' }, { status: 400 });
-  }
-
   try {
     const formData = await req.formData();
     const file = formData.get('file') as (File & { name?: string }) | null;
@@ -28,170 +72,102 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
     }
 
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
+    const buffer = Buffer.from(await file.arrayBuffer());
     const mimeType = file.type || '';
-    const fileName = (file as any).name?.toLowerCase() || '';
+    const fileName = file.name?.toLowerCase() || '';
 
-    const model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
-
-    const extractionPrompt = `You are an expert ATS resume parser.
-Extract the following complete JSON structure from the provided resume. 
-Return ONLY valid JSON. No markdown code blocks, no explanation.
-
-{
-  "profile": {
-    "name": "string",
-    "email": "string",
-    "phone": "string",
-    "linkedin": "string (full URL if present)",
-    "github": "string (full URL if present)",
-    "location": "string (city, state/country)",
-    "summary": "string (professional summary paragraph, if present)"
-  },
-  "education": [
-    {
-      "degree": "string",
-      "institution": "string",
-      "year": "string (e.g. 2020–2024 or May 2024)",
-      "score": "string (e.g. CGPA: 8.31/10.00 or Percentage: 96.33% – include as shown in resume)"
-    }
-  ],
-  "experience": [
-    {
-      "company": "string",
-      "role": "string",
-      "start": "string",
-      "end": "string (or Present)",
-      "location": "string",
-      "bullets": "string (each bullet on a new line, no asterisks or markdown)",
-      "type": "work"
-    }
-  ],
-  "projects": [
-    {
-      "title": "string",
-      "repo_url": "string (GitHub URL if present)",
-      "demo_url": "string (live demo URL if present)",
-      "context": "string (client attribution or project context if present, e.g. 'Built for XYZ Company' or 'Open source contribution')",
-      "bullets": "string (each bullet on a new line, no asterisks or markdown)"
-    }
-  ],
-  "skills_categorized": {
-    "languages": "string (comma-separated programming languages)",
-    "frameworks": "string (comma-separated frameworks and libraries)",
-    "cloud_and_databases": "string (comma-separated cloud platforms and databases)",
-    "tools_and_architecture": "string (comma-separated tools, DevOps, architecture patterns)",
-    "area_of_interest": "string (comma-separated interests or competencies)"
-  },
-  "skills": "string (all skills as a comma-separated flat list)",
-  "achievements": "string (awards, hackathons, honors, recognitions as a paragraph or newline-separated)"
-}
-
-Important rules:
-- Use plain text for bullets. Do NOT use asterisks (*), markdown bold (**), or markdown italic.
-- If a section is not present in the resume, use null or empty string.
-- For education, always return an array even if there is only one entry.
-- For projects, extract only actual projects (not work experience).
-- For skills_categorized, group thoughtfully based on what appears in the resume.`;
-
-    let parsedData: any = null;
-
-    // --- FILE TYPE DETECTION ---
     const isTexOrTxt = fileName.endsWith('.tex') || fileName.endsWith('.txt') || mimeType.includes('text/');
     const isDocx = fileName.endsWith('.docx') || mimeType.includes('wordprocessingml');
     const isPdf = fileName.endsWith('.pdf') || mimeType.includes('pdf');
 
+    // 1. A .tex file written with PrepSpace's own macros loads back exactly, no model needed.
     if (isTexOrTxt) {
-      // Direct text decode for .tex and .txt files - Gemini understands raw LaTeX perfectly
       const rawText = buffer.toString('utf-8');
+      const exact = parseResumeLatex(rawText);
+      if (exact) {
+        return NextResponse.json({ extracted: exact, source: 'latex' });
+      }
+    }
 
-      const result = await model.generateContent([
-        { text: extractionPrompt },
-        { text: `RESUME CONTENT (${fileName || 'resume'}):\n\n${rawText.substring(0, 25000)}` },
-      ]);
-      const jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-      parsedData = JSON.parse(jsonStr);
-
-    } else if (isDocx) {
-      // Extract raw text from .docx using mammoth
-      const mammothResult = await mammoth.extractRawText({ buffer });
-      const docText = mammothResult.value;
-
-      const result = await model.generateContent([
-        { text: extractionPrompt },
-        { text: `RESUME CONTENT:\n\n${docText.substring(0, 15000)}` },
-      ]);
-      const jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-      parsedData = JSON.parse(jsonStr);
-
-    } else if (isPdf) {
-      // Use Gemini inline data for PDFs
-      const base64Data = buffer.toString('base64');
-      const result = await model.generateContent([
-        { text: extractionPrompt },
-        { inlineData: { data: base64Data, mimeType: 'application/pdf' } },
-      ]);
-      const jsonStr = result.response.text().replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-      parsedData = JSON.parse(jsonStr);
-
-    } else {
+    // 2. Anything else goes through the model, told to copy rather than summarise.
+    if (!dbUser?.gemini_api_key) {
+      return NextResponse.json({ error: 'Please save your Gemini API key in Settings first.' }, { status: 400 });
+    }
+    if (!isTexOrTxt && !isDocx && !isPdf) {
       return NextResponse.json(
         { error: 'Unsupported file type. Please upload a PDF, .tex, .docx, or .txt file.' },
         { status: 400 }
       );
     }
 
-    // --- NORMALIZE education to always be an array ---
-    if (parsedData.education && !Array.isArray(parsedData.education)) {
-      parsedData.education = [parsedData.education];
-    }
-    parsedData.education = (parsedData.education || []).filter((e: any) => e.degree || e.institution);
-
-    // --- NORMALIZE experience type ---
-    if (parsedData.experience && Array.isArray(parsedData.experience)) {
-      parsedData.experience.forEach((e: any) => { if (!e.type) e.type = 'work'; });
-    }
-
-    // --- NORMALIZE projects: skip if empty ---
-    if (!parsedData.projects || !Array.isArray(parsedData.projects)) {
-      parsedData.projects = [];
+    const parts: ({ text: string } | { inlineData: { data: string; mimeType: string } })[] = [{ text: EXTRACTION_PROMPT }];
+    if (isTexOrTxt) {
+      parts.push({ text: `RESUME CONTENT (${fileName || 'resume'}):\n\n${buffer.toString('utf-8').substring(0, 40000)}` });
+    } else if (isDocx) {
+      const { value } = await mammoth.extractRawText({ buffer });
+      parts.push({ text: `RESUME CONTENT:\n\n${value.substring(0, 40000)}` });
+    } else {
+      parts.push({ inlineData: { data: buffer.toString('base64'), mimeType: 'application/pdf' } });
     }
 
-    // --- GitHub README enrichment for projects ---
-    for (let i = 0; i < parsedData.projects.length; i++) {
-      const p = parsedData.projects[i];
-      if (p.repo_url && p.repo_url.includes('github.com')) {
-        try {
-          const rawUrl = p.repo_url.replace('github.com', 'raw.githubusercontent.com') + '/main/README.md';
-          const masterUrl = p.repo_url.replace('github.com', 'raw.githubusercontent.com') + '/master/README.md';
-          let readmeRes = await fetch(rawUrl);
-          if (!readmeRes.ok) readmeRes = await fetch(masterUrl);
-          if (readmeRes.ok) {
-            const readmeText = await readmeRes.text();
-            const enhancePrompt = `Based on this GitHub README, generate 2-3 impressive resume bullet points (one per line, no asterisks or markdown formatting) for this project. Focus on technologies, architecture, and impact.\n\nREADME:\n${readmeText.substring(0, 5000)}`;
-            const enhanceResult = await model.generateContent([{ text: enhancePrompt }]);
-            const extraBullets = enhanceResult.response.text().trim();
-            if (extraBullets) {
-              p.bullets = (p.bullets ? p.bullets + '\n' : '') + extraBullets;
-            }
-          }
-        } catch {
-          // README fetch failed, skip silently
-        }
+    let parsed: ExtractedResume | null = null;
+    let lastError: unknown;
+    for (const tier of ['FLASH', 'FLASH_LITE'] as const) {
+      try {
+        const model = getModel(dbUser.gemini_api_key, tier);
+        const result = await withRetry(() => model.generateContent(parts));
+        parsed = parseJsonReply<ExtractedResume>(result.response.text());
+        break;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+    if (!parsed) throw lastError instanceof Error ? lastError : new Error('Failed to parse resume');
+
+    // ---- normalise ----
+    const education = Array.isArray(parsed.education) ? parsed.education : parsed.education ? [parsed.education] : [];
+    const experience = (parsed.experience ?? []).map(e => ({ ...e, type: e.type || 'work' }));
+    const projects = parsed.projects ?? [];
+
+    // Only thin projects are enriched from their public README; complete ones are never touched
+    const model = getModel(dbUser.gemini_api_key, 'FLASH_LITE');
+    for (const p of projects) {
+      const bulletCount = (p.bullets ?? '').split('\n').filter(l => l.trim()).length;
+      if (bulletCount >= 2 || !p.repo_url || !GITHUB_REPO.test(p.repo_url.trim())) continue;
+      try {
+        const base = p.repo_url.trim().replace(/\/$/, '').replace('github.com', 'raw.githubusercontent.com');
+        let readme = await fetch(`${base}/main/README.md`);
+        if (!readme.ok) readme = await fetch(`${base}/master/README.md`);
+        if (!readme.ok) continue;
+        const text = (await readme.text()).substring(0, 5000);
+        const extra = await model.generateContent([{
+          text: `Based on this README, write 2 factual resume bullets (one per line, plain text, no markdown) for the project "${p.title}". Use only facts stated in the README.\n\nREADME:\n${text}`,
+        }]);
+        const bullets = extra.response.text().trim();
+        if (bullets) p.bullets = [p.bullets, bullets].filter(Boolean).join('\n');
+      } catch {
+        // README unavailable; keep the project as extracted
       }
     }
 
-    // --- Build flat skills string from categorized if missing ---
-    if (!parsedData.skills && parsedData.skills_categorized) {
-      const sc = parsedData.skills_categorized;
-      parsedData.skills = [
-        sc.languages, sc.frameworks, sc.cloud_and_databases, sc.tools_and_architecture, sc.area_of_interest
-      ].filter(Boolean).join(', ');
-    }
+    const sc = parsed.skills_categorized ?? {};
+    const skills =
+      parsed.skills ||
+      [sc.languages, sc.frameworks, sc.cloud_and_databases, sc.tools_and_architecture, sc.area_of_interest].filter(Boolean).join(', ');
 
-    return NextResponse.json({ extracted: parsedData });
-
+    return NextResponse.json({
+      extracted: {
+        profile: parsed.profile ?? {},
+        education: education.filter(e => e.degree || e.institution),
+        experience,
+        projects,
+        skills_categorized: sc,
+        skills,
+        achievements: asText(parsed.achievements),
+        certifications: asText(parsed.certifications),
+      },
+      source: 'model',
+    });
   } catch (error: unknown) {
     console.error('Resume Parse error:', error);
     return NextResponse.json(
