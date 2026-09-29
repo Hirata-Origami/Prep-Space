@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { toast } from 'sonner';
-import { useRef } from 'react';
+import { ArrowLeft, Sparkles, Upload } from 'lucide-react';
+import { Badge, Button, Card, Field, Input, PageHeader, Select, Textarea } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 interface GeneratedCompany {
   name: string;
@@ -19,9 +20,11 @@ interface GeneratedCompany {
   known_patterns: string[];
 }
 
+const SUGGESTIONS = ['Zepto', 'Zomato', 'Razorpay', 'Figma', 'Linear', 'Notion', 'Vercel', 'Anthropic'];
+
 export default function NewCompanyPage() {
   const router = useRouter();
-  const [step, setStep] = useState<'form' | 'preview' | 'saved'>('form');
+  const [step, setStep] = useState<'form' | 'preview'>('form');
   const [companyName, setCompanyName] = useState('');
   const [role, setRole] = useState('Software Engineer');
   const [jd, setJd] = useState('');
@@ -48,9 +51,9 @@ export default function NewCompanyPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to parse file');
-      
+
       setJd(data.text);
-      toast.success('Job description extracted!');
+      toast.success('Job description extracted');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -81,7 +84,7 @@ export default function NewCompanyPage() {
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setGeneratedCompany(data.company);
       setStep('preview');
-      toast.success('Company profile generated!');
+      toast.success('Company profile generated');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -100,7 +103,7 @@ export default function NewCompanyPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Save failed');
-      toast.success('Company added to the platform!');
+      toast.success('Company added');
       router.push('/mock-company');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
@@ -110,176 +113,133 @@ export default function NewCompanyPage() {
   };
 
   return (
-    <div className="page-container" style={{ maxWidth: '700px' }}>
-      <Link href="/mock-company" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
-        ← Back to Companies
+    <div className="page-container" style={{ maxWidth: 760 }}>
+      <Link href="/mock-company" className="mb-5 inline-flex items-center gap-1.5 rounded-control text-sm text-fg-3 transition-colors hover:text-fg">
+        <ArrowLeft size={15} aria-hidden /> Companies
       </Link>
 
-      <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Add Company Interview</h1>
-      <p className="text-[15px] text-fg-2">
-        AI researches real interview patterns for any company and makes them available to all users
-      </p>
+      <PageHeader
+        title="Add a company"
+        description="AI researches known interview patterns for any company and adds them for everyone to practise."
+      />
 
-      <AnimatePresence mode="wait">
-        {step === 'form' && (
-          <motion.div key="form" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', display: 'flex', flexDirection: 'column', gap: '18px' }}>
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                  Company Name *
-                </label>
-                <input
-                  className="input"
-                  value={companyName}
-                  onChange={e => setCompanyName(e.target.value)}
-                  placeholder="e.g. Figma, Notion, Stripe, Zepto..."
-                  style={{ width: '100%' }}
-                />
-                <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                  {['Zepto', 'Zomato', 'Razorpay', 'Figma', 'Linear', 'Notion', 'Vercel', 'Anthropic'].map(c => (
-                    <button key={c} onClick={() => setCompanyName(c)} style={{ padding: '4px 10px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: companyName === c ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: companyName === c ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)' }}>{c}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid-responsive-2" style={{ gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Role</label>
-                  <input className="input" value={role} onChange={e => setRole(e.target.value)} placeholder="Software Engineer" style={{ width: '100%' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Experience Level</label>
-                  <select className="input" value={experienceLevel} onChange={e => setExperienceLevel(e.target.value)} style={{ width: '100%', cursor: 'pointer' }}>
-                    <option>New Grad</option>
-                    <option>Junior</option>
-                    <option>Mid-level</option>
-                    <option>Senior</option>
-                    <option>Staff / Principal</option>
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>
-                    Job Description (optional)
-                  </label>
-                  <button 
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={parsingJd}
-                    style={{ fontSize: '12px', padding: '4px 10px', borderRadius: '6px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-primary)', border: '1px solid var(--border)', cursor: 'pointer', opacity: parsingJd ? 0.7 : 1 }}
-                  >
-                    {parsingJd ? 'Extracting...' : ' Upload PDF/DOCX'}
-                  </button>
-                  <input 
-                    type="file" 
-                    ref={fileInputRef} 
-                    onChange={handleFileUpload}
-                    accept=".pdf,.docx,.txt"
-                    style={{ display: 'none' }} 
-                  />
-                </div>
-                <textarea
-                  value={jd}
-                  onChange={e => setJd(e.target.value)}
-                  placeholder="Paste the job description for more accurate round generation..."
-                  rows={4}
-                  style={{ width: '100%', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box' }}
-                />
-              </div>
-
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                  Special Focus Areas (optional)
-                </label>
-                <input
-                  className="input"
-                  value={comments}
-                  onChange={e => setComments(e.target.value)}
-                  placeholder="e.g. focus on distributed systems, emphasize frontend performance..."
-                  style={{ width: '100%' }}
-                />
-              </div>
-
-              <div style={{ padding: '12px 14px', background: 'rgba(var(--accent-primary-rgb), 0.04)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', borderRadius: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
-                 AI will research known interview patterns at <strong style={{ color: 'var(--accent-primary)' }}>{companyName || 'this company'}</strong> and create a realistic interview format with per-round topic coverage.
-              </div>
-
-              <button
-                onClick={handleGenerate}
-                disabled={generating || !companyName.trim()}
-                className="btn-primary"
-                style={{ padding: '14px', fontSize: '15px', opacity: generating || !companyName.trim() ? 0.7 : 1 }}
-              >
-                {generating ? (
-                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                    <span style={{ width: '18px', height: '18px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                    Researching interview patterns…
-                  </span>
-                ) : ' Generate Company Profile'}
-              </button>
-            </div>
-          </motion.div>
-        )}
-
-        {step === 'preview' && generatedCompany && (
-          <motion.div key="preview" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setStep('form')} className="btn-secondary">← Regenerate</button>
-                <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '10px 24px' }}>
-                  {saving ? 'Saving…' : ' Add to Platform'}
+      {step === 'form' && (
+        <Card className="space-y-5 p-5 sm:p-6">
+          <div>
+            <Field label="Company name">
+              {a => <Input {...a} value={companyName} onChange={e => setCompanyName(e.target.value)} placeholder="Figma, Notion, Stripe, Zepto" />}
+            </Field>
+            <div className="mt-2.5 flex flex-wrap gap-1.5" aria-label="Suggestions">
+              {SUGGESTIONS.map(c => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setCompanyName(c)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    companyName === c ? 'border-signal bg-signal/10 text-signal' : 'border-line bg-raised text-fg-2 hover:border-line-strong'
+                  )}
+                >
+                  {c}
                 </button>
-              </div>
+              ))}
             </div>
+          </div>
 
-            <div className="card" style={{ padding: 'clamp(18px, 4vw, 28px)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '48px' }}>{generatedCompany.logo_emoji}</span>
-                <div>
-                  <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'var(--text-primary)' }}>{generatedCompany.name}</h2>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                    {generatedCompany.industry} • {generatedCompany.size} • Difficulty: <strong style={{ color: generatedCompany.difficulty_rating >= 9 ? 'var(--accent-red)' : 'var(--accent-amber)' }}>{generatedCompany.difficulty_rating}/10</strong>
-                  </div>
-                </div>
-              </div>
-
-              <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: '24px' }}>{generatedCompany.interview_culture}</p>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {(generatedCompany.rounds || []).map((roundName: string) => {
-                  const topics = generatedCompany.round_topics?.[roundName] || [];
-                  return (
-                    <div key={roundName} style={{ padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '12px' }}>
-                      <div style={{ fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px', fontSize: '15px' }}> {roundName}</div>
-                      {topics.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                          {topics.map((t: string) => (
-                            <span key={t} style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {generatedCompany.known_patterns?.length > 0 && (
-                <div style={{ marginTop: '20px' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>Known Patterns</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    {generatedCompany.known_patterns.map((p: string, i: number) => (
-                      <div key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
-                        <span style={{ color: 'var(--accent-primary)' }}>→</span> {p}
-                      </div>
-                    ))}
-                  </div>
-                </div>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field label="Role">{a => <Input {...a} value={role} onChange={e => setRole(e.target.value)} placeholder="Software Engineer" />}</Field>
+            <Field label="Experience level">
+              {a => (
+                <Select {...a} value={experienceLevel} onChange={e => setExperienceLevel(e.target.value)}>
+                  <option>New Grad</option>
+                  <option>Junior</option>
+                  <option>Mid-level</option>
+                  <option>Senior</option>
+                  <option>Staff / Principal</option>
+                </Select>
               )}
+            </Field>
+          </div>
+
+          <div>
+            <div className="mb-1.5 flex items-center justify-between">
+              <label htmlFor="jd" className="text-[13px] font-medium text-fg">Job description <span className="font-normal text-fg-3">(optional)</span></label>
+              <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} loading={parsingJd}>
+                <Upload size={13} aria-hidden /> {parsingJd ? 'Extracting…' : 'Upload PDF or DOCX'}
+              </Button>
+              <input type="file" ref={fileInputRef} onChange={handleFileUpload} accept=".pdf,.docx,.txt" className="sr-only" tabIndex={-1} aria-hidden />
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            <Textarea id="jd" value={jd} onChange={e => setJd(e.target.value)} rows={5} placeholder="Paste the job description for more accurate rounds." />
+          </div>
+
+          <Field label="Special focus areas (optional)">
+            {a => <Input {...a} value={comments} onChange={e => setComments(e.target.value)} placeholder="Distributed systems, frontend performance" />}
+          </Field>
+
+          <p className="rounded-control border border-line bg-raised px-3.5 py-3 text-[13px] text-fg-2">
+            PrepSpace will research known interview patterns at <strong className="text-fg">{companyName || 'this company'}</strong> and build a round-by-round format with topics for each round.
+          </p>
+
+          <Button size="lg" className="w-full" onClick={handleGenerate} loading={generating} disabled={!companyName.trim()}>
+            {!generating && <Sparkles size={16} aria-hidden />}
+            {generating ? 'Researching interview patterns…' : 'Generate company profile'}
+          </Button>
+        </Card>
+      )}
+
+      {step === 'preview' && generatedCompany && (
+        <div>
+          <div className="mb-5 flex flex-wrap gap-2">
+            <Button variant="secondary" onClick={() => setStep('form')}><ArrowLeft size={15} aria-hidden /> Regenerate</Button>
+            <Button onClick={handleSave} loading={saving}>{saving ? 'Saving…' : 'Add to PrepSpace'}</Button>
+          </div>
+
+          <Card className="space-y-6 p-5 sm:p-6">
+            <div className="flex flex-wrap items-center gap-4">
+              <span className="text-5xl leading-none" aria-hidden>{generatedCompany.logo_emoji}</span>
+              <div>
+                <h2 className="font-display text-2xl font-semibold text-fg">{generatedCompany.name}</h2>
+                <div className="text-sm text-fg-3">
+                  {generatedCompany.industry} · {generatedCompany.size} · Difficulty{' '}
+                  <strong className={cn('font-mono', generatedCompany.difficulty_rating >= 9 ? 'text-bad' : 'text-live')}>{generatedCompany.difficulty_rating}/10</strong>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-sm leading-relaxed text-fg-2">{generatedCompany.interview_culture}</p>
+
+            <ol className="space-y-3">
+              {(generatedCompany.rounds || []).map((roundName: string, i) => {
+                const topics = generatedCompany.round_topics?.[roundName] || [];
+                return (
+                  <li key={roundName} className="rounded-panel border border-line bg-raised p-4">
+                    <div className="mb-2 flex items-center gap-2.5">
+                      <span className="flex h-6 w-6 items-center justify-center rounded-full border border-line-strong font-mono text-xs text-fg-2" aria-hidden>{i + 1}</span>
+                      <span className="text-[15px] font-semibold text-fg">{roundName}</span>
+                    </div>
+                    {topics.length > 0 && (
+                      <div className="flex flex-wrap gap-1.5">
+                        {topics.map((t: string) => <Badge key={t} tone="violet">{t}</Badge>)}
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+
+            {generatedCompany.known_patterns?.length > 0 && (
+              <div>
+                <h3 className="mb-2 text-sm font-semibold text-fg">Known patterns</h3>
+                <ul className="space-y-1.5 text-sm text-fg-2">
+                  {generatedCompany.known_patterns.map((p: string, i: number) => (
+                    <li key={i} className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-signal" aria-hidden />{p}</li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

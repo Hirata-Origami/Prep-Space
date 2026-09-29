@@ -1,5 +1,5 @@
 export { Button, ButtonLink, buttonStyles } from './Button';
-export { Input, Textarea, Field } from './Field';
+export { Input, Textarea, Select, Field } from './Field';
 export { Card, SectionHeader } from './Card';
 export { Badge } from './Badge';
 export { Skeleton } from './Skeleton';

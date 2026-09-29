@@ -1,13 +1,12 @@
 'use client';
 
-import { Check } from 'lucide-react';
-import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
-
 import { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
+import { ArrowLeft, Check, Mic, PartyPopper, Pencil, Undo2 } from 'lucide-react';
+import { Badge, Button, ButtonLink, Card, EmptyState, Field, Modal, PageHeader, Progress, Skeleton, Textarea } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 interface Module {
   id: string;
@@ -59,16 +58,16 @@ export default function RoadmapDetailPage() {
     if (id) fetchRoadmap();
   }, [id, fetchRoadmap]);
 
-  const handleMarkComplete = async (moduleId: string) => {
+  const setModuleStatus = async (moduleId: string, status: 'completed' | 'available') => {
     setCompletingModule(moduleId);
     try {
       const res = await fetch(`/api/roadmaps/modules/${moduleId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' }),
+        body: JSON.stringify({ status }),
       });
-      if (!res.ok) throw new Error('Failed to mark complete');
-      toast.success('Module marked as complete! ');
+      if (!res.ok) throw new Error(status === 'completed' ? 'Failed to mark complete' : 'Failed to undo');
+      toast.success(status === 'completed' ? 'Module marked complete' : 'Module marked available');
       await fetchRoadmap();
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'An error occurred');
@@ -98,7 +97,7 @@ export default function RoadmapDetailPage() {
       setShowEditModal(false);
       setEditComments('');
       setSelectedModuleIds([]);
-      toast.success('Roadmap updated successfully!');
+      toast.success('Roadmap updated');
     } catch (e: unknown) {
       toast.error((e as Error).message);
     } finally {
@@ -108,7 +107,7 @@ export default function RoadmapDetailPage() {
 
   const toggleModuleSelection = (moduleId: string) => {
     setSelectedModuleIds(prev =>
-      prev.includes(moduleId) ? prev.filter(id => id !== moduleId) : [...prev, moduleId]
+      prev.includes(moduleId) ? prev.filter(x => x !== moduleId) : [...prev, moduleId]
     );
   };
 
@@ -117,9 +116,9 @@ export default function RoadmapDetailPage() {
       <div className="page-container" aria-busy="true" aria-label="Loading roadmap">
         <Skeleton className="mb-3 h-9 w-72 max-w-full" />
         <Skeleton className="mb-8 h-4 w-96 max-w-full" />
-        <div className="grid gap-4 md:grid-cols-2">
-          <Skeleton className="h-48 rounded-panel" />
-          <Skeleton className="h-48 rounded-panel" />
+        <div className="space-y-4">
+          <Skeleton className="h-36 rounded-panel" />
+          <Skeleton className="h-36 rounded-panel" />
         </div>
       </div>
     );
@@ -141,295 +140,152 @@ export default function RoadmapDetailPage() {
   const completedCount = sortedModules.filter(m => m.status === 'completed').length;
   const progressPct = sortedModules.length > 0 ? Math.round((completedCount / sortedModules.length) * 100) : 0;
 
-  const statusColor = (status: string) => {
-    if (status === 'completed') return { bg: 'rgba(var(--accent-primary-rgb), 0.1)', color: 'var(--accent-primary)', border: 'rgba(var(--accent-primary-rgb), 0.3)' };
-    if (status === 'in_progress') return { bg: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: 'rgba(var(--accent-violet-rgb), 0.3)' };
-    return { bg: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', border: 'var(--border)' };
-  };
-
   return (
-    <div className="page-container" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      {/* Edit Plan Modal */}
-      <AnimatePresence>
-        {showEditModal && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(8px)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(12px, 3vw, 24px)' }}
-            onClick={e => { if (e.target === e.currentTarget) setShowEditModal(false); }}
-          >
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              style={{ background: 'var(--bg-surface)', border: '1px solid var(--border)', borderRadius: '20px', padding: 'clamp(20px, 4vw, 32px)', width: '100%', maxWidth: '640px', maxHeight: '85vh', overflowY: 'auto' }}
-            >
-              <h2 style={{ fontSize: 'clamp(18px, 4vw, 22px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '6px' }}>Edit Roadmap Plan</h2>
-              <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '24px' }}>
-                Describe how you want to update this roadmap. Optionally select specific modules to update.
-              </p>
+    <div className="page-container" style={{ maxWidth: 920 }}>
+      <Link href="/roadmap" className="mb-5 inline-flex items-center gap-1.5 rounded-control text-sm text-fg-3 transition-colors hover:text-fg">
+        <ArrowLeft size={15} aria-hidden /> Roadmaps
+      </Link>
 
-              {/* Module Selection */}
-              <div style={{ marginBottom: '20px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '10px' }}>
-                  Select Modules to Update (optional — leave empty for full roadmap)
-                </label>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '200px', overflowY: 'auto' }}>
-                  {sortedModules.map((mod, i) => (
-                    <label key={mod.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '10px 12px', borderRadius: '8px', cursor: 'pointer', background: selectedModuleIds.includes(mod.id) ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'var(--bg-elevated)', border: `1px solid ${selectedModuleIds.includes(mod.id) ? 'rgba(var(--accent-primary-rgb), 0.3)' : 'var(--border)'}`, transition: 'all 0.15s' }}>
-                      <input
-                        type="checkbox"
-                        checked={selectedModuleIds.includes(mod.id)}
-                        onChange={() => toggleModuleSelection(mod.id)}
-                        style={{ accentColor: 'var(--accent-primary)', width: '16px', height: '16px' }}
-                      />
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', flex: 1 }}>
-                        {i + 1}. {mod.title}
-                      </span>
-                      {mod.status === 'completed' && <span style={{ fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 700 }}> DONE</span>}
-                    </label>
-                  ))}
-                </div>
-                {selectedModuleIds.length > 0 && (
-                  <div style={{ marginTop: '8px', fontSize: '12px', color: 'var(--accent-primary)', fontWeight: 600 }}>
-                    {selectedModuleIds.length} module{selectedModuleIds.length > 1 ? 's' : ''} selected
-                  </div>
-                )}
-              </div>
+      <PageHeader
+        title={roadmap.title}
+        description={`Created ${new Date(roadmap.created_at).toLocaleDateString()} · ${sortedModules.length} modules`}
+        action={
+          <>
+            <Badge tone={roadmap.status === 'completed' ? 'good' : 'signal'} className="capitalize">{roadmap.status}</Badge>
+            <Button variant="secondary" onClick={() => setShowEditModal(true)}><Pencil size={14} aria-hidden /> Edit plan</Button>
+          </>
+        }
+        className="mb-6"
+      />
 
-              {/* Comments */}
-              <div style={{ marginBottom: '24px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: '8px' }}>
-                  Your Comments *
-                </label>
-                <textarea
-                  value={editComments}
-                  onChange={e => setEditComments(e.target.value)}
-                  placeholder="e.g., Add more focus on system design patterns, include microservices and event-driven architecture. Make the DSA module cover more graph algorithms..."
-                  rows={5}
-                  style={{ width: '100%', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontSize: '14px', fontFamily: 'var(--font-body)', resize: 'vertical', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6 }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px' }}>
-                <button onClick={() => setShowEditModal(false)} className="btn-secondary" style={{ flex: 1 }}>
-                  Cancel
-                </button>
-                <button
-                  onClick={handleEditSubmit}
-                  disabled={isEditing || !editComments.trim()}
-                  className="btn-primary"
-                  style={{ flex: 2, justifyContent: 'center', opacity: isEditing || !editComments.trim() ? 0.7 : 1 }}
-                >
-                  {isEditing ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                      Updating with AI…
-                    </span>
-                  ) : ' Update Roadmap'}
-                </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      <header style={{ marginBottom: '40px' }}>
-        <Link href="/roadmap" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '20px', fontWeight: 600 }}>
-          ← Back to Roadmaps
-        </Link>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '16px', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1 1 280px', minWidth: 0 }}>
-            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">{roadmap.title}</h1>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{
-                padding: '4px 12px',
-                borderRadius: '100px',
-                fontSize: '12px',
-                fontWeight: 700,
-                background: roadmap.status === 'completed' ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'rgba(var(--accent-violet-rgb), 0.1)',
-                color: roadmap.status === 'completed' ? 'var(--accent-primary)' : 'var(--accent-violet)',
-                
-              }}>
-                {roadmap.status}
-              </span>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                Created {new Date(roadmap.created_at).toLocaleDateString()}
-              </span>
-              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {sortedModules.length} modules
-              </span>
-            </div>
+      {sortedModules.length > 0 && (
+        <div className="mb-8">
+          <div className="mb-2 flex justify-between text-[13px] text-fg-3">
+            <span>{completedCount} of {sortedModules.length} modules complete</span>
+            <span className="font-mono text-fg-2">{progressPct}%</span>
           </div>
-          <button onClick={() => setShowEditModal(true)} className="btn-secondary" style={{ fontSize: '13px', whiteSpace: 'nowrap' }}>
-            Edit plan
-          </button>
+          <Progress value={progressPct} label="Roadmap progress" tone={progressPct >= 80 ? 'good' : 'signal'} />
         </div>
+      )}
 
-        {/* Progress Bar */}
-        {sortedModules.length > 0 && (
-          <div style={{ marginTop: '20px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-muted)', marginBottom: '8px', fontWeight: 600 }}>
-              <span>{completedCount} of {sortedModules.length} modules completed</span>
-              <span style={{ color: progressPct >= 80 ? 'var(--accent-primary)' : 'var(--text-muted)' }}>{progressPct}%</span>
-            </div>
-            <div style={{ height: '6px', background: 'rgba(255,255,255,0.05)', borderRadius: '100px', overflow: 'hidden' }}>
-              <motion.div
-                initial={{ width: 0 }}
-                animate={{ width: `${progressPct}%` }}
-                transition={{ duration: 0.8, ease: 'easeOut' }}
-                style={{ height: '100%', background: progressPct >= 80 ? 'var(--accent-primary)' : 'var(--accent-violet)', borderRadius: '100px', boxShadow: '0 0 8px rgba(var(--accent-primary-rgb), 0.4)' }}
-              />
-            </div>
-          </div>
-        )}
-      </header>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-        <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Path Modules</h2>
+      <h2 className="mb-4 text-lg font-semibold text-fg">Modules</h2>
+      <ol className="space-y-3">
         {sortedModules.map((module, index) => {
-          const colors = statusColor(module.status);
           const isCompleted = module.status === 'completed';
           const topics = module.topics || module.interview_topics || [];
+          const busy = completingModule === module.id;
 
           return (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.05 }}
-              key={module.id}
-              className="surface"
-              style={{
-                padding: '24px',
-                position: 'relative',
-                border: `1px solid ${isCompleted ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'var(--border)'}`,
-                background: isCompleted ? 'rgba(var(--accent-primary-rgb), 0.02)' : undefined,
-                transition: 'all 0.3s'
-              }}
-            >
-              <div style={{ display: 'flex', gap: '20px' }}>
-                <div style={{
-                  width: '36px',
-                  height: '36px',
-                  borderRadius: '50%',
-                  background: isCompleted ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                  border: `2px solid ${isCompleted ? 'var(--accent-primary)' : 'var(--border)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontSize: '14px',
-                  fontWeight: 700,
-                  color: isCompleted ? 'var(--text-on-accent)' : 'var(--text-muted)',
-                  flexShrink: 0,
-                  transition: 'all 0.3s'
-                }}>
-                  {isCompleted ? <Check size={18} strokeWidth={3} aria-hidden /> : index + 1}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '8px', gap: '12px' }}>
-                    <h3 style={{ fontSize: '17px', fontWeight: 700, color: isCompleted ? 'var(--text-muted)' : 'var(--text-primary)', textDecoration: isCompleted ? 'line-through' : 'none', transition: 'all 0.3s' }}>
-                      {module.title}
-                    </h3>
-                    <span style={{
-                      fontSize: '12px',
-                      fontWeight: 700,
-                      padding: '3px 10px',
-                      borderRadius: '100px',
-                      background: colors.bg,
-                      color: colors.color,
-                      border: `1px solid ${colors.border}`,
-                      
-                      whiteSpace: 'nowrap',
-                      flexShrink: 0
-                    }}>
-                      {module.status?.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: 1.6, marginBottom: topics.length > 0 ? '12px' : '0' }}>
-                    {module.description}
-                  </p>
+            <li key={module.id}>
+              <Card className={cn('flex gap-4 sm:gap-5', isCompleted && 'border-good/25')}>
+                <span
+                  className={cn(
+                    'flex h-9 w-9 shrink-0 items-center justify-center rounded-full border font-mono text-sm',
+                    isCompleted ? 'border-good bg-good text-[var(--text-on-accent)]' : 'border-line-strong bg-raised text-fg-3'
+                  )}
+                  aria-hidden
+                >
+                  {isCompleted ? <Check size={18} strokeWidth={3} /> : index + 1}
+                </span>
 
-                  {/* Interview Topics */}
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <h3 className={cn('text-base font-semibold', isCompleted ? 'text-fg-3 line-through' : 'text-fg')}>{module.title}</h3>
+                    <Badge tone={isCompleted ? 'good' : module.status === 'in_progress' ? 'signal' : 'neutral'} className="capitalize">
+                      {module.status?.replace('_', ' ')}
+                    </Badge>
+                  </div>
+                  <p className="mt-1.5 text-sm leading-relaxed text-fg-2">{module.description}</p>
+
                   {topics.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '16px' }}>
-                      {topics.slice(0, 6).map((t: string) => (
-                        <span key={t} style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>
-                          {t}
-                        </span>
-                      ))}
-                      {topics.length > 6 && (
-                        <span style={{ fontSize: '12px', padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>
-                          +{topics.length - 6} more
-                        </span>
-                      )}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {topics.slice(0, 6).map((t: string) => <Badge key={t} tone="violet">{t}</Badge>)}
+                      {topics.length > 6 && <Badge>+{topics.length - 6} more</Badge>}
                     </div>
                   )}
 
-                  <div style={{ marginTop: '16px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  <div className="mt-4 flex flex-wrap gap-2">
                     {!isCompleted && (
-                      <Link
+                      <ButtonLink
+                        size="sm"
                         href={`/interview?topic=conceptual&role=${encodeURIComponent(module.title)}&module_topics=${encodeURIComponent(JSON.stringify(topics))}&direct=true`}
-                        className="btn-primary"
-                        style={{ padding: '7px 20px', fontSize: '12px', textDecoration: 'none', fontWeight: 700 }}
                       >
-                         Start Interview
-                      </Link>
+                        <Mic size={13} aria-hidden /> Start interview
+                      </ButtonLink>
                     )}
                     {!isCompleted ? (
-                      <button
-                        onClick={() => handleMarkComplete(module.id)}
-                        disabled={completingModule === module.id}
-                        className="btn-secondary"
-                        style={{ padding: '7px 16px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
-                      >
-                        {completingModule === module.id ? (
-                          <>
-                            <span style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: 'var(--accent-primary)', borderRadius: '50%', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                            Marking…
-                          </>
-                        ) : ' Mark Complete'}
-                      </button>
+                      <Button size="sm" variant="secondary" onClick={() => setModuleStatus(module.id, 'completed')} loading={busy}>
+                        {busy ? 'Marking…' : 'Mark complete'}
+                      </Button>
                     ) : (
-                      <button
-                        onClick={async () => {
-                          setCompletingModule(module.id);
-                          const res = await fetch(`/api/roadmaps/modules/${module.id}`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ status: 'available' }),
-                          });
-                          if (res.ok) { toast.success('Module marked as available'); await fetchRoadmap(); }
-                          setCompletingModule(null);
-                        }}
-                        className="btn-secondary"
-                        style={{ padding: '7px 16px', fontSize: '12px', opacity: 0.6 }}
-                      >
-                        ↩ Undo
-                      </button>
+                      <Button size="sm" variant="ghost" onClick={() => setModuleStatus(module.id, 'available')} loading={busy}>
+                        <Undo2 size={13} aria-hidden /> Undo
+                      </Button>
                     )}
                   </div>
                 </div>
-              </div>
-            </motion.div>
+              </Card>
+            </li>
           );
         })}
-      </div>
+      </ol>
 
       {completedCount === sortedModules.length && sortedModules.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ marginTop: '32px', padding: 'clamp(20px, 4vw, 32px)', background: 'rgba(var(--accent-primary-rgb), 0.05)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', borderRadius: '16px', textAlign: 'center' }}
-        >
-          <div style={{ fontSize: '48px', marginBottom: '12px' }}></div>
-          <h2 style={{ fontSize: 'clamp(20px, 4vw, 24px)', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>Roadmap Complete!</h2>
-          <p className="text-[15px] text-fg-2">You&apos;ve mastered all modules. Time to ace that interview.</p>
-          <Link href="/interview" className="btn-primary" style={{ textDecoration: 'none', fontSize: '15px', padding: '12px 28px' }}>
-             Take Full Mock Interview
-          </Link>
-        </motion.div>
+        <Card className="mt-8 border-good/30 py-10 text-center">
+          <PartyPopper size={28} className="mx-auto mb-3 text-good" aria-hidden />
+          <h2 className="font-display text-2xl font-semibold text-fg">Roadmap complete</h2>
+          <p className="mx-auto mt-1 max-w-sm text-[15px] text-fg-2">Every module is done. Put it together in a full mock interview.</p>
+          <ButtonLink href="/interview" size="lg" className="mt-5">Take a full mock interview</ButtonLink>
+        </Card>
       )}
+
+      <Modal
+        open={showEditModal}
+        onOpenChange={setShowEditModal}
+        title="Edit roadmap plan"
+        description="Describe what should change. Optionally pick the modules to update."
+        className="max-w-xl"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setShowEditModal(false)}>Cancel</Button>
+            <Button onClick={handleEditSubmit} loading={isEditing} disabled={!editComments.trim()}>{isEditing ? 'Updating…' : 'Update roadmap'}</Button>
+          </>
+        }
+      >
+        <div className="space-y-5">
+          <fieldset>
+            <legend className="mb-2 text-[13px] font-medium text-fg">Modules to update <span className="font-normal text-fg-3">(leave empty for the whole roadmap)</span></legend>
+            <div className="max-h-52 space-y-1.5 overflow-y-auto pr-1">
+              {sortedModules.map((mod, i) => {
+                const on = selectedModuleIds.includes(mod.id);
+                return (
+                  <label
+                    key={mod.id}
+                    className={cn('flex cursor-pointer items-center gap-3 rounded-control border px-3 py-2.5 text-sm transition-colors', on ? 'border-signal/40 bg-signal/10' : 'border-line bg-raised hover:border-line-strong')}
+                  >
+                    <input type="checkbox" checked={on} onChange={() => toggleModuleSelection(mod.id)} className="h-4 w-4 accent-[var(--accent-primary)]" />
+                    <span className="min-w-0 flex-1 truncate text-fg-2">{i + 1}. {mod.title}</span>
+                    {mod.status === 'completed' && <Badge tone="good">Done</Badge>}
+                  </label>
+                );
+              })}
+            </div>
+            {selectedModuleIds.length > 0 && <p className="mt-2 text-xs font-medium text-signal">{selectedModuleIds.length} module{selectedModuleIds.length > 1 ? 's' : ''} selected</p>}
+          </fieldset>
+
+          <Field label="What should change?">
+            {a => (
+              <Textarea
+                {...a}
+                rows={5}
+                value={editComments}
+                onChange={e => setEditComments(e.target.value)}
+                placeholder="Add more on system design patterns, include microservices and event-driven architecture. Make the DSA module cover more graph algorithms."
+              />
+            )}
+          </Field>
+        </div>
+      </Modal>
     </div>
   );
 }

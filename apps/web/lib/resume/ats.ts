@@ -66,7 +66,7 @@ function estimatePageFill(data: ResumeData, templateId: ResumeTemplateId): numbe
   side += toItems(data.achievements).reduce((n, a) => n + linesFor(a, sideCpl), 0);
   side += toItems(data.certifications).reduce((n, a) => n + linesFor(a, sideCpl), 0);
 
-  const capacity = two ? 82 : 66;
+  const capacity = two ? 58 : 66;
   const used = two ? Math.max(main, side) : main + side + 4;
   return Math.round((used / capacity) * 100);
 }

@@ -1,11 +1,13 @@
 'use client';
 
-import { Skeleton } from '@/components/ui';
-
-import { useState, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { toast } from 'sonner';
+import { ArrowLeft, Map, MoreHorizontal, ShieldCheck, UserMinus } from 'lucide-react';
+import {
+  Avatar, Badge, Button, ButtonLink, Card, Dropdown, DropdownContent, DropdownItem, DropdownTrigger, EmptyState, Input, Modal, Select, Skeleton,
+} from '@/components/ui';
 
 interface GroupInfo {
   id: string;
@@ -27,15 +29,23 @@ interface GroupMember {
   role: 'admin' | 'member' | 'visitor';
 }
 
+interface PendingConfirm {
+  title: string;
+  description: string;
+  action: string;
+  run: () => void;
+}
+
 export default function GroupDashboardPage() {
   const { id } = useParams();
   const router = useRouter();
 
   const [group, setGroup] = useState<GroupInfo | null>(null);
-  const [groupRoadmaps, setGroupRoadmaps] = useState<GroupRoadmap[]>([]); // New state
+  const [groupRoadmaps, setGroupRoadmaps] = useState<GroupRoadmap[]>([]);
   const [members, setMembers] = useState<GroupMember[]>([]);
   const [myRole, setMyRole] = useState<'admin' | 'member' | 'visitor'>('visitor');
   const [loading, setLoading] = useState(true);
+  const [confirming, setConfirming] = useState<PendingConfirm | null>(null);
 
   // Invite state
   const [inviteEmail, setInviteEmail] = useState('');
@@ -45,13 +55,13 @@ export default function GroupDashboardPage() {
   const [allRoadmaps, setAllRoadmaps] = useState<GroupRoadmap[]>([]);
   const [loadingRoadmaps, setLoadingRoadmaps] = useState(false);
 
-  const fetchGroupData = async () => {
+  const fetchGroupData = useCallback(async () => {
     try {
       const res = await fetch(`/api/groups/${id}`);
       if (res.ok) {
         const data = await res.json();
         setGroup(data.group);
-        setGroupRoadmaps(data.roadmaps || []); // Set roadmaps list
+        setGroupRoadmaps(data.roadmaps || []);
         setMembers(data.members || []);
         setMyRole(data.myRole);
       } else {
@@ -64,7 +74,7 @@ export default function GroupDashboardPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id, router]);
 
   const fetchAllRoadmaps = async () => {
     setLoadingRoadmaps(true);
@@ -85,7 +95,7 @@ export default function GroupDashboardPage() {
     if (id) {
       fetchGroupData();
     }
-  }, [id]);
+  }, [id, fetchGroupData]);
 
   useEffect(() => {
     if (myRole === 'admin') {
@@ -103,7 +113,7 @@ export default function GroupDashboardPage() {
         body: JSON.stringify({ email: inviteEmail }),
       });
       if (res.ok) {
-        toast.success('Member invited successfully!');
+        toast.success('Member invited');
         setInviteEmail('');
         fetchGroupData();
       } else {
@@ -137,7 +147,6 @@ export default function GroupDashboardPage() {
   };
 
   const handleRemoveMember = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this member?')) return;
     try {
       const res = await fetch(`/api/groups/${id}/members?user_id=${userId}`, {
         method: 'DELETE',
@@ -155,7 +164,6 @@ export default function GroupDashboardPage() {
   };
 
   const handleLeaveGroup = async () => {
-    if (!confirm('Are you sure you want to leave this group?')) return;
     try {
       const res = await fetch(`/api/groups/${id}/members`, { method: 'DELETE' });
       if (res.ok) {
@@ -194,7 +202,11 @@ export default function GroupDashboardPage() {
     return (
       <div className="page-container" aria-busy="true" aria-label="Loading group">
         <Skeleton className="mb-3 h-9 w-72 max-w-full" />
-        <Skeleton className="h-48 rounded-panel" />
+        <Skeleton className="mb-6 h-4 w-96 max-w-full" />
+        <div className="grid gap-6 md:grid-cols-2">
+          <Skeleton className="h-72 rounded-panel" />
+          <Skeleton className="h-72 rounded-panel" />
+        </div>
       </div>
     );
   }
@@ -202,137 +214,157 @@ export default function GroupDashboardPage() {
   if (!group) return null;
 
   return (
-    <div className="page-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
-      <Link href="/groups" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', marginBottom: '24px', fontWeight: 600 }}>
-        ← Back to Groups
+    <div className="page-container" style={{ maxWidth: 1040 }}>
+      <Link href="/groups" className="mb-5 inline-flex items-center gap-1.5 rounded-control text-sm text-fg-3 transition-colors hover:text-fg">
+        <ArrowLeft size={15} aria-hidden /> Groups
       </Link>
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">{group.name}</h1>
-            <span className="badge badge-mint">{group.access_type}</span>
+      <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-3">
+            <h1 className="font-display text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">{group.name}</h1>
+            <Badge tone={group.access_type === 'public' ? 'good' : 'neutral'} className="capitalize">{group.access_type}</Badge>
           </div>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)' }}>{group.description}</p>
+          {group.description && <p className="mt-1.5 max-w-2xl text-[15px] text-fg-2">{group.description}</p>}
         </div>
         {myRole !== 'admin' && (
-          <button
-            onClick={handleLeaveGroup}
-            style={{ padding: '8px 18px', background: 'rgba(var(--accent-red-rgb), 0.08)', border: '1px solid rgba(var(--accent-red-rgb), 0.25)', color: 'var(--accent-red)', borderRadius: '8px', fontSize: '13px', fontWeight: 700, cursor: 'pointer', flexShrink: 0, fontFamily: 'var(--font-body)' }}
+          <Button
+            variant="danger"
+            onClick={() => setConfirming({
+              title: 'Leave this group?',
+              description: 'You will lose access to its shared roadmaps. You can rejoin later if the group allows it.',
+              action: 'Leave group',
+              run: handleLeaveGroup,
+            })}
           >
-            Leave Group
-          </button>
+            Leave group
+          </Button>
         )}
-      </div>
+      </header>
 
-      <div className="grid-responsive-2" style={{ gap: '24px' }}>
-        {/* Members Section */}
-        <div className="card" style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div className="grid items-start gap-6 md:grid-cols-2">
+        <Card className="space-y-5">
           <div>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Members ({members.length})</h2>
-            <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Manage group participants</p>
+            <h2 className="text-lg font-semibold text-fg">Members <span className="font-mono text-fg-3">({members.length})</span></h2>
+            <p className="text-[13px] text-fg-3">People studying together in this group.</p>
           </div>
 
           {myRole === 'admin' && (
-            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-              <input 
-                type="email" 
-                placeholder="Invite member by email..." 
-                className="input" 
-                style={{ flex: '1 1 180px', minWidth: '150px' }}
+            <form
+              className="flex flex-wrap gap-2"
+              onSubmit={e => { e.preventDefault(); handleInvite(); }}
+            >
+              <Input
+                type="email"
+                aria-label="Invite by email"
+                placeholder="Invite by email"
+                className="min-w-[160px] flex-1"
                 value={inviteEmail}
                 onChange={e => setInviteEmail(e.target.value)}
               />
-              <button className="btn-primary" onClick={handleInvite} disabled={inviting || !inviteEmail}>
-                {inviting ? 'Inviting...' : 'Invite'}
-              </button>
-            </div>
+              <Button type="submit" loading={inviting} disabled={!inviteEmail}>Invite</Button>
+            </form>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <ul className="divide-y divide-line rounded-panel border border-line">
             {members.map(m => (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px solid var(--border)' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'var(--accent-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#000', fontWeight: 'bold' }}>
-                    {m.full_name?.[0] || m.email[0].toUpperCase()}
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{m.full_name || 'User'}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.email}</div>
+              <li key={m.id} className="flex items-center justify-between gap-3 px-3 py-2.5">
+                <div className="flex min-w-0 items-center gap-3">
+                  <Avatar name={m.full_name || m.email} size={32} />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-medium text-fg">{m.full_name || 'User'}</div>
+                    <div className="truncate text-xs text-fg-3">{m.email}</div>
                   </div>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span className={`badge ${m.role === 'admin' ? 'badge-violet' : 'badge-muted'}`} style={{ fontSize: '12px' }}>{m.role}</span>
-                  
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <Badge tone={m.role === 'admin' ? 'violet' : 'neutral'} className="capitalize">{m.role}</Badge>
                   {myRole === 'admin' && m.role !== 'admin' && (
-                    <div className="dropdown">
-                      <select onChange={(e) => {
-                        if (e.target.value === 'make_admin') handleMakeAdmin(m.id);
-                        if (e.target.value === 'remove') handleRemoveMember(m.id);
-                        e.target.value = '';
-                      }} style={{ background: 'transparent', color: 'var(--text-primary)', border: 'none', cursor: 'pointer', outline: 'none', appearance: 'none' }}>
-                        <option value="">Manage</option>
-                        <option value="make_admin">Make Admin</option>
-                        <option value="remove">Remove User</option>
-                      </select>
-                    </div>
+                    <Dropdown>
+                      <DropdownTrigger asChild>
+                        <Button variant="ghost" size="icon" aria-label={`Manage ${m.full_name || m.email}`}><MoreHorizontal size={16} /></Button>
+                      </DropdownTrigger>
+                      <DropdownContent align="end" className="min-w-44">
+                        <DropdownItem onSelect={() => handleMakeAdmin(m.id)}><ShieldCheck size={15} aria-hidden /> Make admin</DropdownItem>
+                        <DropdownItem
+                          tone="danger"
+                          onSelect={() => setConfirming({
+                            title: `Remove ${m.full_name || m.email}?`,
+                            description: 'They will lose access to this group and its roadmaps.',
+                            action: 'Remove member',
+                            run: () => handleRemoveMember(m.id),
+                          })}
+                        >
+                          <UserMinus size={15} aria-hidden /> Remove
+                        </DropdownItem>
+                      </DropdownContent>
+                    </Dropdown>
                   )}
                 </div>
-              </div>
+              </li>
             ))}
-          </div>
-        </div>
+          </ul>
+        </Card>
 
-        {/* Roadmap & Resources Section */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          <div className="card" style={{ padding: '24px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '16px' }}>Group Roadmaps ({groupRoadmaps.length})</h2>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {groupRoadmaps.length > 0 ? groupRoadmaps.map(r => (
-                <div key={r.id} style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', position: 'relative' }}>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{r.title}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '16px' }}>Target: {r.target_role || 'General'}</div>
-                  <div style={{ display: 'flex', gap: '8px' }}>
-                    <Link href={`/roadmap/${r.id}`} className="btn-secondary" style={{ flex: 1, justifyContent: 'center', fontSize: '13px', paddingTop: '8px', paddingBottom: '8px', textDecoration: 'none', textAlign: 'center' }}>
-                      View
-                    </Link>
+        <Card className="space-y-5">
+          <div>
+            <h2 className="text-lg font-semibold text-fg">Roadmaps <span className="font-mono text-fg-3">({groupRoadmaps.length})</span></h2>
+            <p className="text-[13px] text-fg-3">Shared study plans for the whole group.</p>
+          </div>
+
+          {groupRoadmaps.length > 0 ? (
+            <ul className="space-y-2.5">
+              {groupRoadmaps.map(r => (
+                <li key={r.id} className="rounded-panel border border-line bg-raised p-4">
+                  <div className="text-sm font-semibold text-fg">{r.title}</div>
+                  <div className="mb-3 text-xs text-fg-3">Target: {r.target_role || 'General'}</div>
+                  <div className="flex gap-2">
+                    <ButtonLink href={`/roadmap/${r.id}`} variant="secondary" size="sm" className="flex-1">View</ButtonLink>
                     {myRole === 'admin' && (
-                      <button onClick={() => handleAssignRoadmap(r.id, 'remove')} className="btn-secondary" style={{ color: 'var(--accent-red)', borderColor: 'rgba(var(--accent-red-rgb), 0.2)' }}>
-                        Remove
-                      </button>
+                      <Button size="sm" variant="danger" onClick={() => handleAssignRoadmap(r.id, 'remove')}>Remove</Button>
                     )}
                   </div>
-                </div>
-              )) : (
-                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', background: 'var(--bg-elevated)', borderRadius: '8px', border: '1px dashed var(--border)' }}>
-                  No active roadmaps assigned to this group.
-                </div>
-              )}
-            </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyState icon={<Map size={18} aria-hidden />} title="No roadmaps assigned" description={myRole === 'admin' ? 'Add one of your roadmaps below.' : 'An admin can assign a roadmap to this group.'} className="py-8" />
+          )}
 
-            {myRole === 'admin' && (
-              <div style={{ marginTop: '20px', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Add Roadmap</label>
-                <select 
-                  className="input" 
-                  value="" 
-                  onChange={(e) => handleAssignRoadmap(e.target.value, 'add')}
-                  disabled={loadingRoadmaps}
-                  style={{ width: '100%' }}
-                >
-                  <option value="">-- Select Roadmap to Add --</option>
-                  {allRoadmaps
-                    .filter(r => !groupRoadmaps.find(gr => gr.id === r.id))
-                    .map(r => (
-                      <option key={r.id} value={r.id}>{r.title}</option>
-                    ))}
-                </select>
-              </div>
-            )}
-          </div>
-        </div>
+          {myRole === 'admin' && (
+            <div className="border-t border-line pt-5">
+              <label htmlFor="add-roadmap" className="mb-1.5 block text-[13px] font-medium text-fg">Add a roadmap</label>
+              <Select
+                id="add-roadmap"
+                value=""
+                onChange={e => handleAssignRoadmap(e.target.value, 'add')}
+                disabled={loadingRoadmaps}
+              >
+                <option value="">Select a roadmap</option>
+                {allRoadmaps
+                  .filter(r => !groupRoadmaps.find(gr => gr.id === r.id))
+                  .map(r => (
+                    <option key={r.id} value={r.id}>{r.title}</option>
+                  ))}
+              </Select>
+            </div>
+          )}
+        </Card>
       </div>
+
+      <Modal
+        open={confirming !== null}
+        onOpenChange={open => { if (!open) setConfirming(null); }}
+        title={confirming?.title ?? ''}
+        description={confirming?.description}
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setConfirming(null)}>Cancel</Button>
+            <Button variant="danger" onClick={() => { confirming?.run(); setConfirming(null); }}>{confirming?.action}</Button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-2">This cannot be undone from here.</p>
+      </Modal>
     </div>
   );
 }

@@ -1,26 +1,29 @@
 'use client';
 
-import { Skeleton } from '@/components/ui';
-
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import { toast } from 'sonner';
-import Link from 'next/link';
+import { Globe, Lock, Plus, Search, Users } from 'lucide-react';
 import { useGroups } from '@/lib/hooks/useGroups';
+import {
+  Badge, Button, ButtonLink, Card, EmptyState, ErrorState, Field, Input, PageHeader, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, Textarea,
+} from '@/components/ui';
+import { cn } from '@/lib/cn';
 
-const TABS = ['My Groups', 'Discover', 'Create'];
+const ACCESS_OPTIONS = [
+  { id: 'shared', icon: Lock, label: 'Shared (invite only)', desc: 'Up to 50 members, with admin tools and deadlines' },
+  { id: 'public', icon: Globe, label: 'Public', desc: 'Anyone can join, unlimited members' },
+] as const;
 
 export default function GroupsPage() {
-  const [tab, setTab] = useState('My Groups');
+  const [tab, setTab] = useState('my');
   const [groupName, setGroupName] = useState('');
   const [description, setDescription] = useState('');
   const [accessType, setAccessType] = useState<'shared' | 'public'>('shared');
   const [submitting, setSubmitting] = useState(false);
+  const [query, setQuery] = useState('');
 
-  const { groups, isLoading: loadingMy, mutate: mutateMy } = useGroups('my');
+  const { groups, isLoading: loadingMy, isError: errorMy, mutate: mutateMy } = useGroups('my');
   const { groups: discoverGroups, isLoading: loadingDiscover, mutate: mutateDiscover } = useGroups('discover');
-
-  const isLoading = tab === 'My Groups' ? loadingMy : loadingDiscover;
 
   const handleCreate = async () => {
     if (!groupName) return toast.error('Group name is required');
@@ -32,9 +35,9 @@ export default function GroupsPage() {
         body: JSON.stringify({ name: groupName, description, access_type: accessType }),
       });
       if (res.ok) {
-        toast.success('Group created!');
+        toast.success('Group created');
         mutateMy();
-        setTab('My Groups');
+        setTab('my');
         setGroupName('');
         setDescription('');
       } else {
@@ -56,7 +59,7 @@ export default function GroupsPage() {
         body: JSON.stringify({ group_id: groupId }),
       });
       if (res.ok) {
-        toast.success('Joined group!');
+        toast.success('Joined group');
         mutateMy();
         mutateDiscover();
       } else {
@@ -68,118 +71,132 @@ export default function GroupsPage() {
     }
   };
 
+  const filteredDiscover = discoverGroups.filter(g =>
+    `${g.name} ${g.description ?? ''}`.toLowerCase().includes(query.toLowerCase())
+  );
+
+  const cards = (list: typeof groups, mode: 'open' | 'join') => (
+    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {list.map(g => (
+        <li key={g.id}>
+          <Card className="flex h-full flex-col">
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-base font-semibold text-fg">{g.name}</h2>
+              <Badge tone={g.access_type === 'public' ? 'good' : 'neutral'} className="shrink-0 capitalize">{g.access_type}</Badge>
+            </div>
+            <p className="mt-2 flex-1 text-[13px] leading-relaxed text-fg-2">{g.description || (mode === 'open' ? 'Collaborative study space.' : 'Public study group.')}</p>
+            <div className="mt-4">
+              {mode === 'open' ? (
+                <ButtonLink href={`/groups/${g.id}`} className="w-full">Open group</ButtonLink>
+              ) : (
+                <Button variant="secondary" className="w-full" onClick={() => handleJoin(g.id)}>Join group</Button>
+              )}
+            </div>
+          </Card>
+        </li>
+      ))}
+    </ul>
+  );
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px' }}>
-        <div>
-          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Groups & Collaborative Roadmaps</h1>
-          <p className="text-[15px] text-fg-2">Study together, compete on leaderboards, hit deadlines as a cohort</p>
-        </div>
-      </div>
+      <PageHeader
+        title="Groups"
+        description="Study together, share roadmaps, and keep each other to deadlines."
+        action={<Button onClick={() => setTab('create')}><Plus size={16} aria-hidden /> Create group</Button>}
+      />
 
-      {/* Tabs */}
-      <div className="tabs-scrollable" style={{ borderBottom: '1px solid var(--border)', marginBottom: '28px' }}>
-        {TABS.map(t => (
-          <button key={t} onClick={() => setTab(t)}
-            style={{ padding: '10px 24px', background: 'none', border: 'none', cursor: 'pointer', fontSize: '14px', fontWeight: 600, fontFamily: 'var(--font-body)', color: tab === t ? 'var(--accent-primary)' : 'var(--text-muted)', borderBottom: `2px solid ${tab === t ? 'var(--accent-primary)' : 'transparent'}`, transition: 'all 0.2s' }}>
-            {t}
-          </button>
-        ))}
-      </div>
+      <Tabs value={tab} onValueChange={setTab}>
+        <TabsList aria-label="Groups" className="mb-6">
+          <TabsTrigger value="my">My groups</TabsTrigger>
+          <TabsTrigger value="discover">Discover</TabsTrigger>
+          <TabsTrigger value="create">Create</TabsTrigger>
+        </TabsList>
 
-      {tab === 'My Groups' && (
-        isLoading && groups.length === 0 ? (
-          <div className="grid gap-4 md:grid-cols-2" aria-busy="true" aria-label="Loading groups"><Skeleton className="h-32 rounded-panel" /><Skeleton className="h-32 rounded-panel" /></div>
-        ) : groups.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '60px', background: 'var(--bg-surface)', borderRadius: '16px', border: '1px solid var(--border)', textAlign: 'center' }}>
-            <div style={{ fontSize: '56px', marginBottom: '16px' }}></div>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>No groups yet</h2>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', maxWidth: '380px', lineHeight: 1.7, marginBottom: '20px' }}>Join or create a study group to prep together, share roadmaps, and compete on leaderboards.</p>
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button onClick={() => setTab('Create')} className="btn-primary" style={{ fontSize: '14px', padding: '10px 22px' }}>Create Group</button>
-              <button onClick={() => setTab('Discover')} className="btn-secondary" style={{ fontSize: '14px', padding: '10px 22px' }}>Browse Groups</button>
+        <TabsContent value="my" className="outline-none">
+          {loadingMy && groups.length === 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading groups">
+              {[0, 1, 2].map(i => <Skeleton key={i} className="h-36 rounded-panel" />)}
             </div>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-            {groups.map(g => (
-              <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                  <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
-                  <span className="badge badge-mint" style={{ fontSize: '12px' }}>{g.access_type}</span>
+          ) : errorMy ? (
+            <ErrorState title="Could not load your groups" onRetry={() => mutateMy()} />
+          ) : groups.length === 0 ? (
+            <EmptyState
+              icon={<Users size={20} aria-hidden />}
+              title="You are not in a group yet"
+              description="Join a public group or create your own to prepare with others."
+              action={
+                <div className="flex gap-2">
+                  <Button onClick={() => setTab('create')}>Create a group</Button>
+                  <Button variant="secondary" onClick={() => setTab('discover')}>Browse groups</Button>
                 </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.5 }}>{g.description || 'Collaborative study space.'}</div>
-                <Link href={`/groups/${g.id}`} className="btn-primary" style={{ display: 'flex', width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px', textDecoration: 'none' }}>Open Dashboard</Link>
-              </div>
-            ))}
-          </div>
-        )
-      )}
+              }
+            />
+          ) : cards(groups, 'open')}
+        </TabsContent>
 
-      {tab === 'Discover' && (
-        isLoading && discoverGroups.length === 0 ? (
-          <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)' }}>Discovering groups…</div>
-        ) : (
-          <div>
-            <div style={{ marginBottom: '20px' }}> 
-              <input type="text" placeholder="Search public groups by name or role…" className="input" style={{ maxWidth: '460px' }} />
-            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-              {discoverGroups.map(g => (
-                <div key={g.id} className="card card-interactive" style={{ padding: '18px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '10px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{g.name}</h3>
-                    <span className="badge badge-muted" style={{ fontSize: '12px' }}>{g.access_type}</span>
-                  </div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '12px' }}>{g.description || 'Public study group.'}</div>
-                  <button onClick={() => handleJoin(g.id)} className="btn-secondary" style={{ width: '100%', justifyContent: 'center', fontSize: '13px', padding: '8px' }}>Join Group</button>
-                </div>
-              ))}
-              {discoverGroups.length === 0 && (
-                <div style={{ gridColumn: 'span 3', padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No other public groups found yet. Create one!</div>
-              )}
-            </div>
+        <TabsContent value="discover" className="outline-none">
+          <div className="relative mb-5 max-w-md">
+            <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-3" aria-hidden />
+            <Input type="search" aria-label="Search public groups" placeholder="Search public groups" value={query} onChange={e => setQuery(e.target.value)} className="pl-9" />
           </div>
-        )
-      )}
+          {loadingDiscover && discoverGroups.length === 0 ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading groups">
+              {[0, 1, 2].map(i => <Skeleton key={i} className="h-36 rounded-panel" />)}
+            </div>
+          ) : filteredDiscover.length === 0 ? (
+            <EmptyState
+              icon={<Globe size={20} aria-hidden />}
+              title={query ? 'No groups match your search' : 'No public groups yet'}
+              description={query ? 'Try a different word.' : 'Be the first: create a public group.'}
+              action={query ? undefined : <Button onClick={() => setTab('create')}>Create a group</Button>}
+            />
+          ) : cards(filteredDiscover, 'join')}
+        </TabsContent>
 
-      {tab === 'Create' && (
-        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} style={{ maxWidth: '580px' }}>
-          <div className="card" style={{ padding: '28px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Group Name</label>
-              <input className="input" placeholder="e.g. FAANG Prep Crew 2026" value={groupName} onChange={e => setGroupName(e.target.value)} />
-            </div>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Access Type</label>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {[
-                  { id: 'shared', icon: '', label: 'Shared (Invite Only)', desc: 'Up to 50 members, admin features, deadlines', limit: '50 members' },
-                  { id: 'public', icon: '', label: 'Public', desc: 'Anyone can join, read-only admin view', limit: 'Unlimited' },
-                ].map(a => (
-                  <div key={a.id} onClick={() => setAccessType(a.id as typeof accessType)}
-                    style={{ display: 'flex', gap: '12px', padding: '12px 14px', borderRadius: '8px', border: `1px solid ${accessType === a.id ? 'var(--accent-primary)' : 'var(--border)'}`, background: accessType === a.id ? 'rgba(var(--accent-primary-rgb), 0.04)' : 'var(--bg-elevated)', cursor: 'pointer' }}>
-                    <span style={{ fontSize: '20px' }}>{a.icon}</span>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-primary)' }}>{a.label}</div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{a.desc} · {a.limit}</div>
-                    </div>
-                    {accessType === a.id && <span style={{ marginLeft: 'auto', color: 'var(--accent-primary)' }}></span>}
-                  </div>
-                ))}
+        <TabsContent value="create" className="outline-none">
+          <Card className="max-w-xl space-y-5">
+            <Field label="Group name">
+              {a => <Input {...a} placeholder="FAANG Prep Crew 2026" value={groupName} onChange={e => setGroupName(e.target.value)} />}
+            </Field>
+
+            <fieldset>
+              <legend className="mb-1.5 text-[13px] font-medium text-fg">Access</legend>
+              <div className="space-y-2" role="radiogroup" aria-label="Access type">
+                {ACCESS_OPTIONS.map(a => {
+                  const active = accessType === a.id;
+                  const Icon = a.icon;
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={active}
+                      onClick={() => setAccessType(a.id)}
+                      className={cn('flex w-full items-start gap-3 rounded-control border p-3 text-left transition-colors', active ? 'border-signal bg-signal/10' : 'border-line bg-raised hover:border-line-strong')}
+                    >
+                      <Icon size={17} className={cn('mt-0.5 shrink-0', active ? 'text-signal' : 'text-fg-3')} aria-hidden />
+                      <span>
+                        <span className="block text-sm font-medium text-fg">{a.label}</span>
+                        <span className="block text-xs text-fg-3">{a.desc}</span>
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-            </div>
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Description (optional)</label>
-              <textarea className="input" placeholder="What is this group about?" value={description} onChange={e => setDescription(e.target.value)} rows={3} style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'none' }} />
-            </div>
-            <button onClick={handleCreate} disabled={submitting} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '12px', opacity: submitting ? 0.7 : 1 }}>
-              {submitting ? 'Creating…' : ' Create Group'}
-            </button>
-          </div>
-        </motion.div>
-      )}
+            </fieldset>
+
+            <Field label="Description (optional)">
+              {a => <Textarea {...a} rows={3} placeholder="What is this group about?" value={description} onChange={e => setDescription(e.target.value)} />}
+            </Field>
+
+            <Button size="lg" className="w-full" onClick={handleCreate} loading={submitting}>
+              {submitting ? 'Creating…' : 'Create group'}
+            </Button>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
     </div>
   );
 }

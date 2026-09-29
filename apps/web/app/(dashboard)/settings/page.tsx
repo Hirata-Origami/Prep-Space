@@ -3,19 +3,22 @@
 import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
+import * as RadixTabs from '@radix-ui/react-tabs';
 import { useUser } from '@/lib/hooks/useUser';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { CheckCircle2, AlertCircle, KeyRound, Palette, Shield, User as UserIcon, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, KeyRound, LogOut, Moon, Palette, Shield, Sun, User as UserIcon } from 'lucide-react';
+import { Avatar, Button, Card, Field, Input, PageHeader, Switch } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
-const TABS = ['Profile', 'AI API Key', 'Appearance', 'Privacy'];
+const TABS = [
+  { id: 'profile', label: 'Profile', icon: UserIcon },
+  { id: 'key', label: 'AI API key', icon: KeyRound },
+  { id: 'appearance', label: 'Appearance', icon: Palette },
+  { id: 'privacy', label: 'Privacy', icon: Shield },
+] as const;
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState('Profile');
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
+  const [activeTab, setActiveTab] = useState<string>('profile');
   const [saving, setSaving] = useState(false);
   const [validatingKey, setValidatingKey] = useState(false);
   const { theme, setTheme } = useTheme();
@@ -68,7 +71,7 @@ export default function SettingsPage() {
       const data = await res.json();
 
       if (data.valid) {
-        toast.success(data.message || 'Gemini API key is valid and working!');
+        toast.success(data.message || 'Gemini API key is valid and working');
       } else {
         toast.error(`Key validation failed: ${data.error || 'Invalid key'}`);
       }
@@ -83,7 +86,7 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       const payload: Record<string, string> = { ...formData };
-      if (activeTab === 'AI API Key' && geminiKey) {
+      if (activeTab === 'key' && geminiKey) {
         payload.gemini_api_key = geminiKey;
       }
 
@@ -95,8 +98,8 @@ export default function SettingsPage() {
 
       if (!res.ok) throw new Error('Failed to save');
       await mutate();
-      toast.success('Settings saved!');
-      if (activeTab === 'AI API Key') setGeminiKey('');
+      toast.success('Settings saved');
+      if (activeTab === 'key') setGeminiKey('');
     } catch {
       toast.error('Failed to save settings');
     } finally {
@@ -110,258 +113,172 @@ export default function SettingsPage() {
     window.location.href = '/';
   };
 
-  const getTabIcon = (tab: string) => {
-    switch (tab) {
-      case 'Profile': return <UserIcon size={16} />;
-      case 'AI API Key': return <KeyRound size={16} />;
-      case 'Appearance': return <Palette size={16} />;
-      case 'Privacy': return <Shield size={16} />;
-      default: return null;
-    }
-  };
+  const hasKey = !!user?.has_gemini_key;
 
   return (
-    <div className="page-container" style={{ maxWidth: '880px', margin: '0 auto' }}>
-      <div style={{ marginBottom: '28px' }}>
-        <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Settings</h1>
-        <p className="text-[15px] text-fg-2">Manage your account, preferences, and AI configuration</p>
-      </div>
+    <div className="page-container" style={{ maxWidth: 920 }}>
+      <PageHeader title="Settings" description="Your account, appearance and AI configuration." />
 
-      <div className="grid-settings-layout">
-        {/* Sidebar Navigation */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          {TABS.map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                padding: '10px 14px',
-                borderRadius: '8px',
-                fontSize: '14px',
-                fontWeight: 600,
-                border: 'none',
-                cursor: 'pointer',
-                fontFamily: 'var(--font-body)',
-                textAlign: 'left',
-                transition: 'all 0.15s',
-                background: activeTab === tab ? 'var(--accent-primary-dim)' : 'transparent',
-                color: activeTab === tab ? 'var(--accent-primary)' : 'var(--text-muted)',
-              }}
-            >
-              {getTabIcon(tab)}
-              <span>{tab}</span>
-              {tab === 'AI API Key' && !user?.has_gemini_key && (
-                <span style={{ marginLeft: 'auto', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-amber)', flexShrink: 0 }} />
+      <RadixTabs.Root value={activeTab} onValueChange={setActiveTab} orientation="vertical" className="grid gap-6 md:grid-cols-[210px_minmax(0,1fr)]">
+        <RadixTabs.List aria-label="Settings sections" className="flex gap-1 overflow-x-auto md:flex-col md:overflow-visible">
+          {TABS.map(({ id, label, icon: Icon }) => (
+            <RadixTabs.Trigger
+              key={id}
+              value={id}
+              className={cn(
+                'flex shrink-0 items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm font-medium transition-colors',
+                activeTab === id ? 'bg-raised text-fg' : 'text-fg-3 hover:bg-raised/60 hover:text-fg'
               )}
-            </button>
+            >
+              <Icon size={16} className={activeTab === id ? 'text-signal' : ''} aria-hidden />
+              <span>{label}</span>
+              {id === 'key' && !hasKey && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-live" aria-label="Needs attention" />}
+            </RadixTabs.Trigger>
           ))}
-          <div style={{ margin: '12px 0', height: '1px', background: 'var(--border)' }} />
+          <div className="my-2 hidden h-px bg-line md:block" aria-hidden />
           <button
+            type="button"
             onClick={handleSignOut}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              padding: '10px 14px',
-              borderRadius: '8px',
-              fontSize: '14px',
-              fontWeight: 600,
-              border: 'none',
-              cursor: 'pointer',
-              fontFamily: 'var(--font-body)',
-              textAlign: 'left',
-              background: 'transparent',
-              color: 'var(--accent-red)',
-            }}
+            className="flex shrink-0 items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm font-medium text-bad transition-colors hover:bg-bad/10"
           >
-            Sign Out
+            <LogOut size={16} aria-hidden /> Sign out
           </button>
-        </div>
+        </RadixTabs.List>
 
-        {/* Content Panel */}
-        <div className="card" style={{ padding: '28px' }}>
-          {activeTab === 'Profile' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <Card className="min-w-0 p-5 sm:p-7">
+          <RadixTabs.Content value="profile" className="space-y-6 outline-none">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">Profile</h2>
+              <p className="text-[13px] text-fg-3">Your career targets tune questions and roadmaps.</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <Avatar name={user?.full_name ?? 'User'} size={56} />
               <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Profile</h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Update your personal information and career targets</p>
+                <div className="text-base font-semibold text-fg">{user?.full_name ?? 'User'}</div>
+                <div className="text-[13px] text-fg-3"><span className="font-mono">{(user?.xp ?? 0).toLocaleString()}</span> XP · Level {user?.level || 'novice'}</div>
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: 'var(--accent-violet)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '26px', fontWeight: 700, color: 'var(--text-on-accent)' }} suppressHydrationWarning>
-                  {mounted ? (user?.full_name?.[0]?.toUpperCase() ?? 'U') : 'U'}
-                </div>
-                <div>
-                  <div style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }} suppressHydrationWarning>{mounted ? (user?.full_name ?? 'User') : 'User'}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }} suppressHydrationWarning>{mounted ? (user?.xp ?? 0).toLocaleString() : 0} XP · Level {mounted ? (user?.level || 'Novice') : 'Novice'}</div>
-                </div>
-              </div>
-              <div className="grid-responsive-2" style={{ gap: '14px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Target Role</label>
-                  <input className="input" value={formData.target_role} onChange={e => setFormData(p => ({ ...p, target_role: e.target.value }))} placeholder="e.g. Senior Frontend Engineer" />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Target Company</label>
-                  <input className="input" value={formData.target_company} onChange={e => setFormData(p => ({ ...p, target_company: e.target.value }))} placeholder="e.g. Google, Stripe" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="Target role">
+                {a => <Input {...a} value={formData.target_role} onChange={e => setFormData(p => ({ ...p, target_role: e.target.value }))} placeholder="Senior Frontend Engineer" />}
+              </Field>
+              <Field label="Target company">
+                {a => <Input {...a} value={formData.target_company} onChange={e => setFormData(p => ({ ...p, target_company: e.target.value }))} placeholder="Google, Stripe" />}
+              </Field>
+            </div>
+            <div className="flex justify-end border-t border-line pt-5">
+              <Button onClick={handleSave} loading={saving}>{saving ? 'Saving…' : 'Save changes'}</Button>
+            </div>
+          </RadixTabs.Content>
+
+          <RadixTabs.Content value="key" className="space-y-6 outline-none">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">Gemini API key</h2>
+              <p className="text-[13px] text-fg-3">Used for roadmap generation, live voice interviews and feedback scoring.</p>
+            </div>
+
+            <div
+              role="status"
+              className={cn('flex items-start gap-3 rounded-panel border p-4', hasKey ? 'border-good/25 bg-good/10' : 'border-live/30 bg-live/10')}
+            >
+              {hasKey ? <CheckCircle2 size={20} className="mt-0.5 shrink-0 text-good" aria-hidden /> : <AlertCircle size={20} className="mt-0.5 shrink-0 text-live" aria-hidden />}
+              <div>
+                <div className={cn('text-sm font-semibold', hasKey ? 'text-good' : 'text-live')}>{hasKey ? 'Your key is active' : 'No key saved'}</div>
+                <div className="text-[13px] text-fg-2">
+                  {hasKey ? 'It is stored securely and used for your AI requests.' : 'Add a key to unlock custom roadmaps and live mock interviews.'}
                 </div>
               </div>
             </div>
-          )}
 
-          {activeTab === 'AI API Key' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Gemini AI API Key</h2>
-                <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Used for personalized roadmap generation, interactive voice interviews, and feedback scoring.</p>
-              </div>
-
-              <div style={{
-                padding: '16px',
-                background: user?.has_gemini_key ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'rgba(var(--accent-amber-rgb), 0.06)',
-                border: `1px solid ${user?.has_gemini_key ? 'rgba(var(--accent-primary-rgb), 0.2)' : 'rgba(var(--accent-amber-rgb), 0.2)'}`,
-                borderRadius: '12px',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-              }}>
-                {user?.has_gemini_key ? <CheckCircle2 size={24} color="var(--accent-primary)" /> : <AlertCircle size={24} color="var(--accent-amber)" />}
-                <div>
-                  <div style={{ fontSize: '14px', fontWeight: 700, color: user?.has_gemini_key ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>
-                    {user?.has_gemini_key ? 'AI API key is active' : 'No personal API key saved'}
-                  </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '2px' }}>
-                    {user?.has_gemini_key ? 'Your key is securely stored and used for AI requests.' : 'Add your Gemini API key to enable instant custom roadmaps and live mock interviews.'}
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                  {user?.has_gemini_key ? 'Update API Key' : 'Add API Key'}
-                </label>
-                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                  <input
-                    className="input"
+            <div>
+              <Field
+                label={hasKey ? 'Replace key' : 'Add key'}
+                hint="Get a free key at aistudio.google.com/app/apikey."
+              >
+                {a => (
+                  <Input
+                    {...a}
                     type="password"
-                    placeholder={user?.has_gemini_key ? 'Key is saved · enter new key to replace' : 'Paste AIzaSy... key here'}
+                    autoComplete="off"
+                    placeholder={hasKey ? 'A key is saved. Paste a new one to replace it.' : 'Paste your key (starts with AIza)'}
                     value={geminiKey}
                     onChange={e => setGeminiKey(e.target.value)}
-                    style={{ flex: 1 }}
                   />
+                )}
+              </Field>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button variant="secondary" onClick={handleValidateKey} loading={validatingKey} disabled={!geminiKey.trim() && !hasKey}>
+                  {geminiKey.trim() ? 'Validate key' : 'Test saved key'}
+                </Button>
+                <Button onClick={handleSave} loading={saving} disabled={!geminiKey.trim() || geminiKey.includes('•')}>
+                  {saving ? 'Saving…' : 'Save key'}
+                </Button>
+                <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center px-2 text-sm font-medium text-signal hover:underline">
+                  Open Google AI Studio
+                </a>
+              </div>
+            </div>
+
+            <p className="rounded-control border border-line bg-raised px-4 py-3 text-[13px] leading-relaxed text-fg-2">
+              <strong className="text-fg">Secure storage.</strong> Your key is stored in your private profile row behind row-level security and is never sent to other users.
+            </p>
+          </RadixTabs.Content>
+
+          <RadixTabs.Content value="appearance" className="space-y-5 outline-none">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">Appearance</h2>
+              <p className="text-[13px] text-fg-3">Choose the theme you practise in.</p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Theme">
+              {[
+                { id: 'dark' as const, label: 'Dark', desc: 'Low-glare ink theme for long practice sessions', swatch: '#0A0E1A', edge: '#2A3350', Icon: Moon },
+                { id: 'light' as const, label: 'Light', desc: 'Bright paper theme for daylight', swatch: '#F5F6FB', edge: '#C6CBE0', Icon: Sun },
+              ].map(t => {
+                const selected = currentTheme === t.id;
+                return (
                   <button
                     type="button"
-                    onClick={handleValidateKey}
-                    disabled={validatingKey || (!geminiKey.trim() && !user?.has_gemini_key)}
-                    className="btn-secondary"
-                    style={{ padding: '10px 16px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                    key={t.id}
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => handleThemeChange(t.id)}
+                    className={cn('flex items-center gap-3.5 rounded-panel border p-4 text-left transition-colors', selected ? 'border-signal bg-signal/10' : 'border-line bg-raised hover:border-line-strong')}
                   >
-                    {validatingKey ? <Loader2 size={14} className="animate-spin" /> : null}
-                    <span>{geminiKey.trim() ? 'Validate Key' : 'Test Saved Key'}</span>
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control border" style={{ background: t.swatch, borderColor: t.edge }} aria-hidden>
+                      <t.Icon size={16} color={t.id === 'dark' ? '#8B99FF' : '#3F51E0'} />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className={cn('block text-sm font-semibold', selected ? 'text-signal' : 'text-fg')}>{t.label}</span>
+                      <span className="block text-xs text-fg-3">{t.desc}</span>
+                    </span>
+                    {selected && <CheckCircle2 size={18} className="shrink-0 text-signal" aria-hidden />}
                   </button>
-                  <button
-                    onClick={handleSave}
-                    disabled={saving || !geminiKey.trim() || geminiKey.includes('•')}
-                    className="btn-primary"
-                    style={{ padding: '10px 20px', fontSize: '13px' }}
-                  >
-                    {saving ? 'Saving...' : 'Save Key'}
-                  </button>
-                </div>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '8px' }}>
-                  Get a free Gemini API key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-primary)' }}>aistudio.google.com/app/apikey</a>
-                </div>
-              </div>
-
-              <div style={{ padding: '14px', background: 'var(--bg-elevated)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-                <strong style={{ color: 'var(--text-secondary)' }}>Secure storage:</strong> Your key is stored in your private user profile row with strict Row Level Security and never exposed to other clients.
-              </div>
+                );
+              })}
             </div>
-          )}
+          </RadixTabs.Content>
 
-          {activeTab === 'Appearance' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Appearance & Theme</h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Customize your PrepSpace visual environment</p>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {[
-                  { id: 'light', label: 'Light', desc: 'Bright paper theme for daylight', color: '#F5F6FB', border: '#C6CBE0' },
-                  { id: 'dark', label: 'Dark', desc: 'Low-glare ink theme for long practice sessions', color: '#0A0E1A', border: '#2A3350' },
-                ].map((t) => {
-                  const isSelected = currentTheme === t.id;
-                  return (
-                    <button
-                      type="button"
-                      key={t.id}
-                      aria-pressed={isSelected}
-                      onClick={() => handleThemeChange(t.id as 'dark' | 'light')}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '14px',
-                        padding: '16px',
-                        borderRadius: '12px',
-                        border: `1px solid ${isSelected ? 'var(--accent-primary)' : 'var(--border)'}`,
-                        background: isSelected ? 'rgba(var(--accent-primary-rgb), 0.04)' : 'var(--bg-elevated)',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        width: '100%',
-                        transition: 'all 0.15s ease',
-                      }}
-                    >
-                      <div style={{ width: '36px', height: '36px', borderRadius: '8px', background: t.color, border: `1px solid ${t.border}`, flexShrink: 0 }} />
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '14px', fontWeight: 700, color: isSelected ? 'var(--accent-primary)' : 'var(--text-primary)' }}>
-                          {t.label}
-                        </div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{t.desc}</div>
-                      </div>
-                      {isSelected && <span aria-hidden style={{ color: 'var(--accent-primary)', fontWeight: 700, fontSize: '16px' }}>✓</span>}
-                    </button>
-                  );
-                })}
-              </div>
+          <RadixTabs.Content value="privacy" className="space-y-5 outline-none">
+            <div>
+              <h2 className="text-lg font-semibold text-fg">Privacy and data</h2>
+              <p className="text-[13px] text-fg-3">What other people can see about your practice.</p>
             </div>
-          )}
-
-          {activeTab === 'Privacy' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-              <div>
-                <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Privacy & Data</h2>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Manage visibility and data retention</p>
-              </div>
-              {[
-                { label: 'Appear on global leaderboard', desc: 'Allow your username and XP to be visible to others', on: true },
-                { label: 'Share roadmap activity in groups', desc: 'Let group members see your module completion milestones', on: true },
-              ].map(({ label, desc, on }) => (
-                <div key={label} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '14px', background: 'var(--bg-elevated)', borderRadius: '10px' }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: '14px', fontWeight: 600, color: 'var(--text-primary)' }}>{label}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</div>
-                  </div>
-                  <div style={{ width: '44px', height: '24px', borderRadius: '12px', background: on ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: on ? 'none' : '1px solid var(--border)', position: 'relative', cursor: 'pointer', flexShrink: 0 }}>
-                    <div style={{ position: 'absolute', top: '3px', left: on ? '22px' : '3px', width: '18px', height: '18px', borderRadius: '50%', background: on ? 'var(--text-on-accent)' : 'var(--text-muted)', transition: 'left 0.2s' }} />
-                  </div>
+            {[
+              { label: 'Appear on the global leaderboard', desc: 'Your name and XP are visible to other users.' },
+              { label: 'Share roadmap activity in groups', desc: 'Group members can see your module completions.' },
+            ].map(({ label, desc }) => (
+              <div key={label} className="flex items-center gap-4 rounded-panel border border-line bg-raised p-4">
+                <div className="flex-1">
+                  <div className="text-sm font-medium text-fg">{label}</div>
+                  <div className="text-xs text-fg-3">{desc}</div>
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Save button footer */}
-          <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
-            {activeTab === 'AI API Key' && geminiKey && (
-              <button onClick={() => setGeminiKey('')} className="btn-secondary" style={{ fontSize: '14px', padding: '10px 20px' }}>Cancel</button>
-            )}
-            <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ fontSize: '14px', padding: '10px 24px', opacity: saving ? 0.7 : 1 }}>
-              {saving ? 'Saving…' : 'Save Changes'}
-            </button>
-          </div>
-        </div>
-      </div>
+                <Switch checked disabled aria-label={label} />
+              </div>
+            ))}
+            <p className="text-[13px] text-fg-3">These options are on for everyone for now. Controls to change them are not available yet.</p>
+          </RadixTabs.Content>
+        </Card>
+      </RadixTabs.Root>
     </div>
   );
 }

@@ -40,3 +40,11 @@ export function Field({ label, hint, error, className, children }: FieldProps) {
     </div>
   );
 }
+
+export function Select({ className, children, ...props }: React.SelectHTMLAttributes<HTMLSelectElement>) {
+  return (
+    <select className={cn(control, 'h-10 cursor-pointer pr-8', className)} {...props}>
+      {children}
+    </select>
+  );
+}

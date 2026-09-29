@@ -1,5 +1,13 @@
 'use client';
 
+import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
+import { useParams } from 'next/navigation';
+import { toast } from 'sonner';
+import { ArrowLeft, Download, MessageCircle, Send, X } from 'lucide-react';
+import { Badge, Button, ButtonLink, Card, EmptyState, Input, PageHeader, Skeleton } from '@/components/ui';
+import { cn } from '@/lib/cn';
+
 interface AudioMarker { type?: string; annotation?: string; start_time: string }
 interface SampleAnswer { question?: string; score?: number; user_answer?: string; ideal_answer?: string }
 interface ReportAnalysis {
@@ -19,18 +27,12 @@ interface Report {
   interview_sessions?: { plan?: { role?: string } };
 }
 
-import { EmptyState, ButtonLink, Skeleton } from '@/components/ui';
-
-import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
-import { useParams } from 'next/navigation';
-import { motion, AnimatePresence } from 'framer-motion';
-import { toast } from 'sonner';
-
 interface ChatMessage {
   role: 'user' | 'coach';
   content: string;
 }
+
+const scoreTone = (n: number) => (n >= 80 ? 'text-good' : n >= 60 ? 'text-live' : 'text-bad');
 
 export default function ReportDetailPage() {
   const { id } = useParams();
@@ -132,16 +134,17 @@ export default function ReportDetailPage() {
   const audioUrl = analysis.audio_url;
   const markers = analysis.audio_markers || [];
   const metrics = analysis.metrics || null;
+  const overall = report.overall_score ?? 0;
 
   const handleDownloadPDF = () => {
     window.print();
   };
 
   return (
-    <div className="page-container report-container" style={{ maxWidth: '1000px', margin: '0 auto' }}>
+    <div className="page-container report-container" style={{ maxWidth: 1040 }}>
       <style>{`
         @media print {
-          html, body, main, 
+          html, body, main,
           #__next, [data-nextjs-scroll-focus-boundary],
           .report-container {
             overflow: visible !important;
@@ -152,10 +155,10 @@ export default function ReportDetailPage() {
             color: #000 !important;
           }
 
-          .no-print, .chat-widget, #chat-widget-container, aside, nav, header button { 
-             display: none !important; 
+          .no-print, .chat-widget, #chat-widget-container, aside, nav, header button {
+             display: none !important;
           }
-          
+
           @page { margin: 15mm; size: A4; }
 
           * {
@@ -166,7 +169,7 @@ export default function ReportDetailPage() {
             print-color-adjust: exact !important;
           }
 
-          .surface, .card { 
+          .surface, .card, .print-card {
             border: 1px solid #E2E8F0 !important;
             background: #ffffff !important;
             page-break-inside: avoid !important;
@@ -177,219 +180,200 @@ export default function ReportDetailPage() {
         }
       `}</style>
 
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px', flexWrap: 'wrap', gap: '16px' }} className="no-print">
-        <div>
-          <Link href="/reports" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'var(--text-muted)', textDecoration: 'none', fontSize: '14px', fontWeight: 600, marginBottom: '12px' }}>
-            ← Back to Reports
-          </Link>
-          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Performance Report</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '15px' }}>{report.interview_sessions?.plan?.role || 'Software Engineer'}</p>
-        </div>
-        <button onClick={handleDownloadPDF} className="btn-secondary" style={{ padding: '10px 24px', fontWeight: 700 }}>
-          Export PDF
-        </button>
+      <div className="no-print">
+        <Link href="/reports" className="mb-5 inline-flex items-center gap-1.5 rounded-control text-sm text-fg-3 transition-colors hover:text-fg">
+          <ArrowLeft size={15} aria-hidden /> Reports
+        </Link>
       </div>
 
-      {/* Main Score Card */}
-      <div className="surface" style={{ padding: 'clamp(20px, 4vw, 40px)', display: 'flex', gap: 'clamp(16px, 4vw, 32px)', alignItems: 'center', marginBottom: '32px', flexWrap: 'wrap' }}>
-        <div style={{ width: '110px', height: '110px', borderRadius: '24px', background: 'rgba(var(--accent-primary-rgb), 0.06)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-          <div style={{ fontSize: '34px', fontWeight: 700, color: 'var(--accent-primary)' }}>{report.overall_score}%</div>
-          <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', }}>Overall</div>
-        </div>
-        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px', flexWrap: 'wrap' }}>
-             <span style={{ padding: '4px 12px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '100px', fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)' }}>Recommendation</span>
-             <span style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)' }}>{report.hire_recommendation}</span>
-          </div>
-          <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: 1.6, margin: 0 }}>
-            {analysis.summary}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Performance report"
+        description={report.interview_sessions?.plan?.role || 'Software Engineer'}
+        action={<Button variant="secondary" onClick={handleDownloadPDF} className="no-print"><Download size={15} aria-hidden /> Export PDF</Button>}
+      />
 
-      {/* Competency Grid */}
-      <div className="grid-responsive-4" style={{ marginBottom: '36px' }}>
-        {Object.entries(scores).map(([key, val]: [string, number]) => (
-          <div key={key} className="surface" style={{ padding: '20px', textAlign: 'center' }}>
-            <div style={{ fontSize: '24px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{val}%</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, wordBreak: 'break-word' }}>{key.replace(/_/g, ' ')}</div>
-          </div>
-        ))}
-      </div>
+      {/* Overall */}
+      <Card className="print-card mb-6 flex flex-wrap items-center gap-6 p-5 sm:p-8">
+        <div className="flex h-28 w-28 shrink-0 flex-col items-center justify-center rounded-hero border border-line bg-raised">
+          <div className={cn('font-mono text-4xl font-semibold leading-none', scoreTone(overall))}>{overall}<span className="text-xl">%</span></div>
+          <div className="mt-1.5 text-xs text-fg-3">Overall</div>
+        </div>
+        <div className="min-w-0 flex-1 basis-60">
+          {report.hire_recommendation && (
+            <div className="mb-2 flex flex-wrap items-center gap-2.5">
+              <Badge tone="signal">Recommendation</Badge>
+              <span className="text-base font-semibold capitalize text-fg">{report.hire_recommendation.replace(/_/g, ' ')}</span>
+            </div>
+          )}
+          <p className="text-[15px] leading-relaxed text-fg-2">{analysis.summary}</p>
+        </div>
+      </Card>
+
+      {/* Competency scores */}
+      {Object.keys(scores).length > 0 && (
+        <dl className="mb-8 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {Object.entries(scores).map(([key, val]: [string, number]) => (
+            <Card key={key} className="print-card px-4 py-4 text-center">
+              <dd className={cn('font-mono text-2xl font-semibold', scoreTone(val))}>{val}%</dd>
+              <dt className="mt-1 text-[13px] capitalize text-fg-3">{key.replace(/_/g, ' ')}</dt>
+            </Card>
+          ))}
+        </dl>
+      )}
 
       <div className="grid-main-sidebar" style={{ alignItems: 'flex-start' }}>
-        {/* Left: Transcript & Answers */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '40px' }}>
-          {/* Audio Evidence */}
+        <div className="flex min-w-0 flex-col gap-10">
           {audioUrl && (
-            <section className="surface" style={{ padding: '24px' }}>
-              <h2 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '20px' }}>Technical Evidence</h2>
-              <audio ref={audioRef} controls src={audioUrl} style={{ width: '100%', marginBottom: '20px' }} className="no-print" />
-              
-              <div style={{ display: 'flex', gap: '12px', overflowX: 'auto', paddingBottom: '8px' }}>
-                {markers.map((m, i) => {
-                  const color = m.type === 'strong' ? 'var(--accent-primary)' : m.type === 'missed' ? 'var(--accent-red)' : 'var(--accent-amber)';
-                  return (
-                    <div key={i} onClick={() => { if(audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }} 
-                      style={{ minWidth: '220px', padding: '16px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderTop: `4px solid ${color}`, borderRadius: '12px', cursor: 'pointer' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 700, color, }}>{m.type}</span>
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{m.start_time}</span>
-                      </div>
-                      <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: 1.4 }}>{m.annotation}</div>
-                    </div>
-                  );
-                })}
-              </div>
+            <section aria-labelledby="evidence">
+              <h2 id="evidence" className="mb-3 text-lg font-semibold text-fg">Audio evidence</h2>
+              <Card className="print-card space-y-4">
+                <audio ref={audioRef} controls src={audioUrl} className="no-print w-full" />
+                {markers.length > 0 && (
+                  <ul className="flex gap-3 overflow-x-auto pb-1">
+                    {markers.map((m, i) => {
+                      const tone = m.type === 'strong' ? 'good' : m.type === 'missed' ? 'bad' : 'live';
+                      const border = m.type === 'strong' ? 'border-t-good' : m.type === 'missed' ? 'border-t-bad' : 'border-t-live';
+                      return (
+                        <li key={i} className="shrink-0">
+                          <button
+                            type="button"
+                            onClick={() => { if (audioRef.current) { audioRef.current.currentTime = parseTime(m.start_time); audioRef.current.play(); } }}
+                            aria-label={`Play from ${m.start_time}: ${m.annotation ?? m.type}`}
+                            className={cn('w-56 rounded-panel border border-t-4 border-line bg-raised p-4 text-left transition-colors hover:border-line-strong', border)}
+                          >
+                            <div className="mb-2 flex items-center justify-between">
+                              <Badge tone={tone} className="capitalize">{m.type}</Badge>
+                              <span className="font-mono text-xs text-fg-3">{m.start_time}</span>
+                            </div>
+                            <div className="text-[13px] leading-snug text-fg-2">{m.annotation}</div>
+                          </button>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
+              </Card>
             </section>
           )}
 
-          {/* Detailed Breakdown */}
-          <section>
-            <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '24px' }}>Technical Breakdown</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-              {sampleAnswers.map((item, i) => (
-                <div key={i} className="surface" style={{ padding: '24px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <div style={{ fontSize: '15px', fontWeight: 700, flex: 1 }}>{i + 1}. {item.question}</div>
-                    <div style={{ fontWeight: 700, color: (item.score ?? 0) > 80 ? 'var(--accent-primary)' : 'var(--accent-amber)' }}>{item.score}%</div>
-                  </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '10px', border: '1px solid var(--border)' }}>
-                      <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '8px' }}>Candidate Response</div>
-                      <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.user_answer}</div>
-                    </div>
-                    {item.ideal_answer && (
-                      <div style={{ padding: '16px', background: 'rgba(var(--accent-primary-rgb), 0.03)', borderRadius: '10px', border: '1px solid rgba(var(--accent-primary-rgb), 0.1)' }}>
-                        <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>Model Feedback</div>
-                        <div style={{ fontSize: '14px', lineHeight: 1.6, color: 'var(--text-secondary)' }}>{item.ideal_answer}</div>
+          {sampleAnswers.length > 0 && (
+            <section aria-labelledby="breakdown">
+              <h2 id="breakdown" className="mb-3 text-lg font-semibold text-fg">Question by question</h2>
+              <ol className="space-y-4">
+                {sampleAnswers.map((item, i) => (
+                  <li key={i}>
+                    <Card className="print-card space-y-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-[15px] font-semibold text-fg">{i + 1}. {item.question}</h3>
+                        {typeof item.score === 'number' && <span className={cn('font-mono text-sm font-semibold', scoreTone(item.score))}>{item.score}%</span>}
                       </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
+                      <div className="rounded-control border border-line bg-raised p-4">
+                        <div className="mb-1.5 text-xs font-medium text-fg-3">Your answer</div>
+                        <p className="text-sm leading-relaxed text-fg-2">{item.user_answer}</p>
+                      </div>
+                      {item.ideal_answer && (
+                        <div className="rounded-control border border-signal/20 bg-signal/5 p-4">
+                          <div className="mb-1.5 text-xs font-medium text-signal">What a strong answer covers</div>
+                          <p className="text-sm leading-relaxed text-fg-2">{item.ideal_answer}</p>
+                        </div>
+                      )}
+                    </Card>
+                  </li>
+                ))}
+              </ol>
+            </section>
+          )}
         </div>
 
-        {/* Right: Insights */}
-        <aside style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-          {/* Analytics */}
-          <section className="surface" style={{ padding: '24px' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '20px' }}>Communication</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '20px' }}>
-              <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Words/min</div>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics?.wpm || '--'}</div>
+        <aside className="flex min-w-0 flex-col gap-5">
+          <Card className="print-card">
+            <h3 className="mb-4 text-sm font-semibold text-fg">Communication</h3>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-control bg-raised p-3.5 text-center">
+                <div className="text-xs text-fg-3">Words per minute</div>
+                <div className="mt-1 font-mono text-xl font-semibold text-fg">{metrics?.wpm || '—'}</div>
               </div>
-              <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px', textAlign: 'center' }}>
-                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Filler words</div>
-                <div style={{ fontSize: '20px', fontWeight: 700 }}>{metrics?.filler_words_count ?? '--'}</div>
+              <div className="rounded-control bg-raised p-3.5 text-center">
+                <div className="text-xs text-fg-3">Filler words</div>
+                <div className="mt-1 font-mono text-xl font-semibold text-fg">{metrics?.filler_words_count ?? '—'}</div>
               </div>
             </div>
-            
-            <div style={{ padding: '16px', background: 'var(--bg-elevated)', borderRadius: '12px' }}>
-              <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '8px' }}>Global Percentile</div>
-              <div style={{ fontSize: '18px', fontWeight: 700 }}>
-                 {(report.overall_score ?? 0) >= 90 ? 'Top 5%' : (report.overall_score ?? 0) >= 80 ? 'Top 20%' : (report.overall_score ?? 0) >= 70 ? 'Top 40%' : 'Standard'}
+            <div className="mt-3 rounded-control bg-raised p-3.5">
+              <div className="text-xs text-fg-3">Percentile</div>
+              <div className="mt-1 text-lg font-semibold text-fg">
+                {overall >= 90 ? 'Top 5%' : overall >= 80 ? 'Top 20%' : overall >= 70 ? 'Top 40%' : 'Standard'}
               </div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>Based on peer performance</div>
+              <div className="text-xs text-fg-3">Based on peer performance</div>
             </div>
-          </section>
+          </Card>
 
-          {/* Lists */}
-          <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-primary)' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-primary)', marginBottom: '16px' }}>Core Strengths</h3>
-            <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {strengths.map((s: string, i: number) => (
-                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
-                  <span style={{ color: 'var(--accent-primary)' }}>●</span> {s}
-                </li>
-              ))}
-            </ul>
-          </section>
+          {strengths.length > 0 && (
+            <Card className="print-card border-t-4 border-t-good">
+              <h3 className="mb-3 text-sm font-semibold text-good">Strengths</h3>
+              <ul className="space-y-2.5">
+                {strengths.map((s: string, i: number) => (
+                  <li key={i} className="flex gap-2.5 text-[13px] leading-snug text-fg-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-good" aria-hidden />{s}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
 
-          <section className="surface" style={{ padding: '24px', borderTop: '4px solid var(--accent-amber)' }}>
-            <h3 style={{ fontSize: '12px', fontWeight: 700, color: 'var(--accent-amber)', marginBottom: '16px' }}>Next Focus Areas</h3>
-            <ul style={{ padding: 0, margin: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {improvements.map((s: string, i: number) => (
-                <li key={i} style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', gap: '8px' }}>
-                  <span style={{ color: 'var(--accent-amber)' }}>●</span> {s}
-                </li>
-              ))}
-            </ul>
-          </section>
+          {improvements.length > 0 && (
+            <Card className="print-card border-t-4 border-t-live">
+              <h3 className="mb-3 text-sm font-semibold text-live">Work on next</h3>
+              <ul className="space-y-2.5">
+                {improvements.map((s: string, i: number) => (
+                  <li key={i} className="flex gap-2.5 text-[13px] leading-snug text-fg-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-live" aria-hidden />{s}</li>
+                ))}
+              </ul>
+            </Card>
+          )}
         </aside>
       </div>
 
-      {/* Floating Chat */}
-      <button 
-        onClick={() => setChatOpen(!chatOpen)} 
-        className="no-print chat-trigger" 
-        style={{ 
-          position: 'fixed', 
-          bottom: 'clamp(20px, 8vh, 32px)', 
-          right: 'clamp(16px, 4vw, 32px)', 
-          width: '52px', 
-          height: '52px', 
-          borderRadius: '50%', 
-          background: 'var(--accent-primary)', 
-          color: 'var(--text-on-accent)', 
-          border: 'none', 
-          cursor: 'pointer', 
-          zIndex: 100, 
-          
-          display: 'flex', 
-          alignItems: 'center', 
-          justifyContent: 'center', 
-          fontSize: '20px', 
-          fontWeight: 700 
-        }}
-      >?</button>
+      {/* Coach chat */}
+      <button
+        type="button"
+        onClick={() => setChatOpen(v => !v)}
+        aria-expanded={chatOpen}
+        aria-label={chatOpen ? 'Close career coach' : 'Ask the career coach'}
+        className="no-print chat-trigger fixed bottom-20 right-4 z-[100] flex h-12 w-12 items-center justify-center rounded-full bg-signal text-[var(--text-on-accent)] shadow-[var(--shadow-float)] transition-transform hover:scale-105 sm:right-8 lg:bottom-8"
+      >
+        {chatOpen ? <X size={20} /> : <MessageCircle size={20} />}
+      </button>
 
-      <AnimatePresence>
-        {chatOpen && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }} 
-            animate={{ opacity: 1, y: 0 }} 
-            exit={{ opacity: 0, y: 20 }} 
-            className="no-print chat-widget" 
-            style={{ 
-              position: 'fixed', 
-              bottom: 'clamp(80px, 12vh, 100px)', 
-              right: 'clamp(12px, 3vw, 32px)', 
-              width: 'min(360px, calc(100vw - 24px))', 
-              maxHeight: 'min(480px, 70vh)',
-              height: '480px', 
-              background: 'var(--bg-surface)', 
-              border: '1px solid var(--border)', 
-              borderRadius: '20px', 
-              display: 'flex', 
-              flexDirection: 'column', 
-              overflow: 'hidden', 
-              boxShadow: '0 20px 40px rgba(0,0,0,0.4)', 
-              zIndex: 100 
-            }}
-          >
-            <div style={{ padding: '16px 20px', background: 'var(--bg-elevated)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: '10px' }}>
-              <div style={{ width: '32px', height: '32px', background: 'var(--accent-primary)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 700, color: 'var(--text-on-accent)' }}>A</div>
-              <div style={{ fontSize: '14px', fontWeight: 700 }}>Career Coach</div>
+      {chatOpen && (
+        <div
+          role="dialog"
+          aria-label="Career coach"
+          className="no-print chat-widget fixed bottom-36 right-3 z-[100] flex h-[min(480px,65vh)] w-[min(380px,calc(100vw-24px))] flex-col overflow-hidden rounded-hero border border-line-strong bg-panel shadow-[var(--shadow-float)] sm:right-8 lg:bottom-24"
+        >
+          <div className="flex items-center gap-2.5 border-b border-line bg-raised px-4 py-3">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-signal text-sm font-semibold text-[var(--text-on-accent)]" aria-hidden>A</span>
+            <div>
+              <div className="text-sm font-semibold text-fg">Career coach</div>
+              <div className="text-xs text-fg-3">Ask about this report</div>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              {chatMessages.map((m, i) => (
-                <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', background: m.role === 'user' ? 'var(--accent-primary)' : 'var(--bg-elevated)', border: m.role === 'coach' ? '1px solid var(--border)' : 'none', color: m.role === 'user' ? 'var(--text-on-accent)' : 'var(--text-primary)', padding: '10px 14px', borderRadius: '12px', maxWidth: '85%', fontSize: '13px' }}>{m.content}</div>
-              ))}
-              {chatLoading && <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Thinking...</div>}
-              <div ref={chatEndRef} />
-            </div>
-            <div style={{ padding: '16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
-              <input value={chatInput} onChange={e => setChatInput(e.target.value)} onKeyDown={e => e.key === 'Enter' && sendChat()} placeholder="Ask something..." style={{ flex: 1, padding: '10px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '8px', color: '#fff' }} />
-              <button onClick={sendChat} style={{ padding: '8px 16px', background: 'var(--accent-primary)', borderRadius: '8px', border: 'none', fontWeight: 700 }}>Send</button>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
+          <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" aria-live="polite">
+            {chatMessages.length === 0 && <p className="text-[13px] text-fg-3">Try: “How do I fix my weakest answer?” or “What should I practise this week?”</p>}
+            {chatMessages.map((m, i) => (
+              <div
+                key={i}
+                className={cn('max-w-[85%] rounded-panel px-3.5 py-2.5 text-[13px] leading-relaxed', m.role === 'user' ? 'self-end bg-signal text-[var(--text-on-accent)]' : 'self-start border border-line bg-raised text-fg')}
+              >
+                {m.content}
+              </div>
+            ))}
+            {chatLoading && <div className="text-xs text-fg-3">Thinking…</div>}
+            <div ref={chatEndRef} />
+          </div>
+          <form className="flex gap-2 border-t border-line p-3" onSubmit={e => { e.preventDefault(); sendChat(); }}>
+            <Input aria-label="Message" value={chatInput} onChange={e => setChatInput(e.target.value)} placeholder="Ask something" />
+            <Button type="submit" size="icon" aria-label="Send" disabled={!chatInput.trim() || chatLoading}><Send size={15} /></Button>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

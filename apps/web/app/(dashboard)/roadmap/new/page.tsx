@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { toast } from 'sonner';
 import { useUser } from '@/lib/hooks/useUser';
-import { motion, AnimatePresence } from 'framer-motion';
-import { FileText, KeyRound, Loader2, PenLine, Target, Upload, type LucideIcon } from 'lucide-react';
+import { ArrowLeft, Clock, FileText, KeyRound, PenLine, Sparkles, Target, Upload, type LucideIcon } from 'lucide-react';
+import { Badge, Button, ButtonLink, Card, Field, Input, PageHeader, Textarea } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 type Mode = 'generate' | 'jd' | 'custom';
 
@@ -24,6 +26,14 @@ interface GeneratedRoadmap {
   description?: string;
   modules?: GeneratedModule[];
 }
+
+const MODES: { id: Mode; icon: LucideIcon; label: string; desc: string }[] = [
+  { id: 'generate', icon: Target, label: 'By role', desc: 'Pick a role name' },
+  { id: 'jd', icon: FileText, label: 'From a job description', desc: 'Paste or upload a posting' },
+  { id: 'custom', icon: PenLine, label: 'Manual', desc: 'Build it yourself' },
+];
+
+const ROLE_SUGGESTIONS = ['Frontend Engineer', 'ML Engineer', 'Product Manager', 'Backend Engineer', 'Data Scientist', 'DevOps Engineer', 'Systems Engineer', 'Mobile Engineer'];
 
 export default function NewRoadmapPage() {
   const router = useRouter();
@@ -64,7 +74,7 @@ export default function NewRoadmapPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Generation failed');
       setGeneratedRoadmap(data.roadmap);
-      toast.success(`Roadmap with ${data.roadmap.modules?.length || 0} modules generated!`);
+      toast.success(`Roadmap with ${data.roadmap.modules?.length || 0} modules generated`);
     } catch (e: unknown) {
       toast.error((e as Error).message);
     } finally {
@@ -87,7 +97,7 @@ export default function NewRoadmapPage() {
           jobDescription: mode === 'jd' ? jd : undefined,
           refine: true,
           comments: refineComments,
-          selected_module_ids: selectedModuleIds.map((_, i) => i.toString()),
+          selected_module_ids: selectedModuleIds,
           current_roadmap: generatedRoadmap,
         }),
       });
@@ -97,7 +107,7 @@ export default function NewRoadmapPage() {
       setShowRefine(false);
       setRefineComments('');
       setSelectedModuleIds([]);
-      toast.success('Roadmap refined!');
+      toast.success('Roadmap refined');
     } catch (e: unknown) {
       toast.error((e as Error).message);
     } finally {
@@ -116,7 +126,7 @@ export default function NewRoadmapPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Parsing failed');
       setJd(data.text);
-      toast.success('JD extracted successfully!');
+      toast.success('Job description extracted');
     } catch (e: unknown) {
       toast.error((e as Error).message);
     } finally {
@@ -135,12 +145,12 @@ export default function NewRoadmapPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to save');
-      
+
       // Mutate the roadmaps cache to ensure the new roadmap shows up instantly
       const { mutate } = await import('swr');
       mutate('/api/roadmaps');
-      
-      toast.success('Roadmap saved!');
+
+      toast.success('Roadmap saved');
       router.push('/roadmap');
     } catch (e: unknown) {
       toast.error((e as Error).message);
@@ -156,225 +166,182 @@ export default function NewRoadmapPage() {
 
   if (generatedRoadmap) {
     return (
-      <div className="page-container" style={{ maxWidth: '860px' }}>
-        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-          <div>
-            <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
-               Roadmap Generated
-            </h1>
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)' }}>
-              {generatedRoadmap.modules?.length || 0} modules · Review, refine, then save
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <button onClick={() => setGeneratedRoadmap(null)} className="btn-secondary" style={{ fontSize: '13px', padding: '9px 18px' }}>
-              ← Regenerate
-            </button>
-            <button onClick={() => setShowRefine(v => !v)} className="btn-secondary" style={{ fontSize: '13px', padding: '9px 18px', borderColor: showRefine ? 'var(--accent-primary)' : undefined, color: showRefine ? 'var(--accent-primary)' : undefined }}>
-              Refine
-            </button>
-            <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ fontSize: '13px', padding: '9px 20px' }}>
-              {saving ? 'Saving…' : 'Save roadmap'}
-            </button>
-          </div>
-        </div>
+      <div className="page-container" style={{ maxWidth: 880 }}>
+        <PageHeader
+          title="Review your roadmap"
+          description={`${generatedRoadmap.modules?.length || 0} modules. Refine anything that is off, then save.`}
+          action={
+            <>
+              <Button variant="ghost" onClick={() => setGeneratedRoadmap(null)}><ArrowLeft size={15} aria-hidden /> Start over</Button>
+              <Button variant="secondary" onClick={() => setShowRefine(v => !v)} aria-expanded={showRefine}>Refine</Button>
+              <Button onClick={handleSave} loading={saving}>{saving ? 'Saving…' : 'Save roadmap'}</Button>
+            </>
+          }
+        />
 
-        {/* Refine Panel */}
-        <AnimatePresence>
-          {showRefine && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              style={{ overflow: 'hidden', marginBottom: '24px' }}
-            >
-              <div className="card" style={{ padding: '24px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)', background: 'rgba(var(--accent-primary-rgb), 0.02)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>Refine this Roadmap</h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
-                  Select specific modules to update (or leave empty for full roadmap changes), then describe what to change.
-                </p>
-
-                {/* Module selection */}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '14px' }}>
-                  {(generatedRoadmap.modules || []).map((m, i) => (
-                    <button
-                      key={i}
-                      onClick={() => toggleModule(i)}
-                      style={{
-                        padding: '5px 12px',
-                        borderRadius: '100px',
-                        fontSize: '12px',
-                        fontWeight: 600,
-                        border: '1px solid',
-                        cursor: 'pointer',
-                        fontFamily: 'var(--font-body)',
-                        transition: 'all 0.15s',
-                        background: selectedModuleIds.includes(i.toString()) ? 'rgba(var(--accent-primary-rgb), 0.15)' : 'var(--bg-elevated)',
-                        borderColor: selectedModuleIds.includes(i.toString()) ? 'var(--accent-primary)' : 'var(--border)',
-                        color: selectedModuleIds.includes(i.toString()) ? 'var(--accent-primary)' : 'var(--text-muted)',
-                      }}
-                    >
-                      {i + 1}. {m.title.length > 24 ? m.title.slice(0, 24) + '…' : m.title}
-                    </button>
-                  ))}
-                </div>
-
-                <textarea
-                  value={refineComments}
-                  onChange={e => setRefineComments(e.target.value)}
-                  placeholder="e.g., Add more depth to system design, include Kubernetes and distributed caching. For DSA, focus more on graph traversal and bit manipulation..."
-                  rows={4}
-                  style={{ width: '100%', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'vertical', outline: 'none', boxSizing: 'border-box', marginBottom: '14px' }}
-                />
-
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <button onClick={() => { setShowRefine(false); setRefineComments(''); setSelectedModuleIds([]); }} className="btn-secondary" style={{ fontSize: '13px' }}>
-                    Cancel
-                  </button>
+        {showRefine && (
+          <Card className="mb-6 space-y-4 border-signal/30">
+            <div>
+              <h2 className="text-base font-semibold text-fg">Refine this roadmap</h2>
+              <p className="mt-1 text-[13px] text-fg-3">Pick modules to change, or leave all unselected to change the whole roadmap. Then say what should be different.</p>
+            </div>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Modules to change">
+              {(generatedRoadmap.modules || []).map((m, i) => {
+                const on = selectedModuleIds.includes(i.toString());
+                return (
                   <button
-                    onClick={handleRefine}
-                    disabled={refining || !refineComments.trim()}
-                    className="btn-primary"
-                    style={{ fontSize: '13px', padding: '9px 20px', opacity: refining || !refineComments.trim() ? 0.7 : 1 }}
+                    key={i}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => toggleModule(i)}
+                    className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors', on ? 'border-signal bg-signal/15 text-signal' : 'border-line bg-raised text-fg-2 hover:border-line-strong')}
                   >
-                    {refining ? ' Refining…' : ' Apply Refinement'}
+                    {i + 1}. {m.title.length > 24 ? `${m.title.slice(0, 24)}…` : m.title}
                   </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+                );
+              })}
+            </div>
+            <Field label="What should change?">
+              {a => <Textarea {...a} rows={4} value={refineComments} onChange={e => setRefineComments(e.target.value)} placeholder="Add more depth to system design, include Kubernetes and distributed caching. For DSA, focus on graph traversal." />}
+            </Field>
+            <div className="flex gap-2">
+              <Button variant="ghost" onClick={() => { setShowRefine(false); setRefineComments(''); setSelectedModuleIds([]); }}>Cancel</Button>
+              <Button onClick={handleRefine} loading={refining} disabled={!refineComments.trim()}>{refining ? 'Refining…' : 'Apply refinement'}</Button>
+            </div>
+          </Card>
+        )}
 
-        <div className="card" style={{ marginBottom: '20px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)' }}>
-          <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '8px' }}>{generatedRoadmap.title}</div>
-          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.6 }}>{generatedRoadmap.description}</div>
-        </div>
+        <Card className="mb-5">
+          <h2 className="font-display text-xl font-semibold text-fg">{generatedRoadmap.title}</h2>
+          {generatedRoadmap.description && <p className="mt-1.5 text-sm leading-relaxed text-fg-2">{generatedRoadmap.description}</p>}
+        </Card>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+        <ol className="space-y-3">
           {(generatedRoadmap.modules ?? []).map((m, i) => (
-            <div key={i} className="card" style={{ padding: '20px', transition: 'all 0.2s' }}>
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '14px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: 'rgba(var(--accent-primary-rgb), 0.1)', border: '1px solid rgba(var(--accent-primary-rgb), 0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '13px', fontWeight: 700, color: 'var(--accent-primary)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>{i + 1}</div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{m.title}</div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '10px' }}>{m.description}</div>
+            <li key={i}>
+              <Card className="flex gap-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-line-strong font-mono text-[13px] text-fg-2" aria-hidden>{i + 1}</span>
+                <div className="min-w-0 flex-1">
+                  <h3 className="text-[15px] font-semibold text-fg">{m.title}</h3>
+                  {m.description && <p className="mt-1 text-[13px] leading-relaxed text-fg-2">{m.description}</p>}
                   {(m.interview_topics?.length ?? 0) > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
-                      {m.interview_topics?.slice(0, 5).map((t: string) => (
-                        <span key={t} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
-                      ))}
-                      {(m.interview_topics?.length ?? 0) > 5 && <span style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', fontWeight: 600 }}>+{(m.interview_topics?.length ?? 0) - 5}</span>}
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {m.interview_topics?.slice(0, 5).map((t: string) => <Badge key={t} tone="violet">{t}</Badge>)}
+                      {(m.interview_topics?.length ?? 0) > 5 && <Badge>+{(m.interview_topics?.length ?? 0) - 5}</Badge>}
                     </div>
                   )}
                   {(m.skills?.length ?? 0) > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '8px' }}>
-                      {m.skills?.map((s: string) => (
-                        <span key={s} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', fontWeight: 600 }}>{s}</span>
-                      ))}
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {m.skills?.map((s: string) => <Badge key={s} tone="signal">{s}</Badge>)}
                     </div>
                   )}
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                    {m.estimated_hours && `⏱ ~${m.estimated_hours}h`}
-                    {m.coverage_note && <span style={{ marginLeft: '12px' }}> {m.coverage_note}</span>}
-                  </div>
+                  {(m.estimated_hours || m.coverage_note) && (
+                    <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-fg-3">
+                      {m.estimated_hours && <span className="inline-flex items-center gap-1"><Clock size={12} aria-hidden /> About {m.estimated_hours} hours</span>}
+                      {m.coverage_note && <span>{m.coverage_note}</span>}
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
+              </Card>
+            </li>
           ))}
-        </div>
+        </ol>
 
-        <div style={{ marginTop: '24px', display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
-          <button onClick={() => setShowRefine(true)} className="btn-secondary">Refine roadmap</button>
-          <button onClick={handleSave} disabled={saving} className="btn-primary" style={{ padding: '12px 28px', fontSize: '15px' }}>
-            {saving ? 'Saving…' : ' Save roadmap'}
-          </button>
+        <div className="mt-6 flex justify-end gap-3">
+          <Button variant="secondary" onClick={() => setShowRefine(true)}>Refine roadmap</Button>
+          <Button size="lg" onClick={handleSave} loading={saving}>{saving ? 'Saving…' : 'Save roadmap'}</Button>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="page-container" style={{ maxWidth: '720px' }}>
-      <div style={{ marginBottom: '32px' }}>
-        <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Create a Roadmap</h1>
-        <p className="text-[15px] text-fg-2">Let AI build a personalized prep plan with 16-20 comprehensive modules</p>
+    <div className="page-container" style={{ maxWidth: 760 }}>
+      <Link href="/roadmap" className="mb-5 inline-flex items-center gap-1.5 rounded-control text-sm text-fg-3 transition-colors hover:text-fg">
+        <ArrowLeft size={15} aria-hidden /> Roadmaps
+      </Link>
+      <PageHeader title="Create a roadmap" description="AI builds a study plan with 16 to 20 modules, tuned to a role or a specific job posting." />
+
+      <div className="mb-6 grid gap-3 sm:grid-cols-3" role="radiogroup" aria-label="How to start">
+        {MODES.map(({ id, icon: Icon, label, desc }) => {
+          const active = mode === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => setMode(id)}
+              className={cn('rounded-panel border p-4 text-left transition-colors', active ? 'border-signal bg-signal/10' : 'border-line bg-panel hover:border-line-strong hover:bg-raised')}
+            >
+              <Icon size={20} aria-hidden className={cn('mb-2', active ? 'text-signal' : 'text-fg-2')} />
+              <div className={cn('text-sm font-semibold', active ? 'text-signal' : 'text-fg')}>{label}</div>
+              <div className="text-xs text-fg-3">{desc}</div>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Mode selector */}
-      <div className="grid-responsive-3" style={{ gap: '12px', marginBottom: '28px' }}>
-        {([
-          { id: 'generate', icon: Target, label: 'By Role', desc: 'Pick a role name' },
-          { id: 'jd', icon: FileText, label: 'From JD', desc: 'Paste a job description' },
-          { id: 'custom', icon: PenLine, label: 'Manual', desc: 'Build it yourself' },
-        ] as { id: Mode; icon: LucideIcon; label: string; desc: string }[]).map(({ id, icon: Icon, label, desc }) => (
-          <button key={id} onClick={() => setMode(id)}
-            style={{ padding: '16px', borderRadius: '12px', border: `1px solid ${mode === id ? 'var(--accent-primary)' : 'var(--border)'}`, background: mode === id ? 'rgba(var(--accent-primary-rgb), 0.06)' : 'var(--bg-elevated)', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>
-            <Icon size={22} aria-hidden style={{ marginBottom: '8px', color: mode === id ? 'var(--accent-primary)' : 'var(--text-secondary)' }} />
-            <div style={{ fontSize: '14px', fontWeight: 700, color: mode === id ? 'var(--accent-primary)' : 'var(--text-primary)' }}>{label}</div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{desc}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Input area */}
-      <div className="card" style={{ padding: '24px' }}>
+      <Card className="space-y-5 p-5 sm:p-6">
         {mode === 'generate' && (
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Target Role</label>
-            <input className="input" value={role} onChange={e => setRole(e.target.value)} placeholder="e.g. Senior Frontend Engineer at Google" style={{ width: '100%', marginBottom: '16px' }} />
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginBottom: '20px' }}>
-              {['Frontend Engineer', 'ML Engineer', 'Product Manager', 'Backend Engineer', 'Data Scientist', 'DevOps Engineer', 'Systems Engineer', 'Mobile Engineer'].map(r => (
-                <button key={r} onClick={() => setRole(r)} style={{ padding: '5px 12px', borderRadius: '100px', fontSize: '12px', fontWeight: 600, border: '1px solid var(--border)', background: role === r ? 'rgba(var(--accent-primary-rgb), 0.1)' : 'var(--bg-elevated)', color: role === r ? 'var(--accent-primary)' : 'var(--text-muted)', cursor: 'pointer', fontFamily: 'var(--font-body)', transition: 'all 0.15s' }}>{r}</button>
+          <>
+            <Field label="Target role">
+              {a => <Input {...a} value={role} onChange={e => setRole(e.target.value)} placeholder="Senior Frontend Engineer at Google" />}
+            </Field>
+            <div className="flex flex-wrap gap-1.5" aria-label="Suggested roles">
+              {ROLE_SUGGESTIONS.map(r => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRole(r)}
+                  className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors', role === r ? 'border-signal bg-signal/10 text-signal' : 'border-line bg-raised text-fg-2 hover:border-line-strong')}
+                >
+                  {r}
+                </button>
               ))}
             </div>
-          </div>
+          </>
         )}
 
         {mode === 'jd' && (
-          <div>
-            <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>Job Description</label>
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '24px', background: 'rgba(var(--accent-primary-rgb), 0.03)', border: '1px dashed rgba(var(--accent-primary-rgb), 0.3)', borderRadius: '12px', cursor: 'pointer', transition: 'all 0.15s', opacity: parsing ? 0.6 : 1 }}>
-                <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} style={{ display: 'none' }} disabled={parsing} />
-                <span style={{ marginBottom: '8px', color: 'var(--text-secondary)' }}>{parsing ? <Loader2 size={22} className="animate-spin" aria-hidden /> : <Upload size={22} aria-hidden />}</span>
-                <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)' }}>{parsing ? 'Parsing File...' : 'Upload JD (PDF, DOCX, TXT)'}</span>
-                <span style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>or type/paste below</span>
-              </label>
-            </div>
-            <textarea value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the job description or upload a file above…" rows={8}
-              style={{ width: '100%', padding: '12px 14px', background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: '10px', color: 'var(--text-primary)', fontFamily: 'var(--font-body)', fontSize: '14px', resize: 'vertical', outline: 'none', marginBottom: '16px', boxSizing: 'border-box' }} />
-          </div>
+          <>
+            <label className={cn('flex cursor-pointer flex-col items-center justify-center gap-1 rounded-panel border border-dashed border-line-strong bg-raised px-4 py-6 text-center transition-colors hover:border-signal', parsing && 'pointer-events-none opacity-60')}>
+              <input type="file" accept=".pdf,.docx,.txt" onChange={handleFileUpload} className="sr-only" disabled={parsing} />
+              <Upload size={20} className="text-fg-2" aria-hidden />
+              <span className="text-sm font-semibold text-fg">{parsing ? 'Reading the file…' : 'Upload a job description'}</span>
+              <span className="text-xs text-fg-3">PDF, DOCX or TXT. Or paste it below.</span>
+            </label>
+            <Field label="Job description">
+              {a => <Textarea {...a} rows={8} value={jd} onChange={e => setJd(e.target.value)} placeholder="Paste the full posting." />}
+            </Field>
+          </>
         )}
 
         {mode === 'custom' && (
-          <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-            <PenLine size={32} aria-hidden style={{ margin: '0 auto 12px' }} />
-            <div style={{ fontSize: '14px', fontWeight: 600, marginBottom: '8px' }}>Manual builder coming soon</div>
-            <p style={{ fontSize: '13px' }}>For now, use the AI-powered modes above. Manual editing is available after generation via the Refine option.</p>
+          <div className="py-6 text-center">
+            <PenLine size={28} aria-hidden className="mx-auto mb-3 text-fg-3" />
+            <div className="text-sm font-semibold text-fg">The manual builder is not available yet</div>
+            <p className="mx-auto mt-1 max-w-sm text-[13px] text-fg-3">Generate a roadmap with one of the other options, then edit it with Refine.</p>
           </div>
         )}
 
         {mode !== 'custom' && (
           <>
-            <div style={{ padding: '10px 14px', background: 'rgba(var(--accent-primary-rgb), 0.04)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)', borderRadius: '8px', marginBottom: '14px', fontSize: '12px', color: 'var(--text-muted)' }}>
-               Will generate <strong style={{ color: 'var(--accent-primary)' }}>16-20 comprehensive modules</strong> covering 90%+ of knowledge needed to crack this role
-            </div>
-            <button onClick={handleGenerate} disabled={loading || (mode === 'generate' && !role) || (mode === 'jd' && !jd)} className="btn-primary" style={{ width: '100%', fontSize: '15px', padding: '14px', opacity: loading ? 0.7 : 1 }}>
-              {loading ? (
-                <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                  <span style={{ width: '18px', height: '18px', borderRadius: '50%', border: '2px solid rgba(0,0,0,0.3)', borderTopColor: 'var(--text-on-accent)', display: 'inline-block', animation: 'spin 1s linear infinite' }} />
-                  Generating 16+ modules…
-                </span>
-              ) : ' Generate Roadmap with AI'}
-            </button>
+            <p className="rounded-control border border-line bg-raised px-3.5 py-2.5 text-[13px] text-fg-2">
+              Generates 16 to 20 modules covering the knowledge most interviews for this role draw on.
+            </p>
+            <Button size="lg" className="w-full" onClick={handleGenerate} loading={loading} disabled={(mode === 'generate' && !role) || (mode === 'jd' && !jd)}>
+              {!loading && <Sparkles size={16} aria-hidden />}
+              {loading ? 'Generating modules…' : 'Generate roadmap'}
+            </Button>
           </>
         )}
-      </div>
+      </Card>
 
       {!user?.has_gemini_key && (
-        <div style={{ marginTop: '16px', padding: '14px', background: 'rgba(var(--accent-amber-rgb), 0.06)', border: '1px solid rgba(var(--accent-amber-rgb), 0.25)', borderRadius: '10px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <KeyRound size={16} aria-hidden style={{ flexShrink: 0, marginTop: '2px', color: 'var(--accent-amber)' }} />
-          <span>You need an AI API key to generate roadmaps. <a href="/settings" style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>Add one in Settings</a></span>
+        <div className="mt-4 flex items-start gap-3 rounded-panel border border-live/30 bg-live/10 p-4 text-[13px] text-fg-2">
+          <KeyRound size={16} aria-hidden className="mt-0.5 shrink-0 text-live" />
+          <span>You need a Gemini API key to generate roadmaps. <ButtonLink href="/settings" variant="ghost" size="sm" className="ml-1 h-7 px-2">Add one in Settings</ButtonLink></span>
         </div>
       )}
     </div>

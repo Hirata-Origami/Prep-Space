@@ -2,14 +2,17 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
-import Link from 'next/link';
+import { Building2, Play, Plus, Search } from 'lucide-react';
 import { useCompanies, Company } from '@/lib/hooks/useCompanies';
+import { Badge, ButtonLink, Button, Card, EmptyState, ErrorState, Field, Input, PageHeader, Select, Skeleton } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
+const difficultyTone = (d: number) => (d >= 9 ? 'text-bad' : d >= 8 ? 'text-live' : 'text-good');
+const passTone = (p: number) => (p > 65 ? 'text-good' : p > 55 ? 'text-live' : 'text-bad');
 
 export default function MockCompanyPage() {
   const router = useRouter();
-  const { companies, isLoading } = useCompanies();
+  const { companies, isLoading, isError, mutate } = useCompanies();
   const [selected, setSelected] = useState<Company | null>(null);
   const [selectedRound, setSelectedRound] = useState<string>('');
   const [targetRole, setTargetRole] = useState('Software Engineer');
@@ -42,173 +45,143 @@ export default function MockCompanyPage() {
     router.push(`/interview?${params.toString()}`);
   };
 
-  const difficultyColor = (d: number) => {
-    if (d >= 9) return 'var(--accent-red)';
-    if (d >= 8) return 'var(--accent-amber)';
-    return 'var(--accent-primary)';
-  };
+  const roundTopics = selected?.round_topics?.[selectedRound] ?? [];
 
   return (
     <div className="page-container">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '12px' }}>
-        <div>
-          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">Mock Company Interviews</h1>
-          <p className="text-[15px] text-fg-2">Practice with real interview formats from top companies</p>
-        </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
-          <input
-            className="input"
-            placeholder="Search companies..."
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-            style={{ flex: '1 1 160px', minWidth: '120px', maxWidth: '260px' }}
-          />
-          <Link href="/mock-company/new" className="btn-primary" style={{ textDecoration: 'none', whiteSpace: 'nowrap', fontSize: '13px' }}>
-             Add Company
-          </Link>
-        </div>
+      <PageHeader
+        title="Mock company interviews"
+        description="Practise against each company's real round structure and known patterns."
+        action={
+          <ButtonLink href="/mock-company/new" variant="secondary">
+            <Plus size={16} aria-hidden /> Add company
+          </ButtonLink>
+        }
+      />
+
+      <div className="relative mb-6 max-w-sm">
+        <Search size={16} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-fg-3" aria-hidden />
+        <Input
+          type="search"
+          aria-label="Search companies"
+          placeholder="Search by company or industry"
+          value={searchQuery}
+          onChange={e => setSearchQuery(e.target.value)}
+          className="pl-9"
+        />
       </div>
 
       {isLoading ? (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {Array.from({ length: 9 }).map((_, i) => (
-            <div key={i} style={{ height: '180px', borderRadius: '16px', background: 'var(--bg-elevated)', animation: 'pulse 2s ease infinite' }} />
-          ))}
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true" aria-label="Loading companies">
+          {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-44 rounded-panel" />)}
         </div>
+      ) : isError ? (
+        <ErrorState title="Could not load companies" onRetry={() => mutate()} />
+      ) : filteredCompanies.length === 0 ? (
+        <EmptyState
+          icon={<Building2 size={20} aria-hidden />}
+          title={searchQuery ? 'No companies match your search' : 'No companies yet'}
+          description={searchQuery ? 'Try a different name or clear the search.' : 'Add a company to build a round-by-round mock interview for it.'}
+          action={searchQuery ? undefined : <ButtonLink href="/mock-company/new">Add a company</ButtonLink>}
+        />
       ) : (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
-          {filteredCompanies.map((company: Company, i: number) => (
-            <motion.div
-              key={company.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.04 }}
-              onClick={() => handleSelect(company)}
-              className="card"
-              style={{
-                padding: '22px',
-                cursor: 'pointer',
-                border: selected?.id === company.id ? '1px solid var(--accent-primary)' : '1px solid var(--border)',
-                background: selected?.id === company.id ? 'rgba(var(--accent-primary-rgb), 0.04)' : undefined,
-                transition: 'all 0.15s',
-              }}
-              whileHover={{ y: -3 }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '14px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div style={{ fontSize: '32px', lineHeight: 1 }}>{company.logo_emoji}</div>
-                  <div>
-                    <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--text-primary)' }}>{company.name}</div>
-                    <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '2px' }}>{company.industry} • {company.size}</div>
-                  </div>
-                </div>
-                <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                  <div style={{ fontSize: '18px', fontWeight: 700, color: difficultyColor(company.difficulty_rating) }}>{company.difficulty_rating?.toFixed(1)}</div>
-                  <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 700, }}>Difficulty</div>
-                </div>
-              </div>
-
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '14px', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                {company.interview_culture}
-              </div>
-
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginBottom: '12px' }}>
-                {(company.rounds || []).slice(0, 3).map((r: string) => (
-                  <span key={r} style={{ fontSize: '12px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(var(--accent-primary-rgb), 0.08)', color: 'var(--accent-primary)', border: '1px solid rgba(var(--accent-primary-rgb), 0.15)' }}>
-                    {r}
-                  </span>
-                ))}
-                {(company.rounds || []).length > 3 && (
-                  <span style={{ fontSize: '12px', fontWeight: 600, padding: '3px 8px', borderRadius: '100px', background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)' }}>
-                    +{company.rounds.length - 3}
-                  </span>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
-                <span>Pass rate: <strong style={{ color: company.community_pass_rate > 65 ? 'var(--accent-primary)' : company.community_pass_rate > 55 ? 'var(--accent-amber)' : 'var(--accent-red)' }}>{company.community_pass_rate}%</strong></span>
-                {selected?.id === company.id ? <span style={{ color: 'var(--accent-primary)', fontWeight: 700 }}> Selected</span> : <span style={{ color: 'var(--text-muted)' }}>Click to select</span>}
-              </div>
-            </motion.div>
-          ))}
-        </div>
-      )}
-
-      {/* Practice Panel - shows when company selected */}
-      {selected && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          style={{ marginTop: '28px' }}
-        >
-          <div className="card" style={{ padding: '28px', border: '1px solid rgba(var(--accent-primary-rgb), 0.25)', background: 'rgba(var(--accent-primary-rgb), 0.02)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
-              <div style={{ flex: 1, minWidth: '280px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-                  <span style={{ fontSize: '36px' }}>{selected.logo_emoji}</span>
-                  <div>
-                    <h2 style={{ fontSize: '22px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>{selected.name}</h2>
-                    <p style={{ fontSize: '13px', color: 'var(--text-muted)' }}>{selected.interview_culture}</p>
-                  </div>
-                </div>
-
-                {/* Known Patterns */}
-                {selected.known_patterns?.length > 0 && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', }}>Known Patterns</div>
-                    {selected.known_patterns.map((p: string, i: number) => (
-                      <div key={i} style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', color: 'var(--text-secondary)' }}>
-                        <span style={{ color: 'var(--accent-primary)', flexShrink: 0, marginTop: '2px' }}>→</span> {p}
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredCompanies.map((company: Company) => {
+            const active = selected?.id === company.id;
+            return (
+              <li key={company.id}>
+                <button
+                  type="button"
+                  onClick={() => handleSelect(company)}
+                  aria-pressed={active}
+                  className={cn(
+                    'flex h-full w-full flex-col rounded-panel border p-5 text-left transition-colors',
+                    active ? 'border-signal bg-signal/5' : 'border-line bg-panel hover:border-line-strong hover:bg-raised'
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="text-3xl leading-none" aria-hidden>{company.logo_emoji}</span>
+                      <div className="min-w-0">
+                        <div className="truncate text-base font-semibold text-fg">{company.name}</div>
+                        <div className="truncate text-xs text-fg-3">{company.industry} · {company.size}</div>
                       </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', minWidth: '240px' }}>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Your Role</label>
-                  <input
-                    className="input"
-                    value={targetRole}
-                    onChange={e => setTargetRole(e.target.value)}
-                    placeholder="e.g. Senior Frontend Engineer"
-                    style={{ width: '100%' }}
-                  />
-                </div>
-                <div>
-                  <label style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', display: 'block', marginBottom: '6px' }}>Select Round</label>
-                  <select
-                    className="input"
-                    value={selectedRound}
-                    onChange={e => setSelectedRound(e.target.value)}
-                    style={{ cursor: 'pointer', width: '100%' }}
-                  >
-                    {(selected.rounds || []).map(r => (
-                      <option key={r} value={r}>{r}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Show topics for selected round */}
-                {((selected.round_topics?.[selectedRound]?.length) ?? 0) > 0 && (
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', marginBottom: '6px' }}>Topics Covered</div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px' }}>
-                      {(selected.round_topics?.[selectedRound] ?? []).map(t => (
-                        <span key={t} style={{ fontSize: '12px', padding: '2px 8px', borderRadius: '100px', background: 'rgba(var(--accent-violet-rgb), 0.1)', color: 'var(--accent-violet)', border: '1px solid rgba(var(--accent-violet-rgb), 0.2)', fontWeight: 600 }}>{t}</span>
-                      ))}
+                    </div>
+                    <div className="shrink-0 text-right">
+                      <div className={cn('font-mono text-lg font-semibold leading-none', difficultyTone(company.difficulty_rating))}>{company.difficulty_rating?.toFixed(1)}</div>
+                      <div className="mt-1 text-[12px] text-fg-3">Difficulty</div>
                     </div>
                   </div>
-                )}
 
-                <button onClick={handleStartInterview} className="btn-primary" style={{ width: '100%', justifyContent: 'center', padding: '13px', fontSize: '15px', fontWeight: 700 }}>
-                   Start {selected.name} Interview
+                  <p className="mt-3 line-clamp-2 text-[13px] leading-relaxed text-fg-2">{company.interview_culture}</p>
+
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {(company.rounds || []).slice(0, 3).map((r: string) => <Badge key={r} tone="signal">{r}</Badge>)}
+                    {(company.rounds || []).length > 3 && <Badge>+{company.rounds.length - 3}</Badge>}
+                  </div>
+
+                  <div className="mt-auto flex items-center justify-between pt-4 text-xs text-fg-3">
+                    <span>Pass rate <strong className={cn('font-mono', passTone(company.community_pass_rate))}>{company.community_pass_rate}%</strong></span>
+                    <span className={active ? 'font-semibold text-signal' : ''}>{active ? 'Selected' : 'Select'}</span>
+                  </div>
                 </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      {selected && (
+        <Card className="mt-8 border-signal/30 p-5 sm:p-6" aria-live="polite">
+          <div className="grid gap-8 lg:grid-cols-[1fr_320px]">
+            <div className="min-w-0">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl leading-none" aria-hidden>{selected.logo_emoji}</span>
+                <div>
+                  <h2 className="font-display text-xl font-semibold text-fg">{selected.name}</h2>
+                  <p className="text-sm text-fg-3">{selected.interview_culture}</p>
+                </div>
               </div>
+
+              {selected.known_patterns?.length > 0 && (
+                <div className="mt-5">
+                  <h3 className="mb-2 text-sm font-semibold text-fg">Known patterns</h3>
+                  <ul className="space-y-1.5 text-sm text-fg-2">
+                    {selected.known_patterns.map((p: string, i: number) => (
+                      <li key={i} className="flex gap-2"><span className="mt-2 h-1 w-1 shrink-0 rounded-full bg-signal" aria-hidden />{p}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+
+            <div className="space-y-4">
+              <Field label="Your role">
+                {a => <Input {...a} value={targetRole} onChange={e => setTargetRole(e.target.value)} placeholder="Senior Frontend Engineer" />}
+              </Field>
+              <Field label="Round">
+                {a => (
+                  <Select {...a} value={selectedRound} onChange={e => setSelectedRound(e.target.value)}>
+                    {(selected.rounds || []).map(r => <option key={r} value={r}>{r}</option>)}
+                  </Select>
+                )}
+              </Field>
+
+              {roundTopics.length > 0 && (
+                <div>
+                  <div className="mb-1.5 text-[13px] font-medium text-fg">Topics covered</div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {roundTopics.map(t => <Badge key={t} tone="violet">{t}</Badge>)}
+                  </div>
+                </div>
+              )}
+
+              <Button size="lg" className="w-full" onClick={handleStartInterview}>
+                <Play size={15} className="fill-current" aria-hidden /> Start {selected.name} interview
+              </Button>
             </div>
           </div>
-        </motion.div>
+        </Card>
       )}
     </div>
   );
