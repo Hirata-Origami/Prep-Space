@@ -11,6 +11,8 @@ interface CodeEditorProps {
   onChange: (value: string) => void;
   readOnly?: boolean;
   placeholder?: string;
+  /** Called on Ctrl or Cmd + Enter. */
+  onRun?: () => void;
 }
 
 const KIND_CLASS: Record<TokenKind, string> = {
@@ -28,7 +30,7 @@ const INDENT = '  ';
  * A plain textarea with a highlighted copy painted behind it. Keeping the real textarea means
  * selection, undo, IME and accessibility all work natively.
  */
-export function CodeEditor({ value, language, onChange, readOnly, placeholder }: CodeEditorProps) {
+export function CodeEditor({ value, language, onChange, readOnly, placeholder, onRun }: CodeEditorProps) {
   const taRef = useRef<HTMLTextAreaElement>(null);
   const preRef = useRef<HTMLPreElement>(null);
   const gutterRef = useRef<HTMLDivElement>(null);
@@ -56,6 +58,12 @@ export function CodeEditor({ value, language, onChange, readOnly, placeholder }:
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const ta = e.currentTarget;
     const { selectionStart: a, selectionEnd: b } = ta;
+
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey) && onRun) {
+      e.preventDefault();
+      onRun();
+      return;
+    }
 
     if (e.key === 'Tab') {
       e.preventDefault();

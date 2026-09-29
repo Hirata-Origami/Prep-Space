@@ -1,6 +1,7 @@
 -- ============================================================
--- 004 — Coding practice, flashcards, STAR stories, offer coach, shared reports
--- Run in the Supabase SQL editor. Safe to run more than once.
+-- 004 — Everything added after the base schema, in one re-runnable script
+-- Run once in the Supabase SQL editor. Safe to run again: every statement skips what already exists,
+-- so it does not matter which earlier scripts you ran. Nothing here drops or rewrites your data.
 -- Requires the base schema (users, resume_versions, interview_reports). It is the only
 -- file you need on top of the base schema: it also creates applications and workspace_docs.
 -- ============================================================
@@ -196,3 +197,19 @@ DROP POLICY IF EXISTS "shared_reports_public_read" ON shared_reports;
 -- by signed-in users. Only the server (service role) awards XP.
 REVOKE EXECUTE ON FUNCTION increment_xp(UUID, INT) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION increment_xp(UUID, INT) TO service_role;
+
+-- ============================================================
+-- Email preferences and scheduled-job bookkeeping
+-- ============================================================
+-- Lets people turn off the weekly digest and the daily tip. Report-ready emails are always sent.
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_updates BOOLEAN NOT NULL DEFAULT TRUE;
+
+-- One row per scheduled job, so a job that is triggered twice in a period only sends once.
+CREATE TABLE IF NOT EXISTS cron_runs (
+  job     VARCHAR(60) PRIMARY KEY,
+  ran_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE cron_runs ENABLE ROW LEVEL SECURITY; -- no policies: only the service role can read or write it
+
+-- The GitHub token feature was removed (only public repositories are read), so this column is unused.
+ALTER TABLE users DROP COLUMN IF EXISTS github_token_enc;

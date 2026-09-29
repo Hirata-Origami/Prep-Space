@@ -1,16 +1,30 @@
 /** Shared shapes for workspace documents: written notes or code beside a diagram. */
 
-export type NodeKind = 'client' | 'service' | 'lb' | 'db' | 'cache' | 'queue' | 'storage' | 'cdn' | 'external' | 'note';
+export type NodeKind =
+  | 'client' | 'mobile' | 'user' | 'lb' | 'api' | 'service' | 'worker' | 'function'
+  | 'db' | 'cache' | 'queue' | 'stream' | 'storage' | 'search' | 'cdn'
+  | 'auth' | 'monitor' | 'ml' | 'email' | 'external' | 'note';
 
 export const NODE_KINDS: { id: NodeKind; label: string }[] = [
-  { id: 'client', label: 'Client' },
+  { id: 'user', label: 'User' },
+  { id: 'client', label: 'Web client' },
+  { id: 'mobile', label: 'Mobile app' },
+  { id: 'cdn', label: 'CDN' },
   { id: 'lb', label: 'Load balancer' },
+  { id: 'api', label: 'API gateway' },
+  { id: 'auth', label: 'Auth service' },
   { id: 'service', label: 'Service' },
+  { id: 'worker', label: 'Background worker' },
+  { id: 'function', label: 'Serverless function' },
   { id: 'db', label: 'Database' },
   { id: 'cache', label: 'Cache' },
+  { id: 'search', label: 'Search index' },
   { id: 'queue', label: 'Queue' },
+  { id: 'stream', label: 'Event stream' },
   { id: 'storage', label: 'Object storage' },
-  { id: 'cdn', label: 'CDN' },
+  { id: 'ml', label: 'ML model' },
+  { id: 'email', label: 'Email or push' },
+  { id: 'monitor', label: 'Monitoring' },
   { id: 'external', label: 'External API' },
   { id: 'note', label: 'Note' },
 ];
@@ -23,6 +37,8 @@ export interface DNode {
   y: number;
   w: number;
   h: number;
+  /** Optional boundary this shape sits inside, such as a region, VPC or cluster. Shapes with the same name share one dashed box. */
+  group?: string;
 }
 
 export interface DEdge {
@@ -69,14 +85,25 @@ export interface WorkspaceDoc {
 }
 
 export const DEFAULT_SIZE: Record<NodeKind, { w: number; h: number }> = {
+  user: { w: 110, h: 60 },
   client: { w: 130, h: 56 },
+  mobile: { w: 120, h: 56 },
+  cdn: { w: 120, h: 56 },
   lb: { w: 130, h: 56 },
+  api: { w: 140, h: 60 },
+  auth: { w: 130, h: 56 },
   service: { w: 150, h: 60 },
+  worker: { w: 140, h: 56 },
+  function: { w: 140, h: 56 },
   db: { w: 130, h: 72 },
   cache: { w: 130, h: 60 },
+  search: { w: 130, h: 60 },
   queue: { w: 150, h: 56 },
+  stream: { w: 150, h: 56 },
   storage: { w: 140, h: 64 },
-  cdn: { w: 120, h: 56 },
+  ml: { w: 130, h: 60 },
+  email: { w: 130, h: 56 },
+  monitor: { w: 130, h: 56 },
   external: { w: 140, h: 56 },
   note: { w: 170, h: 70 },
 };
@@ -100,6 +127,7 @@ export function sanitizeDiagram(input: unknown, limit = 60): Diagram {
       id,
       label: String(o.label ?? id).slice(0, 80),
       kind,
+      group: typeof o.group === 'string' && o.group.trim() ? o.group.trim().slice(0, 40) : undefined,
       x: Number.isFinite(Number(o.x)) ? Number(o.x) : 0,
       y: Number.isFinite(Number(o.y)) ? Number(o.y) : 0,
       w: Number.isFinite(Number(o.w)) && Number(o.w) > 40 ? Number(o.w) : size.w,

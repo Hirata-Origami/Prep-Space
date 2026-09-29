@@ -139,5 +139,7 @@ export interface JudgeVerdict {
   testResults: TestResultItem[];
   feedback: string;
   xpAwarded: number;
+  /** True when the verdict was based on real output from running the code. */
+  usedExecution?: boolean;
   submissionId?: string;
 }

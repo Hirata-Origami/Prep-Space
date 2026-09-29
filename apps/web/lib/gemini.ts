@@ -1,4 +1,5 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { decryptKey } from '@/lib/secret';
 
 /**
  * Creates a Gemini client using the user's personal API key or global environment key.
@@ -6,7 +7,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
  * Server-side only.
  */
 export function getGeminiClient(userApiKey?: string | null): GoogleGenerativeAI {
-  let key = userApiKey?.trim();
+  // saved keys are encrypted at rest; older ones are still plain text
+  let key = decryptKey(userApiKey?.trim())?.trim();
   if (key && (key.includes('•') || /[^\x00-\x7F]/.test(key) || key.length < 10)) {
     key = undefined;
   }

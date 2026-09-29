@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { createClient } from '@/lib/supabase/server';
+import { decryptKey } from '@/lib/secret';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
           .eq('supabase_uid', user.id)
           .single();
 
-        const savedKey = profile?.gemini_api_key?.trim();
+        const savedKey = decryptKey(profile?.gemini_api_key)?.trim();
         if (savedKey && !savedKey.includes('•') && /^[\x00-\x7F]+$/.test(savedKey)) {
           key = savedKey;
         }

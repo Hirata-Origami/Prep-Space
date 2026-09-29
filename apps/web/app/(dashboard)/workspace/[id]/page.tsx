@@ -4,12 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, Columns2, Copy, Network, SquareCode, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Columns2, Copy, Network, Play, SquareCode, Trash2 } from 'lucide-react';
 import { Button, ButtonLink, EmptyState, Select, Skeleton } from '@/components/ui';
 import { CodeEditor } from '@/components/workspace/CodeEditor';
 import { DiagramCanvas } from '@/components/workspace/DiagramCanvas';
 import { CoachMenu } from '@/components/workspace/CoachMenu';
 import { LiveDock } from '@/components/workspace/LiveDock';
+import { RunPanel } from '@/components/workspace/RunPanel';
+import { canRun, resultText, runCode, type RunResult } from '@/lib/workspace/run';
 import { useWorkspaceLive } from '@/lib/workspace/useLive';
 import { EMPTY_DIAGRAM, LANGUAGES, type Diagram, type LanguageId, type WorkspaceDoc } from '@/lib/workspace/types';
 import { cn } from '@/lib/cn';
@@ -27,6 +29,10 @@ export default function WorkspaceDocPage() {
   const [diagram, setDiagram] = useState<Diagram>(EMPTY_DIAGRAM);
   const [view, setView] = useState<View>('code');
   const [save, setSave] = useState<Save>('saved');
+  const [showOutput, setShowOutput] = useState(false);
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState<RunResult | null>(null);
+  const [ranCode, setRanCode] = useState('');
 
   const latest = useRef({ title, language, content, diagram });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -106,11 +112,24 @@ export default function WorkspaceDocPage() {
     diagram: (v: Diagram) => { setDiagram(v); latest.current.diagram = v; touch(); },
   };
 
+  /** Runs whatever is in the editor now and shows the output. */
+  const runNow = useCallback(async (): Promise<RunResult> => {
+    const { content: code, language: lang } = latest.current;
+    setShowOutput(true);
+    setRunning(true);
+    const result = await runCode(lang, code);
+    setRunResult(result);
+    setRanCode(code);
+    setRunning(false);
+    return result;
+  }, []);
+
   // Alex reads and writes the same state the editor and canvas use
   const live = useWorkspaceLive({
     getState: () => ({ title: latest.current.title, language: latest.current.language, code: latest.current.content, diagram: latest.current.diagram }),
     setCode: update.content,
     setDiagram: update.diagram,
+    runCode: canRun(language) ? async () => resultText(await runNow()) : undefined,
     onAction: kind => setView(v => (v === 'split' ? v : kind === 'diagram' && v === 'code' ? 'split' : kind === 'code' && v === 'diagram' ? 'split' : v)),
   });
 
@@ -184,12 +203,17 @@ export default function WorkspaceDocPage() {
           {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
         </Select>
 
+        {view !== 'diagram' && canRun(language) && (
+          <Button size="sm" onClick={runNow} loading={running} aria-label="Run the code"><Play size={13} aria-hidden /> Run</Button>
+        )}
+
         <CoachMenu
           target={view === 'diagram' ? 'diagram' : 'code'}
           language={language}
           code={content}
           diagram={diagram}
           docId={id}
+          execution={runResult && ranCode === content ? resultText(runResult) : undefined}
           onApplyCode={update.content}
           onInsertNotes={(md: string) => update.content(content.trim() ? `${content.trimEnd()}\n\n${md}\n` : `${md}\n`)}
         />
@@ -206,8 +230,11 @@ export default function WorkspaceDocPage() {
 
       <div className={cn('grid min-h-[300px] min-w-0 flex-1 gap-3', view === 'split' ? 'lg:grid-cols-2' : 'grid-cols-1')}>
         {view !== 'diagram' && (
-          <div className="min-h-0 min-w-0">
-            <CodeEditor value={content} language={language} onChange={update.content} placeholder={isNotes ? 'Write requirements, estimates and trade-offs…' : 'Write your code here'} />
+          <div className="flex min-h-0 min-w-0 flex-col gap-3">
+            <div className="min-h-[220px] flex-1">
+              <CodeEditor value={content} language={language} onChange={update.content} onRun={canRun(language) ? runNow : undefined} placeholder={isNotes ? 'Write requirements, estimates and trade-offs…' : 'Write your code here'} />
+            </div>
+            {showOutput && canRun(language) && <RunPanel running={running} result={runResult} stale={!!runResult && ranCode !== content} onClose={() => setShowOutput(false)} />}
           </div>
         )}
         {view !== 'code' && (

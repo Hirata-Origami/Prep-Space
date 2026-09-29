@@ -24,6 +24,8 @@ export interface WorkspaceBridge {
   getState: () => { title: string; language: LanguageId; code: string; diagram: Diagram };
   setCode: (code: string) => void;
   setDiagram: (diagram: Diagram) => void;
+  /** Runs the code in the editor and resolves with what it printed. Present only when the language can run. */
+  runCode?: () => Promise<string>;
   /** Called when the model draws or writes, so the page can switch to the relevant view. */
   onAction?: (kind: 'diagram' | 'code') => void;
 }
@@ -64,6 +66,7 @@ const TOOLS = [
                   id: { type: Type.STRING },
                   label: { type: Type.STRING, description: '1 to 4 words naming the technology or role.' },
                   kind: { type: Type.STRING, enum: KIND_IDS, description: 'The shape type.' },
+                  group: { type: Type.STRING, description: 'Optional boundary this component sits inside, for example "VPC", "Region us-east" or "Kubernetes cluster". Components with the same group share one dashed box.' },
                 },
                 required: ['id', 'label', 'kind'],
               },
@@ -84,6 +87,10 @@ const TOOLS = [
           },
           required: ['nodes', 'edges'],
         },
+      },
+      {
+        name: 'run_code',
+        description: 'Run the code that is in the candidate\'s editor and get back what it printed or the error. Only JavaScript, TypeScript, Python and SQL can run. Use it to check your own fix or to see why their code fails, then explain the result briefly.',
       },
       {
         name: 'write_editor',
@@ -127,7 +134,7 @@ HOW TO BEHAVE
 - When they ask you to draw, sketch, add, remove or rename anything in the diagram, call draw_diagram with the complete graph, then say in a sentence what you drew.
 - When they ask you to write, fix or extend code, SQL or notes, call write_editor, then summarise the change in a sentence. Never read code aloud.
 - If they ask a question, answer it. If they describe a design, probe trade-offs the way an interviewer would, but let them lead.
-- You cannot run code. If you predict output, say it is a prediction.
+- You can run the candidate's code with run_code (JavaScript, TypeScript, Python and SQL only). Prefer running it to guessing. For other languages, say any predicted output is a prediction.
 - Never invent facts about their work.
 
 WHAT IS OPEN NOW
@@ -148,7 +155,7 @@ function contextBlock(state: ReturnType<WorkspaceBridge['getState']>): string {
 
 function describeWithIds(d: Diagram): string {
   const label = new Map(d.nodes.map(n => [n.id, n.label]));
-  const nodes = d.nodes.map(n => `- [${n.id}] ${n.label} (${n.kind})`).join('\n');
+  const nodes = d.nodes.map(n => `- [${n.id}] ${n.label} (${n.kind}${n.group ? `, in ${n.group}` : ''})`).join('\n');
   const edges = d.edges.map(e => `- [${e.from}] ${label.get(e.from)} -> [${e.to}] ${label.get(e.to)}${e.label ? ` (${e.label})` : ''}`).join('\n');
   return `${nodes}${edges ? `\nConnections:\n${edges}` : ''}`;
 }
@@ -226,7 +233,7 @@ export function useWorkspaceLive(bridge: WorkspaceBridge) {
     setSpeaking(true);
   }, []);
 
-  const runTool = useCallback((call: ToolCall) => {
+  const runTool = useCallback(async (call: ToolCall) => {
     const b = bridgeRef.current;
     const args = call.args ?? {};
     let output = 'Done.';
@@ -249,6 +256,10 @@ export function useWorkspaceLive(bridge: WorkspaceBridge) {
         b.onAction?.('code');
         addEntry('action', typeof args.summary === 'string' && args.summary ? args.summary : 'Updated the editor', false);
         output = 'The editor was updated.';
+      } else if (call.name === 'run_code') {
+        if (!b.runCode) throw new Error('This language cannot be run here. Only JavaScript, TypeScript, Python and SQL can.');
+        addEntry('action', 'Ran the code', false);
+        output = await b.runCode();
       } else {
         output = 'Unknown tool.';
       }
@@ -363,7 +374,9 @@ export function useWorkspaceLive(bridge: WorkspaceBridge) {
                 if (sc.outputTranscription?.text) addEntry('ai', sc.outputTranscription.text);
               }
               const calls = msg.toolCall?.functionCalls;
-              if (calls?.length) sessionRef.current?.sendToolResponse({ functionResponses: calls.map(runTool) });
+              if (calls?.length) {
+                void Promise.all(calls.map(runTool)).then(functionResponses => sessionRef.current?.sendToolResponse({ functionResponses }));
+              }
             } catch (e) {
               console.error('Live message error', e);
             }

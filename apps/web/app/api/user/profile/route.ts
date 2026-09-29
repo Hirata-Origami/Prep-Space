@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { canEncrypt, decryptKey, encryptKey, isEncrypted } from '@/lib/secret';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,7 +49,12 @@ export async function GET() {
           profile = newProfileData?.[0];
         }
 
-        const rawKey = profile?.gemini_api_key?.trim();
+        // the key is stored encrypted; mask the real key and quietly encrypt older plain-text keys
+        const stored = profile?.gemini_api_key?.trim();
+        const rawKey = decryptKey(stored)?.trim();
+        if (stored && rawKey && !isEncrypted(stored) && canEncrypt()) {
+          await supabase.from('users').update({ gemini_api_key: encryptKey(rawKey) }).eq('supabase_uid', user.id);
+        }
         const isValidRawKey = !!(
           rawKey &&
           !rawKey.includes('•') &&
@@ -95,7 +101,7 @@ export async function PATCH(request: Request) {
         if (!val || val.includes('•') || /[^\x00-\x7F]/.test(val) || val.length < 10) {
           continue;
         }
-        updates[field] = val;
+        updates[field] = encryptKey(val);
         continue;
       }
       updates[field] = body[field];

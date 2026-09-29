@@ -52,7 +52,7 @@ export async function runCodeAction(
   return { message: (parsed.message ?? '').trim(), code: (parsed.code ?? '').replace(/^```\w*\n?|```$/g, '').trimEnd() };
 }
 
-const judgePrompt = (language: LanguageId, code: string, problemContext: string) => `You are an automated technical interview judge for a candidate practicing ${language === 'markdown' ? 'code' : language}.
+const judgePrompt = (language: LanguageId, code: string, problemContext: string, execution?: string) => `You are an automated technical interview judge for a candidate practicing ${language === 'markdown' ? 'code' : language}.
 Evaluate the candidate's solution for correctness, edge case handling, and algorithmic complexity.
 
 Problem statement or context:
@@ -61,7 +61,12 @@ ${problemContext || 'Infer the problem from comments, function names, and starte
 --- CANDIDATE CODE ---
 ${code}
 --- END ---
-
+${execution ? `
+The candidate ran this exact code in their browser. This is REAL output, not a prediction. Trust it over your own reading, and base your test results on it where it covers a case:
+--- REAL OUTPUT ---
+${execution}
+--- END ---
+` : ""}
 Simulate running at least 4 test cases:
 - Test 1: Standard primary happy-path case
 - Test 2: Secondary variation / typical input
@@ -93,10 +98,11 @@ export async function runJudgeAction(
   model: GenerativeModel,
   language: LanguageId,
   code: string,
-  problemContext: string
+  problemContext: string,
+  execution?: string
 ): Promise<JudgeVerdict & { message: string }> {
   const result = await withRetry(() =>
-    model.generateContent([{ text: judgePrompt(language, code.slice(0, 20000), problemContext.slice(0, 3000)) }])
+    model.generateContent([{ text: judgePrompt(language, code.slice(0, 20000), problemContext.slice(0, 3000), execution?.slice(0, 3000)) }])
   );
   const parsed = parseJsonReply<{
     status?: 'passed' | 'failed' | 'partial';
@@ -122,6 +128,7 @@ export async function runJudgeAction(
     feedback: parsed.feedback || '',
     message: parsed.message || (status === 'passed' ? 'All tests passed!' : 'Some tests failed.'),
     xpAwarded: status === 'passed' ? 100 : status === 'partial' ? 40 : 10,
+    usedExecution: !!execution,
   };
 }
 
@@ -140,6 +147,7 @@ const DIAGRAM_RULES = `Diagram rules:
 - Node kinds: ${KIND_LIST}. Pick the kind that matches the component (a queue is "queue", Postgres is "db", Redis is "cache", S3 is "storage", browsers and apps are "client").
 - Node ids are short lowercase slugs. Labels are 1 to 4 words and name the actual technology or role (for example "Postgres (users)" or "Order service").
 - Edges go from the caller to the callee or in the direction data flows. Label an edge only when it adds meaning ("REST", "publish events", "read-through").
+- Use "group" for real boundaries (VPC, region, cluster, trust zone); leave it out otherwise.
 - Prefer 6 to 16 nodes. Every node must connect to something. Use "note" nodes sparingly for a key constraint or number.`;
 
 export async function runDiagramAction(
@@ -175,7 +183,7 @@ ${DIAGRAM_RULES}
 Return ONLY this JSON:
 {
   "message": "2-3 sentences: what you drew and the key design choice",
-  "nodes": [ { "id": "web", "label": "Web app", "kind": "client" } ],
+  "nodes": [ { "id": "web", "label": "Web app", "kind": "client", "group": "optional boundary such as VPC" } ],
   "edges": [ { "from": "web", "to": "lb", "label": "HTTPS" } ]
 }`;
   const result = await withRetry(() => model.generateContent([{ text: prompt }]));

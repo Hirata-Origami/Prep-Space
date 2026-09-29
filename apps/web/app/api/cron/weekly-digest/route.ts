@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
 import { weeklyDigestEmail } from '@/lib/email/messages';
+import { claimRun, cronSecretOk } from '@/lib/cron';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
@@ -15,15 +16,19 @@ interface Recipient {
 /**
  * GET /api/cron/weekly-digest
  * Runs every Monday. Sends each opted-in user their week: interviews, flashcards, coding practice, stories,
- * cards due now and application steps coming up. Requires the CRON_SECRET bearer token.
+ * cards due now and application steps coming up. If CRON_SECRET is set it must be sent as a bearer token;
+ * either way the digest goes out at most once every six days.
  */
 export async function GET(request: Request) {
-  // Fail closed: without a configured secret nobody may trigger a mass email
-  if (!process.env.CRON_SECRET || request.headers.get('authorization') !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  if (!cronSecretOk(request)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
   const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!);
+
+  // a test send to one address is only allowed to a caller who proved they hold the secret
+  const testEmail = process.env.CRON_SECRET ? new URL(request.url).searchParams.get('test_email') : null;
+  if (!testEmail && !(await claimRun(supabase, 'weekly-digest', 6 * 24))) {
+    return NextResponse.json({ skipped: true, reason: 'Already sent this week.' });
+  }
   const since = new Date(Date.now() - 7 * 86_400_000).toISOString();
   const today = new Date().toISOString().slice(0, 10);
   const nextWeek = new Date(Date.now() + 7 * 86_400_000).toISOString().slice(0, 10);
@@ -40,7 +45,6 @@ export async function GET(request: Request) {
     recipients = (optedIn.data ?? []) as Recipient[];
   }
 
-  const testEmail = new URL(request.url).searchParams.get('test_email');
   const targets = testEmail ? [{ id: recipients[0]?.id ?? 'test', email: testEmail, full_name: 'Test' }] : recipients;
 
   let sent = 0;

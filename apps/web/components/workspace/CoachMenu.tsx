@@ -39,6 +39,8 @@ interface CoachMenuProps {
   code: string;
   diagram: Diagram;
   docId: string;
+  /** Real output from running the current code, when there is any. Sent to the judge as evidence. */
+  execution?: string;
   onApplyCode: (code: string) => void;
   onInsertNotes: (markdown: string) => void;
 }
@@ -54,7 +56,7 @@ interface Result {
  * One-shot coaching that needs a written answer you can keep: a judge verdict, a review, a rewrite.
  * Talking things through happens in the live dock instead.
  */
-export function CoachMenu({ target, language, code, diagram, docId, onApplyCode, onInsertNotes }: CoachMenuProps) {
+export function CoachMenu({ target, language, code, diagram, docId, execution, onApplyCode, onInsertNotes }: CoachMenuProps) {
   const [action, setAction] = useState<Action | null>(null);
   const [instruction, setInstruction] = useState('');
   const [busy, setBusy] = useState(false);
@@ -71,7 +73,7 @@ export function CoachMenu({ target, language, code, diagram, docId, onApplyCode,
       const res = await fetch('/api/workspace/ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ target, action: a.id, instruction: text, language, code, notes: code, diagram, docId }),
+        body: JSON.stringify({ target, action: a.id, instruction: text, language, code, notes: code, diagram, docId, execution }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'The request failed');
@@ -121,7 +123,7 @@ export function CoachMenu({ target, language, code, diagram, docId, onApplyCode,
           open
           onOpenChange={o => !o && close()}
           title={action.label}
-          description={action.id === 'judge' ? 'The AI reads your code and predicts how it behaves. Nothing is executed.' : undefined}
+          description={action.id === 'judge' ? (execution ? 'The verdict uses the real output from your last run.' : 'The AI reads your code and predicts how it behaves. Run it first to give the judge real output.') : undefined}
           className="max-w-2xl"
           footer={
             action.ask && !result ? (

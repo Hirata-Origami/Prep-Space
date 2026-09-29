@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -40,6 +40,55 @@ const SHORTCUTS = [
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Study groups', href: '/groups', icon: Users },
 ];
+
+interface NextStep {
+  title: string;
+  why: string;
+  href: string;
+  cta: string;
+}
+
+/**
+ * One suggestion for what to do now, picked in a fixed order of urgency: an application step coming up,
+ * flashcards due, no interview for a week, then a practice problem. It says why, so it is never a mystery.
+ */
+function NextAction({ lastInterviewAt }: { lastInterviewAt: number | null }) {
+  // read the clock once, not on every render
+  const [now] = useState(() => Date.now());
+  const daysSinceInterview = lastInterviewAt ? Math.floor((now - lastInterviewAt) / 86_400_000) : null;
+  const { data: apps } = useSWR<{ applications?: { company: string; role: string; next_step: string | null; next_step_at: string | null; status: string }[] }>('/api/applications');
+  const { data: cards } = useSWR<{ stats?: { dueToday: number } }>('/api/flashcards');
+
+  const soon = (apps?.applications ?? [])
+    .filter(a => a.next_step_at && !['rejected', 'withdrawn', 'offer'].includes(a.status))
+    .map(a => ({ a, days: Math.ceil((new Date(a.next_step_at as string).getTime() - now) / 86_400_000) }))
+    .filter(x => x.days >= 0 && x.days <= 5)
+    .sort((x, y) => x.days - y.days)[0];
+  const due = cards?.stats?.dueToday ?? 0;
+
+  let step: NextStep;
+  if (soon) {
+    const when = soon.days === 0 ? 'today' : soon.days === 1 ? 'tomorrow' : `in ${soon.days} days`;
+    step = { title: `${soon.a.next_step || 'Next step'} at ${soon.a.company} is ${when}`, why: 'Practise the round while it is fresh. A mock interview for the role takes about fifteen minutes.', href: '/interview?mode=interview', cta: 'Practise for it' };
+  } else if (due > 0) {
+    step = { title: `${due} ${due === 1 ? 'flashcard is' : 'flashcards are'} due`, why: 'Cards come back when you are about to forget them. A few minutes now keeps the interval growing.', href: '/flashcards', cta: 'Review cards' };
+  } else if (daysSinceInterview === null || daysSinceInterview >= 7) {
+    step = { title: daysSinceInterview === null ? 'Do your first mock interview' : `No interview for ${daysSinceInterview} days`, why: 'Speaking out loud is the skill that fades fastest. One session also gives you a report to learn from.', href: '/interview?mode=interview', cta: 'Start one' };
+  } else {
+    step = { title: 'Solve one problem', why: 'You are up to date. A short coding or SQL problem keeps the edge, and the judge runs your code for real.', href: '/workspace', cta: 'Open the workspace' };
+  }
+
+  return (
+    <div className="mb-6 flex flex-col gap-3 rounded-panel border border-signal/25 bg-signal/5 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-5">
+      <div className="min-w-0">
+        <div className="text-xs font-medium text-signal">Do this next</div>
+        <div className="mt-0.5 text-base font-semibold text-fg">{step.title}</div>
+        <div className="mt-1 text-[13px] leading-snug text-fg-2">{step.why}</div>
+      </div>
+      <ButtonLink href={step.href} className="shrink-0">{step.cta}</ButtonLink>
+    </div>
+  );
+}
 
 /** Cards waiting for review. Renders nothing until there is something to say. */
 function FlashcardsDue() {
@@ -131,6 +180,8 @@ export default function DashboardPage() {
     return 'Good evening';
   })();
 
+  const newest = completedSessions.map(s => new Date(s.created_at).getTime()).filter(t => !isNaN(t)).sort((a, b) => b - a)[0];
+
   const firstName = user?.full_name?.split(' ')[0] ?? 'there';
   const targetRole = user?.target_role || 'Software Engineer';
   const targetCompany = user?.target_company || 'Top Tech';
@@ -155,6 +206,8 @@ export default function DashboardPage() {
       />
 
       <GeminiKeyBanner hasKey={user?.has_gemini_key ?? true} />
+
+      <NextAction lastInterviewAt={newest ?? null} />
 
       {/* Numbers first: plain, quiet, comparable */}
       <Card className="mb-6 grid grid-cols-2 gap-x-6 gap-y-6 p-5 sm:p-6 lg:grid-cols-4 lg:gap-y-0 lg:divide-x lg:divide-line">

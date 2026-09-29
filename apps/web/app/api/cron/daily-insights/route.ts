@@ -2,15 +2,15 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/lib/email';
 import { dailyInsightEmail } from '@/lib/email/messages';
+import { claimRun, cronSecretOk } from '@/lib/cron';
 import { getModel } from '@/lib/gemini';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
-  // Simple cron auth to prevent direct malicious hits if exposed
-  const authHeader = request.headers.get('authorization');
-  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    console.warn("Unauthorized cron hit");
+  // If CRON_SECRET is set it must be sent; either way the tip goes out at most once every 20 hours
+  if (!cronSecretOk(request)) {
+    console.warn('Unauthorized cron hit');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
@@ -19,6 +19,12 @@ export async function GET(request: Request) {
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   );
+
+  // a test send to one address is only allowed to a caller who proved they hold the secret
+  const testRequested = process.env.CRON_SECRET ? new URL(request.url).searchParams.get('test_email') : null;
+  if (!testRequested && !(await claimRun(supabase, 'daily-insights', 20))) {
+    return NextResponse.json({ skipped: true, reason: 'Already sent today.' });
+  }
 
   try {
     // 1. Generate the Daily AI Tip using a general system prompt
@@ -46,9 +52,8 @@ export async function GET(request: Request) {
     const resultText = jsonMatch ? jsonMatch[0] : rawText.trim();
     const insights = JSON.parse(resultText);
 
-    // 2. Fetch users who have not turned email off (the column exists after migration 005)
-    const { searchParams } = new URL(request.url);
-    const testEmail = searchParams.get('test_email');
+    // 2. Fetch users who have not turned email off (the column exists after migration 004)
+    const testEmail = testRequested;
 
     let users: { email: string; full_name: string | null }[] | null;
     if (testEmail) {

@@ -64,7 +64,11 @@ export function autoLayout(diagram: Diagram): Diagram {
       const ys = edges.filter(e => e.to === n.id && centerY.has(e.from)).map(e => centerY.get(e.from)!);
       return ys.length ? ys.reduce((a, b) => a + b, 0) / ys.length : Number.POSITIVE_INFINITY;
     };
-    const ordered = ci === 0 ? col : [...col].sort((a, b) => score(a) - score(b));
+    const byScore = ci === 0 ? col : [...col].sort((a, b) => score(a) - score(b));
+    // keep shapes of one group next to each other so their box stays tight
+    const groupOrder = new Map<string, number>();
+    byScore.forEach(n => n.group && !groupOrder.has(n.group) && groupOrder.set(n.group, groupOrder.size));
+    const ordered = [...byScore].sort((a, b) => (a.group ? groupOrder.get(a.group)! : -1) - (b.group ? groupOrder.get(b.group)! : -1));
     const colW = Math.max(...ordered.map(n => n.w));
     let y = 40;
     ordered.forEach(n => {
@@ -104,7 +108,7 @@ export function mergeIntoExisting(existing: Diagram, next: Diagram): Diagram {
 
   for (const n of laidOut.nodes) {
     const prev = old.get(n.id);
-    if (prev) placed.push({ ...prev, label: n.label, kind: n.kind });
+    if (prev) placed.push({ ...prev, label: n.label, kind: n.kind, group: n.group });
   }
   for (const n of laidOut.nodes.filter(n => !old.has(n.id))) {
     const neighbours = laidOut.edges

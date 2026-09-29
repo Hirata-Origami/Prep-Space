@@ -22,17 +22,31 @@ interface DiagramCanvasProps {
   readOnly?: boolean;
 }
 
-const KIND_COLOR: Record<NodeKind, string> = {
-  client: 'var(--accent-cyan)',
-  lb: 'var(--accent-violet)',
-  service: 'var(--accent-primary)',
-  db: 'var(--accent-green)',
-  cache: 'var(--accent-amber)',
-  queue: 'var(--accent-violet)',
-  storage: 'var(--accent-green)',
-  cdn: 'var(--accent-cyan)',
-  external: 'var(--text-muted)',
-  note: 'var(--accent-amber)',
+type Shape = 'rect' | 'cyl' | 'pill' | 'diamond' | 'hex' | 'ellipse' | 'dashed' | 'dotted' | 'note';
+
+/** How each kind of component is drawn: colour, outline and an optional one-glyph badge. */
+const STYLE: Record<NodeKind, { color: string; shape: Shape; glyph?: string }> = {
+  user: { color: 'var(--accent-cyan)', shape: 'ellipse' },
+  client: { color: 'var(--accent-cyan)', shape: 'rect' },
+  mobile: { color: 'var(--accent-cyan)', shape: 'rect', glyph: 'M' },
+  cdn: { color: 'var(--accent-cyan)', shape: 'pill' },
+  lb: { color: 'var(--accent-violet)', shape: 'diamond' },
+  api: { color: 'var(--accent-violet)', shape: 'hex' },
+  auth: { color: 'var(--accent-red)', shape: 'rect', glyph: 'ID' },
+  service: { color: 'var(--accent-primary)', shape: 'rect' },
+  worker: { color: 'var(--accent-primary)', shape: 'rect', glyph: 'W' },
+  function: { color: 'var(--accent-primary)', shape: 'rect', glyph: 'λ' },
+  db: { color: 'var(--accent-green)', shape: 'cyl' },
+  cache: { color: 'var(--accent-amber)', shape: 'dashed' },
+  search: { color: 'var(--accent-green)', shape: 'rect', glyph: 'Q' },
+  queue: { color: 'var(--accent-violet)', shape: 'pill' },
+  stream: { color: 'var(--accent-violet)', shape: 'pill', glyph: '»' },
+  storage: { color: 'var(--accent-green)', shape: 'rect', glyph: 'S3' },
+  ml: { color: 'var(--accent-amber)', shape: 'hex', glyph: 'ML' },
+  email: { color: 'var(--accent-cyan)', shape: 'rect', glyph: '@' },
+  monitor: { color: 'var(--text-muted)', shape: 'rect', glyph: '~' },
+  external: { color: 'var(--text-muted)', shape: 'dotted' },
+  note: { color: 'var(--accent-amber)', shape: 'note' },
 };
 
 const uid = (p: string) => `${p}${Math.random().toString(36).slice(2, 8)}`;
@@ -58,58 +72,58 @@ function edgeGeometry(e: DEdge, byId: Map<string, DNode>) {
 }
 
 function NodeShape({ n, selected, pending }: { n: DNode; selected: boolean; pending: boolean }) {
-  const color = KIND_COLOR[n.kind];
+  const { color, shape, glyph } = STYLE[n.kind];
   const stroke = selected || pending ? 'var(--accent-primary)' : color;
-  const common = { stroke, strokeWidth: selected || pending ? 2.5 : 1.5, fill: 'var(--bg-surface)' };
-  const fillTint = <rect x={0} y={0} width={n.w} height={n.h} rx={10} fill={color} opacity={0.1} />;
+  const sw = selected || pending ? 2.5 : 1.5;
+  const base = { stroke, strokeWidth: sw, fill: 'var(--bg-surface)' };
+  const tint = { fill: color, opacity: 0.1, stroke: 'none' as const };
+  const { w, h } = n;
 
-  let shape: React.ReactNode;
-  if (n.kind === 'db') {
+  let body: React.ReactNode;
+  if (shape === 'cyl') {
     const r = 9;
-    shape = (
+    const side = `M0 ${r} v${h - 2 * r} a${w / 2} ${r} 0 0 0 ${w} 0 v${-(h - 2 * r)}`;
+    body = (
       <>
-        <path d={`M0 ${r} v${n.h - 2 * r} a${n.w / 2} ${r} 0 0 0 ${n.w} 0 v${-(n.h - 2 * r)}`} {...common} />
-        <ellipse cx={n.w / 2} cy={r} rx={n.w / 2} ry={r} {...common} />
-        <path d={`M0 ${r} v${n.h - 2 * r} a${n.w / 2} ${r} 0 0 0 ${n.w} 0 v${-(n.h - 2 * r)}`} fill={color} opacity={0.1} stroke="none" />
+        <path d={side} {...base} />
+        <ellipse cx={w / 2} cy={r} rx={w / 2} ry={r} {...base} />
+        <path d={side} {...tint} />
       </>
     );
-  } else if (n.kind === 'queue') {
-    shape = (
+  } else if (shape === 'diamond') {
+    const p = `${w / 2},0 ${w},${h / 2} ${w / 2},${h} 0,${h / 2}`;
+    body = (
       <>
-        <rect width={n.w} height={n.h} rx={n.h / 2} {...common} />
-        <rect width={n.w} height={n.h} rx={n.h / 2} fill={color} opacity={0.1} />
-        {[0.3, 0.42, 0.54].map(f => <line key={f} x1={n.w * f} x2={n.w * f} y1={n.h * 0.28} y2={n.h * 0.72} stroke={color} opacity={0.45} />)}
+        <polygon points={p} {...base} />
+        <polygon points={p} {...tint} />
       </>
     );
-  } else if (n.kind === 'cache') {
-    shape = (
+  } else if (shape === 'hex') {
+    const i = Math.min(18, w * 0.14);
+    const p = `${i},0 ${w - i},0 ${w},${h / 2} ${w - i},${h} ${i},${h} 0,${h / 2}`;
+    body = (
       <>
-        <rect width={n.w} height={n.h} rx={10} {...common} strokeDasharray="6 4" />
-        {fillTint}
+        <polygon points={p} {...base} />
+        <polygon points={p} {...tint} />
       </>
     );
-  } else if (n.kind === 'lb') {
-    const p = `${n.w / 2},0 ${n.w},${n.h / 2} ${n.w / 2},${n.h} 0,${n.h / 2}`;
-    shape = (
+  } else if (shape === 'ellipse') {
+    body = (
       <>
-        <polygon points={p} {...common} />
-        <polygon points={p} fill={color} opacity={0.1} />
+        <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} {...base} />
+        <ellipse cx={w / 2} cy={h / 2} rx={w / 2} ry={h / 2} {...tint} />
       </>
     );
-  } else if (n.kind === 'note') {
-    shape = <rect width={n.w} height={n.h} rx={4} fill="var(--accent-amber-dim)" stroke={stroke} strokeDasharray="3 3" strokeWidth={selected ? 2.5 : 1} />;
-  } else if (n.kind === 'cdn' || n.kind === 'client') {
-    shape = (
-      <>
-        <rect width={n.w} height={n.h} rx={n.kind === 'client' ? 6 : n.h / 2} {...common} />
-        <rect width={n.w} height={n.h} rx={n.kind === 'client' ? 6 : n.h / 2} fill={color} opacity={0.1} />
-      </>
-    );
+  } else if (shape === 'note') {
+    body = <rect width={w} height={h} rx={4} fill="var(--accent-amber-dim)" stroke={stroke} strokeDasharray="3 3" strokeWidth={selected ? 2.5 : 1} />;
   } else {
-    shape = (
+    const rx = shape === 'pill' ? h / 2 : shape === 'rect' || shape === 'dashed' || shape === 'dotted' ? 10 : 10;
+    const dash = shape === 'dashed' ? '6 4' : shape === 'dotted' ? '2 4' : undefined;
+    body = (
       <>
-        <rect width={n.w} height={n.h} rx={10} {...common} strokeDasharray={n.kind === 'external' ? '2 4' : undefined} />
-        {fillTint}
+        <rect width={w} height={h} rx={rx} {...base} strokeDasharray={dash} />
+        <rect width={w} height={h} rx={rx} {...tint} />
+        {n.kind === 'queue' && [0.3, 0.42, 0.54].map(f => <line key={f} x1={w * f} x2={w * f} y1={h * 0.28} y2={h * 0.72} stroke={color} opacity={0.45} />)}
       </>
     );
   }
@@ -118,21 +132,22 @@ function NodeShape({ n, selected, pending }: { n: DNode; selected: boolean; pend
   const words = n.label.split(/\s+/);
   const lines: string[] = [];
   let cur = '';
-  const max = Math.max(8, Math.floor(n.w / 7.2));
-  for (const w of words) {
-    if ((cur + ' ' + w).trim().length > max && cur) {
+  const max = Math.max(8, Math.floor(w / 7.2));
+  for (const word of words) {
+    if ((cur + ' ' + word).trim().length > max && cur) {
       lines.push(cur);
-      cur = w;
-    } else cur = (cur + ' ' + w).trim();
+      cur = word;
+    } else cur = (cur + ' ' + word).trim();
   }
   if (cur) lines.push(cur);
   const shown = lines.slice(0, 3);
   const lh = 15;
   return (
     <g>
-      {shape}
-      <text x={n.w / 2} y={n.h / 2 - ((shown.length - 1) * lh) / 2} textAnchor="middle" dominantBaseline="central" fill="var(--text-primary)" fontSize={13} fontWeight={500} style={{ pointerEvents: 'none', userSelect: 'none' }}>
-        {shown.map((l, i) => <tspan key={i} x={n.w / 2} dy={i === 0 ? 0 : lh}>{l}</tspan>)}
+      {body}
+      {glyph && <text x={w - 8} y={13} textAnchor="end" fontSize={10} fontWeight={700} fill={color} style={{ pointerEvents: 'none', userSelect: 'none' }}>{glyph}</text>}
+      <text x={w / 2} y={h / 2 - ((shown.length - 1) * lh) / 2} textAnchor="middle" dominantBaseline="central" fill="var(--text-primary)" fontSize={13} fontWeight={500} style={{ pointerEvents: 'none', userSelect: 'none' }}>
+        {shown.map((l, i) => <tspan key={i} x={w / 2} dy={i === 0 ? 0 : lh}>{l}</tspan>)}
       </text>
     </g>
   );
@@ -402,6 +417,17 @@ export function DiagramCanvas({ diagram, onChange, readOnly = false }: DiagramCa
     return g ? { x: g.mid.x * view.k + view.x - 60, y: g.mid.y * view.k + view.y - 14, w: 120, h: 28 } : null;
   })();
 
+  // one dashed box per group name, drawn behind the shapes it contains
+  const groupBoxes = Array.from(new Set(diagram.nodes.map(n => n.group).filter((g): g is string => !!g))).map(name => {
+    const members = diagram.nodes.filter(n => n.group === name);
+    const x1 = Math.min(...members.map(n => n.x)) - 22;
+    const y1 = Math.min(...members.map(n => n.y)) - 34;
+    const x2 = Math.max(...members.map(n => n.x + n.w)) + 22;
+    const y2 = Math.max(...members.map(n => n.y + n.h)) + 20;
+    return { name, x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+  });
+  const selectedNode = selected?.type === 'node' ? byId.get(selected.id) : undefined;
+
   const empty = !diagram.nodes.length && !diagram.strokes.length && !draft;
 
   return (
@@ -423,6 +449,15 @@ export function DiagramCanvas({ diagram, onChange, readOnly = false }: DiagramCa
           <span className="mx-1 h-5 w-px bg-line" aria-hidden />
           <IconBtn label="Undo" onClick={undo} disabled={!canUndo}><Undo2 size={15} aria-hidden /></IconBtn>
           <IconBtn label="Tidy layout" onClick={() => commit(autoLayout(diagram))} disabled={!diagram.nodes.length}><LayoutTemplate size={15} aria-hidden /></IconBtn>
+          {selectedNode && (
+            <input
+              aria-label="Group this shape belongs to"
+              placeholder="Group, e.g. VPC"
+              value={selectedNode.group ?? ''}
+              onChange={e => onChange({ ...diagram, nodes: diagram.nodes.map(n => (n.id === selectedNode.id ? { ...n, group: e.target.value || undefined } : n)) })}
+              className="h-8 w-32 rounded-control border border-line-strong bg-canvas px-2 text-xs text-fg outline-none placeholder:text-fg-3 focus:border-signal"
+            />
+          )}
           <IconBtn label="Delete selected" onClick={removeSelected} disabled={!selected}><Trash2 size={15} aria-hidden /></IconBtn>
           <span className="ml-auto flex items-center gap-1">
             <IconBtn label="Zoom out" onClick={() => zoomBy(0.85)}><ZoomOut size={15} aria-hidden /></IconBtn>
@@ -460,6 +495,13 @@ export function DiagramCanvas({ diagram, onChange, readOnly = false }: DiagramCa
             </marker>
           </defs>
           <g data-scene transform={`translate(${view.x} ${view.y}) scale(${view.k})`}>
+            {groupBoxes.map(g => (
+              <g key={g.name} style={{ pointerEvents: 'none' }}>
+                <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={16} fill="var(--accent-primary)" opacity={0.04} />
+                <rect x={g.x} y={g.y} width={g.w} height={g.h} rx={16} fill="none" stroke="var(--text-muted)" strokeWidth={1.2} strokeDasharray="7 5" />
+                <text x={g.x + 14} y={g.y + 20} fontSize={12} fontWeight={600} fill="var(--text-secondary)">{g.name}</text>
+              </g>
+            ))}
             {diagram.strokes.map(s => {
               const on = selected?.type === 'stroke' && selected.id === s.id;
               const d = `M${s.points.map(p => p.join(' ')).join(' L')}`;

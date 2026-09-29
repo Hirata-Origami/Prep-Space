@@ -91,6 +91,7 @@ Topics to cover: ${track.topics.join(', ')}
 Create ONE high-quality problem statement suited for this track and difficulty.
 - For algorithms: Provide problem title, brief story/objective, 2 sample test cases with input and expected output, constraints, and starter code (function signature with type hints/comments).
 - For SQL: Provide problem title, table schema DDL (CREATE TABLE and sample INSERT statements), question prompt with expected output format, and starter query comment.
+- The workspace runs the code in the browser: JavaScript, TypeScript and Python run natively, and SQL runs on SQLite. So write SQL that SQLite accepts (date(), strftime, no INTERVAL, no ILIKE, no DATE_TRUNC), and end algorithm starter code with two or three example calls that print their results, so pressing Run shows something useful.
 
 Return ONLY this JSON structure:
 {

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { GoogleGenAI } from '@google/genai';
+import { decryptKey } from '@/lib/secret';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function GET() {
     .eq('supabase_uid', user.id)
     .single();
 
-  const apiKey = profile?.gemini_api_key?.trim();
+  const apiKey = decryptKey(profile?.gemini_api_key)?.trim();
 
   if (!apiKey || apiKey.includes('•') || /[^\x00-\x7F]/.test(apiKey) || apiKey.length < 10) {
     return NextResponse.json(

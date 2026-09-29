@@ -19,6 +19,8 @@ interface Body {
   diagram?: unknown;
   notes?: string;
   docId?: string;
+  /** Real output from running the code in the browser, when the user ran it. */
+  execution?: string;
   problemTitle?: string;
   track?: string;
   difficulty?: 'easy' | 'medium' | 'hard';
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
         const level = LEVEL_TAG.exec(docTitle)?.[1]?.toLowerCase() as 'easy' | 'medium' | 'hard' | undefined;
         const trackName = /Track:\s*(.+?)\s{2,}Difficulty:/.exec(docContent)?.[1];
         const problemContext = docContent.slice(0, 3000) || instruction || body.code?.slice(0, 500) || '';
-        const judgeResult = await runJudgeAction(model, language, body.code ?? '', problemContext);
+        const judgeResult = await runJudgeAction(model, language, body.code ?? '', problemContext, typeof body.execution === 'string' ? body.execution : undefined);
 
         // Try saving submission to coding_submissions and award XP
         if (profile?.id) {

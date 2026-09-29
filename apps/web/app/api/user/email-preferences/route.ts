@@ -32,7 +32,7 @@ export async function PUT(request: Request) {
   const { error } = await supabase.from('users').update({ email_updates: enabled }).eq('supabase_uid', user.id);
   if (error) {
     return isMissingColumn(error.message)
-      ? NextResponse.json({ error: 'Run supabase/migrations/005_email_preferences.sql first.' }, { status: 409 })
+      ? NextResponse.json({ error: 'Run supabase/migrations/004_practice_features.sql first.' }, { status: 409 })
       : NextResponse.json({ error: error.message }, { status: 500 });
   }
   return NextResponse.json({ enabled });

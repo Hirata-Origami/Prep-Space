@@ -11,6 +11,7 @@ PrepSpace is an AI interview preparation platform. You practise out loud with a 
 - **Performance report.** Scores for technical depth, communication, problem solving, conciseness and confidence, with question-by-question feedback, timestamped audio markers, words per minute and filler words.
 - **On-camera analysis.** The report also scores eye contact, posture, expression, framing and lighting, and focus, with notes tied to timestamps. See [How video analysis works](#how-video-analysis-works).
 - **Shared board.** Inside a live interview you can open a board, write code or sketch a diagram, and share it so the interviewer reacts to it.
+- **Do this next.** The dashboard suggests one action in a fixed order of urgency (an application step within five days, flashcards due, no interview for a week, then a practice problem) and says why.
 - **Roadmaps.** Paste a job description and get a study plan with modules and topics.
 - **Mock companies, groups and a leaderboard** for community practice.
 
@@ -18,7 +19,8 @@ PrepSpace is an AI interview preparation platform. You practise out loud with a 
 - **Talk to Alex.** A live voice and text session (Gemini Live, the same model as the interview) sits in a strip under the workspace, with the transcript and a message box. No camera.
 - **Alex draws and writes.** Ask for a diagram and Alex calls a drawing tool that puts it on the canvas; ask to change it ("add a cache before the database") and it edits the same diagram, keeping your layout. Ask for code or notes and Alex writes into the editor. Whatever you type or draw is sent back to Alex as context, so it always sees the current state.
 - **Code and SQL editor** with line numbers, syntax colours, auto-indent and bracket pairing for SQL, JavaScript, TypeScript, Python, Java, Go and C++, plus a notes mode.
-- **Diagram canvas:** shapes for clients, load balancers, services, databases, caches, queues, storage, CDNs and external APIs; labelled arrows; freehand pen; drag, pan, zoom, undo; SVG and PNG export. Code, diagram or both side by side, full width.
+- **Diagram canvas:** 21 kinds of component (users, web and mobile clients, CDN, load balancer, API gateway, auth, services, workers, serverless functions, databases, caches, search, queues, event streams, object storage, ML models, email or push, monitoring, external APIs, notes) drawn as distinct shapes, dashed group boxes for VPCs, regions and clusters, labelled arrows, freehand pen, drag, pan, zoom, undo, and SVG and PNG export. Code, diagram or both side by side, full width.
+- **Run your code.** JavaScript, TypeScript, Python and SQL run in your browser with a time limit: JS and TS in a worker, Python with Pyodide, SQL on SQLite (results as tables). Ctrl or Cmd + Enter runs. Alex can run the code too, and the judge uses your real output as evidence. Interpreters download from a CDN on first use, so nothing is added to the app.
 - **Coach menu** for one-shot answers you want to keep: judge a solution, review, explain, fix, optimise, write tests, solve, get a practice problem, critique a design, write it up as notes.
 - Documents autosave.
 
@@ -79,7 +81,7 @@ Each user brings their own Gemini API key, which they add during onboarding. No 
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | optional | Caching |
 | `SMTP_*` | optional | Report emails |
 | `NEXT_PUBLIC_SITE_URL` | yes | Links in emails |
-| `CRON_SECRET` | yes, for cron | Bearer secret that the daily insight and weekly digest endpoints require. Without it they refuse every request. |
+| `CRON_SECRET` | optional | If set, the daily tip and weekly digest endpoints require it as a bearer token, and a test send to one address becomes possible. If unset they still run, but only once per period, so nobody who finds the URL can make them send more than the schedule would. |
 | `GITHUB_TOKEN` | optional | A read-only token with no scopes, set on the server, that lifts GitHub's shared 60 requests per hour limit for public repository lookups. Users never enter a token. |
 
 ### Database
@@ -87,8 +89,7 @@ Each user brings their own Gemini API key, which they add during onboarding. No 
 Run these in the Supabase SQL editor, in order. Every script is safe to run more than once.
 
 1. `supabase/migrations/full_schema.sql`: the complete schema. For a fresh project this is all you need.
-2. `supabase/migrations/004_practice_features.sql`: for a project that already has the older base schema. It adds the application tracker, workspace documents, coding submissions, flashcards, STAR stories, offers and shared reports, and locks down `increment_xp` so only the server can award XP.
-3. `supabase/migrations/005_email_preferences.sql`: adds the email opt-out column. Until it runs, the cron jobs email everyone and the Settings switch shows a notice.
+2. `supabase/migrations/004_practice_features.sql`: for a project that already has the older base schema. It adds the application tracker, workspace documents, coding submissions, flashcards, STAR stories, offers and shared reports, and locks down `increment_xp` so only the server can award XP, adds the email opt-out column and a small table that keeps scheduled emails to once per period, and removes the unused GitHub token column. It is safe to run after any earlier script: it skips what exists and never touches your data.
 
 The GitHub feature reads public repositories only, so it needs no schema.
 
@@ -121,9 +122,13 @@ npm run lint
 npm run build
 ```
 
+## Verified
+
+- All five LaTeX templates were compiled with pdfLaTeX (TeX Live 2026) using a real resume. After "Fit to one page" every template produced exactly one page, and the preview's page-fill figure matched the PDF within about 2 percentage points (overflow beyond one page was under-reported by up to 6).
+- Gemini API keys are encrypted at rest (AES-256-GCM, key derived from `SUPABASE_SERVICE_ROLE_KEY`, or `APP_SECRET` if you set one). Keys saved earlier are encrypted the next time their owner loads the app. If that secret changes, users add their key again.
+
 ## Known limits
 
-- The workspace runs no code. The AI can predict output but says so.
-- The single-column LaTeX templates have not been compiled in CI; the two-column template is the original preamble.
-- Each user's Gemini key is stored in the `users` table without extra encryption.
+- Running code supports JavaScript, TypeScript, Python and SQL. SQL runs on SQLite, so Postgres-only syntax may fail. Go, Java and C++ are not runnable.
 - Video analysis is a coaching aid based on a handful of snapshots. It is not a measurement.
+- The ATS score is a strict heuristic, not a real applicant tracking system.

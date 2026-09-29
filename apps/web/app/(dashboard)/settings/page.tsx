@@ -327,7 +327,7 @@ function EmailPreference() {
         </div>
         <Switch checked={state?.enabled ?? true} disabled={!state || !state.available || busy} onCheckedChange={toggle} aria-label="Weekly summary and daily tip" />
       </div>
-      {state && !state.available && <p className="text-[13px] text-fg-3">This needs a database update. Run <code className="font-mono text-fg-2">supabase/migrations/005_email_preferences.sql</code>.</p>}
+      {state && !state.available && <p className="text-[13px] text-fg-3">This needs a database update. Run <code className="font-mono text-fg-2">supabase/migrations/004_practice_features.sql</code>.</p>}
     </div>
   );
 }

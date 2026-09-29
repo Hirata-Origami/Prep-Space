@@ -63,7 +63,7 @@ export function JudgeView({ judge }: { judge: JudgeVerdict }) {
       {judge.feedback && <div className="border-t border-line pt-2.5"><Markdownish text={judge.feedback} /></div>}
 
       <p className="border-t border-line pt-2.5 text-[11px] leading-snug text-fg-3">
-        The AI reads your code and predicts how it behaves. Nothing was executed, so run it yourself before you rely on the result.
+        {judge.usedExecution ? 'Checked against the real output from your last run.' : 'The AI reads your code and predicts how it behaves. Nothing was executed, so run it yourself before you rely on the result.'}
       </p>
     </div>
   );

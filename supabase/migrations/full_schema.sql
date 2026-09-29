@@ -535,6 +535,12 @@ INSERT INTO gemini_quota_tracker (model, requests_today, daily_limit) VALUES
   ('gemini-3.1-flash-lite-preview',       0, 1500)
 ON CONFLICT (model) DO NOTHING;
 
+CREATE TABLE IF NOT EXISTS cron_runs (
+  job     VARCHAR(60) PRIMARY KEY,
+  ran_at  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+ALTER TABLE cron_runs ENABLE ROW LEVEL SECURITY;
+
 SELECT cron.schedule('reset-gemini-quotas', '0 8 * * *', $$UPDATE gemini_quota_tracker SET requests_today = 0, last_reset_at = now()$$);
 SELECT cron.schedule('keep-alive-ping', '0 0 */6 * *', $$SELECT 1$$);
 SELECT cron.schedule('daily-insights', '0 7 * * *', $$SELECT net.http_get(url := current_setting('app.site_url') || '/api/cron/daily-insights', headers := jsonb_build_object('Authorization', 'Bearer ' || current_setting('app.cron_secret')))$$);
