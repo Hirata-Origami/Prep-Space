@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel, withRetry } from '@/lib/gemini';
+import { analyzeVideo } from '@/lib/interview/videoAnalysis';
+import type { VideoFrame } from '@/lib/interview/video';
 
 export const dynamic = 'force-dynamic';
 
@@ -54,6 +56,7 @@ export async function POST(request: Request) {
 
   const body = await request.json();
   const { session_id, transcript, role, interview_type, audio_url, session_time, tab_switches, cheating_flags } = body;
+  const videoFrames: VideoFrame[] = Array.isArray(body.video_frames) ? body.video_frames.slice(0, 12) : [];
 
   if (!session_id || !transcript) {
     return NextResponse.json({ error: 'session_id and transcript are required' }, { status: 400 });
@@ -84,14 +87,19 @@ export async function POST(request: Request) {
   const prompt = `Role: ${role || 'General'}\nInterview Type: ${interview_type || 'General'}${pacingContext}\n\n--- TRANSCRIPT ---\n${transcript}\n--- END TRANSCRIPT ---\n\nGenerate a detailed evaluation report.`;
 
   try {
-    const result = await withRetry(() => model.generateContent([
-      { text: REPORT_PROMPT },
-      { text: prompt },
-    ]));
+    const [result, video] = await Promise.all([
+      withRetry(() => model.generateContent([
+        { text: REPORT_PROMPT },
+        { text: prompt },
+      ])),
+      // the camera part is optional: a failure here must never lose the report
+      videoFrames.length >= 2 ? analyzeVideo(model, videoFrames).catch(() => null) : Promise.resolve(null),
+    ]);
 
     const text = result.response.text();
     const jsonStr = text.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
     const reportData = JSON.parse(jsonStr);
+    if (video) reportData.video = video;
 
     // Fetch integer ID for foreign keys
     const { data: dbUser } = await supabase

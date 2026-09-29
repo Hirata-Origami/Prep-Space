@@ -12,6 +12,7 @@ const PROTECTED_PREFIXES = [
   '/leaderboard',
   '/settings',
   '/applications',
+  '/workspace',
 ];
 
 export async function proxy(request: NextRequest) {

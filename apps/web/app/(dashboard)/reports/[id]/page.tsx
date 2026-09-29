@@ -8,6 +8,14 @@ import { ArrowLeft, Download, MessageCircle, Send, X } from 'lucide-react';
 import { Badge, Button, ButtonLink, Card, EmptyState, Input, PageHeader, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
+interface VideoAnalysis {
+  scores: Record<string, number>;
+  summary?: string;
+  observations?: { time: string; type: 'good' | 'improve'; note: string }[];
+  tips?: string[];
+  frames_analyzed?: number;
+  face_visible_pct?: number;
+}
 interface AudioMarker { type?: string; annotation?: string; start_time: string }
 interface SampleAnswer { question?: string; score?: number; user_answer?: string; ideal_answer?: string }
 interface ReportAnalysis {
@@ -19,6 +27,7 @@ interface ReportAnalysis {
   audio_url?: string;
   audio_markers?: AudioMarker[];
   metrics?: { wpm?: number; filler_words_count?: number } | null;
+  video?: VideoAnalysis;
 }
 interface Report {
   overall_score?: number;
@@ -252,6 +261,42 @@ export default function ReportDetailPage() {
                     })}
                   </ul>
                 )}
+              </Card>
+            </section>
+          )}
+
+          {analysis.video && (
+            <section aria-labelledby="oncamera">
+              <h2 id="oncamera" className="mb-3 text-lg font-semibold text-fg">On camera</h2>
+              <Card className="print-card space-y-5">
+                {analysis.video.summary && <p className="text-[15px] leading-relaxed text-fg-2">{analysis.video.summary}</p>}
+                <dl className="grid grid-cols-2 gap-3 sm:grid-cols-5">
+                  {Object.entries(analysis.video.scores).map(([key, val]) => (
+                    <div key={key} className="rounded-control bg-raised p-3 text-center">
+                      <dd className={cn('font-mono text-xl font-semibold', scoreTone(val))}>{val}%</dd>
+                      <dt className="mt-0.5 text-xs capitalize text-fg-3">{key.replace(/_/g, ' ')}</dt>
+                    </div>
+                  ))}
+                </dl>
+                {(analysis.video.observations?.length ?? 0) > 0 && (
+                  <ul className="space-y-2">
+                    {analysis.video.observations!.map((o, i) => (
+                      <li key={i} className="flex gap-3 text-[13px] leading-snug text-fg-2">
+                        <Badge tone={o.type === 'good' ? 'good' : 'live'} className="shrink-0">{o.time}</Badge>
+                        <span>{o.note}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {(analysis.video.tips?.length ?? 0) > 0 && (
+                  <div className="rounded-control border border-signal/20 bg-signal/5 p-4">
+                    <div className="mb-1.5 text-xs font-medium text-signal">Try next time</div>
+                    <ul className="list-disc space-y-1 pl-4 text-[13px] text-fg-2">{analysis.video.tips!.map((t, i) => <li key={i}>{t}</li>)}</ul>
+                  </div>
+                )}
+                <p className="text-xs text-fg-3">
+                  Based on {analysis.video.frames_analyzed} snapshots{typeof analysis.video.face_visible_pct === 'number' ? `, face in frame ${analysis.video.face_visible_pct}% of the time` : ''}. Snapshots are analysed once and not stored.
+                </p>
               </Card>
             </section>
           )}

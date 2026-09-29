@@ -1,19 +1,11 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
-import { CheckCircle2, ChevronDown, GitFork, Github, KeyRound, Loader2, Lock, Plus, RefreshCw, Star, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, ChevronDown, GitFork, Github, Loader2, Plus, Lock, RefreshCw, Star, Trash2, XCircle } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, Field, Input } from '@/components/ui';
 import { parseGithubUsername, type GithubIndex, type IndexProgress, type RepoProfile, type RepoSummary } from '@/lib/github/types';
 import { cn } from '@/lib/cn';
-
-interface TokenStatus {
-  connected: boolean;
-  login?: string;
-  scopes?: string[];
-  canStore?: boolean;
-  expired?: boolean;
-}
 
 interface GithubPanelProps {
   /** The profile's GitHub URL or handle, used to prefill the username. */
@@ -39,13 +31,8 @@ function timeAgo(iso?: string | null) {
 
 export function GithubPanel({ profileGithub, index, isOnResume, onChange, onIndexed, onAddProject }: GithubPanelProps) {
   const [username, setUsername] = useState(index?.username || parseGithubUsername(profileGithub));
-  const [token, setToken] = useState('');
-  const [remember, setRemember] = useState(true);
-  const [status, setStatus] = useState<TokenStatus | null>(null);
-  const [verifying, setVerifying] = useState(false);
 
   const [repos, setRepos] = useState<RepoSummary[] | null>(null);
-  const [includesPrivate, setIncludesPrivate] = useState(false);
   const [loadingRepos, setLoadingRepos] = useState(false);
   const [showForks, setShowForks] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -59,50 +46,7 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
     indexRef.current = index;
   }, [index]);
 
-  const refreshStatus = useCallback(async () => {
-    try {
-      const res = await fetch('/api/github/token');
-      if (res.ok) setStatus(await res.json());
-    } catch {
-      /* status is optional */
-    }
-  }, []);
-
-  useEffect(() => {
-    refreshStatus();
-  }, [refreshStatus]);
-
   const indexed = useMemo(() => new Map((index?.projects ?? []).map(p => [p.fullName, p])), [index]);
-
-  const connect = async () => {
-    if (!token.trim()) return;
-    setVerifying(true);
-    try {
-      const res = await fetch('/api/github/token', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, remember }),
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error);
-      setStatus({ connected: true, login: json.login, scopes: json.scopes, canStore: json.canStore });
-      if (json.note) toast.warning(json.note);
-      else toast.success(json.stored ? `Connected as @${json.login}. Token saved encrypted.` : `Connected as @${json.login}`);
-      if (json.stored) setToken('');
-      if (!username) setUsername(json.login);
-    } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Could not verify the token');
-    } finally {
-      setVerifying(false);
-    }
-  };
-
-  const disconnect = async () => {
-    await fetch('/api/github/token', { method: 'DELETE' });
-    setToken('');
-    setStatus(s => ({ ...(s ?? { connected: false }), connected: false, login: undefined }));
-    toast.success('Token removed');
-  };
 
   const findRepos = async () => {
     const user = parseGithubUsername(username);
@@ -115,19 +59,15 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
       const res = await fetch('/api/github/repos', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: user, token: token || undefined }),
+        body: JSON.stringify({ username: user }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
       const list = json.repos as RepoSummary[];
       setRepos(list);
-      setIncludesPrivate(json.includesPrivate);
       setUsername(json.username);
       // preselect the newest own, non-fork, non-archived repos that are not indexed yet
       setSelected(new Set(list.filter(r => !r.fork && !r.archived && !indexed.has(r.fullName)).slice(0, 12).map(r => r.fullName)));
-      if (!json.includesPrivate && (token || status?.connected)) {
-        toast.info('The token belongs to a different account, so only public repositories are shown.');
-      }
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Could not list repositories');
     } finally {
@@ -150,7 +90,7 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
           const res = await fetch('/api/github/index', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ repo: name, token: token || undefined }),
+            body: JSON.stringify({ repo: name }),
           });
           const json = await res.json();
           if (!res.ok) throw new Error(json.error);
@@ -205,49 +145,9 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
           </Button>
         </div>
 
-        {/* token */}
-        <div className="rounded-panel border border-line bg-raised p-4">
-          <div className="mb-1 flex items-center gap-2 text-sm font-medium text-fg">
-            <KeyRound size={15} className="text-fg-3" aria-hidden /> Private repositories (optional)
-            {status?.connected && <Badge tone="good">Connected as @{status.login}</Badge>}
-            {status?.expired && <Badge tone="bad">Token expired</Badge>}
-          </div>
-          <p className="mb-3 text-xs leading-relaxed text-fg-3">
-            Add a GitHub token to include private repositories and lift the rate limit. Create a classic token with the <code className="font-mono text-fg-2">repo</code> scope, or a fine-grained token with read access to Contents and Metadata.
-          </p>
-          {status?.connected ? (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[13px] text-fg-2">A token is saved for this account and is never shown again.</span>
-              <Button size="sm" variant="ghost" onClick={disconnect}><Trash2 size={13} aria-hidden /> Remove token</Button>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              <div className="flex flex-wrap gap-2">
-                <Input
-                  type="password"
-                  aria-label="GitHub token"
-                  autoComplete="off"
-                  placeholder="ghp_… or github_pat_…"
-                  value={token}
-                  onChange={e => setToken(e.target.value)}
-                  className="min-w-[220px] flex-1"
-                />
-                <Button variant="secondary" onClick={connect} loading={verifying} disabled={!token.trim()}>Verify token</Button>
-              </div>
-              <label className={cn('flex items-center gap-2 text-xs', status?.canStore === false ? 'text-fg-3' : 'text-fg-2')}>
-                <input type="checkbox" checked={remember && status?.canStore !== false} disabled={status?.canStore === false} onChange={e => setRemember(e.target.checked)} className="h-3.5 w-3.5 accent-[var(--accent-primary)]" />
-                {status?.canStore === false
-                  ? 'Saving is off on this server (no APP_ENCRYPTION_KEY). The token is used for this visit only.'
-                  : 'Remember it, encrypted (AES-256). Otherwise it is used for this visit only.'}
-              </label>
-            </div>
-          )}
-        </div>
-
         <p className="flex items-start gap-2 text-xs leading-relaxed text-fg-3">
           <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
-          Public repositories are also looked up on DeepWiki for a deeper architecture read. Private repositories are never sent to DeepWiki: they are read directly from GitHub with your token (README, structure, dependency files) and analysed with your Gemini key.
-        </p>
+          Only public repositories are read. Each one is also looked up on DeepWiki for a deeper architecture read, then summarised with your Gemini key.</p>
       </Card>
 
       {/* repo picker */}
@@ -255,7 +155,7 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
         <Card padded={false} className="overflow-hidden">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line px-5 py-3">
             <div>
-              <div className="text-sm font-semibold text-fg">{visible.length} repositories{includesPrivate && ' (including private)'}</div>
+              <div className="text-sm font-semibold text-fg">{visible.length} repositories</div>
               <div className="text-xs text-fg-3">{selected.size} selected</div>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -293,7 +193,6 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="truncate text-sm font-medium text-fg">{r.name}</span>
-                      {r.private && <Badge tone="live"><Lock size={10} aria-hidden /> Private</Badge>}
                       {r.fork && <Badge>Fork</Badge>}
                       {done && <Badge tone="good">Indexed</Badge>}
                     </div>
@@ -352,7 +251,6 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <span className="text-sm font-semibold text-fg">{p.name}</span>
-                          {p.private && <Badge tone="live"><Lock size={10} aria-hidden /> Private</Badge>}
                           {onResume && <Badge tone="signal">On resume</Badge>}
                           <Badge>{complexityLabel[p.complexity]}</Badge>
                           <Badge tone={p.source === 'deepwiki+github' ? 'violet' : 'neutral'}>{p.source === 'deepwiki+github' ? 'DeepWiki + code' : 'Code analysis'}</Badge>

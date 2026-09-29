@@ -8,6 +8,7 @@ import {
   FileUser,
   Trophy,
   Send,
+  PenTool,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -48,6 +49,7 @@ export const NAV_GROUPS: NavGroup[] = [
     label: 'Career tools',
     items: [
       { icon: FileUser, label: 'Resume Builder', href: '/resume' },
+      { icon: PenTool, label: 'Workspace', href: '/workspace' },
       { icon: Send, label: 'Applications', href: '/applications' },
       { icon: Trophy, label: 'Leaderboard', href: '/leaderboard' },
     ],

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
 import { useTheme } from 'next-themes';
-import { CornerDownLeft, FilePlus, Github, LogOut, Map, Mic, Moon, Search, Sun, type LucideIcon } from 'lucide-react';
+import { CornerDownLeft, FilePlus, Github, Network, LogOut, Map, Mic, Moon, Search, Sun, type LucideIcon } from 'lucide-react';
 import { NAV_GROUPS } from './nav';
 import { cn } from '@/lib/cn';
 
@@ -39,6 +39,7 @@ export function CommandPalette({ open, onOpenChange, onSignOut }: CommandPalette
       { id: 'act-interview', label: 'Start a mock interview', hint: 'Action', icon: Mic, run: go('/interview'), keywords: 'practice voice alex' },
       { id: 'act-roadmap', label: 'Create a roadmap', hint: 'Action', icon: Map, run: go('/roadmap/new'), keywords: 'study plan jd' },
       { id: 'act-tailor', label: 'Tailor my resume to a job', hint: 'Action', icon: FilePlus, run: go('/resume'), keywords: 'jd cover letter ats' },
+      { id: 'act-design', label: 'Sketch a system design', hint: 'Action', icon: Network, run: go('/workspace'), keywords: 'diagram architecture draw code sql whiteboard' },
       { id: 'act-github', label: 'Index my GitHub projects', hint: 'Action', icon: Github, run: go('/resume'), keywords: 'repos private token' },
       { id: 'act-theme', label: resolvedTheme === 'light' ? 'Switch to dark theme' : 'Switch to light theme', hint: 'Action', icon: resolvedTheme === 'light' ? Moon : Sun, run: () => setTheme(resolvedTheme === 'light' ? 'dark' : 'light') },
       { id: 'act-signout', label: 'Sign out', hint: 'Action', icon: LogOut, run: onSignOut },

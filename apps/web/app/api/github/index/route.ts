@@ -2,23 +2,22 @@ import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { getModel } from '@/lib/gemini';
 import { GithubError } from '@/lib/github/api';
-import { resolveGithubToken } from '@/lib/github/auth';
 import { indexRepo } from '@/lib/github/indexer';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 /**
- * POST { repo: "owner/name", token? } -> a grounded RepoProfile.
+ * POST { repo: "owner/name" } -> a grounded RepoProfile.
  * One repository per call so the client can show progress and stay inside function time limits.
- * Public repos are enriched with DeepWiki; private repos never leave GitHub and Gemini.
+ * Only public repositories are supported; they are enriched with DeepWiki.
  */
 export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const body = (await request.json()) as { repo?: string; token?: string };
+  const body = (await request.json()) as { repo?: string };
   const repo = body.repo?.trim();
   if (!repo || !/^[\w.-]+\/[\w.-]+$/.test(repo)) {
     return NextResponse.json({ error: 'Send the repository as owner/name.' }, { status: 400 });
@@ -33,8 +32,7 @@ export async function POST(request: Request) {
   }
 
   try {
-    const token = await resolveGithubToken(supabase, user.id, body.token);
-    const profile = await indexRepo(repo, token, model);
+    const profile = await indexRepo(repo, model);
     return NextResponse.json({ profile });
   } catch (e) {
     const status = e instanceof GithubError ? e.status : 500;

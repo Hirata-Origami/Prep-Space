@@ -41,7 +41,7 @@ function promptFor(facts: RepoFacts, wiki: string | null): string {
   return `You are documenting a software project so it can be described accurately on a resume and matched to job descriptions.
 Use ONLY the material below. Never invent features, metrics, users, or technologies. If something is not stated, leave it out.
 
-REPOSITORY: ${s.fullName}${s.private ? ' (private)' : ''}
+REPOSITORY: ${s.fullName}
 Description: ${s.description ?? 'none'}
 Topics: ${s.topics.join(', ') || 'none'}
 Languages: ${langs || 'unknown'}
@@ -54,7 +54,7 @@ ${facts.readme || '(no README)'}
 MANIFESTS
 ${Object.entries(facts.manifests).map(([k, v]) => `--- ${k}\n${v}`).join('\n') || '(none)'}
 
-${wiki ? `DEEPWIKI ANALYSIS (public repo)\n${wiki.slice(0, 9000)}` : ''}
+${wiki ? `DEEPWIKI ANALYSIS\n${wiki.slice(0, 9000)}` : ''}
 
 Return ONLY this JSON:
 {
@@ -69,9 +69,9 @@ Return ONLY this JSON:
 }
 
 /** Builds a grounded RepoProfile for one repository. */
-export async function indexRepo(fullName: string, token: string | null, model: GenerativeModel): Promise<RepoProfile> {
-  const facts = await getRepoFacts(fullName, token);
-  const wiki = facts.summary.private ? null : await askDeepWiki(fullName, DEEPWIKI_QUESTION);
+export async function indexRepo(fullName: string, model: GenerativeModel): Promise<RepoProfile> {
+  const facts = await getRepoFacts(fullName);
+  const wiki = await askDeepWiki(fullName, DEEPWIKI_QUESTION);
 
   const result = await withRetry(() => model.generateContent([{ text: promptFor(facts, wiki) }]));
   const parsed = parseJsonReply<ModelProfile>(result.response.text());

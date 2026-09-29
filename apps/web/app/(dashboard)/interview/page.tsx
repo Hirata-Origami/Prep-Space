@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect, useCallback, Suspense } from 'react';
+import { FrameSampler, thinFrames, type VideoFrame } from '@/lib/interview/video';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import useSWR from 'swr';
@@ -8,6 +9,7 @@ import { GoogleGenAI, Modality, type LiveConnectConfig } from '@google/genai';
 import { useSearchParams } from 'next/navigation';
 import { useUser } from '@/lib/hooks/useUser';
 import { AudioOrb } from '@/components/interview/AudioOrb';
+import { SharedBoard } from '@/components/interview/SharedBoard';
 import {
   Mic,
   MicOff,
@@ -21,6 +23,7 @@ import {
   RotateCcw,
   CheckCircle2,
   FileText,
+  PenTool,
 } from 'lucide-react';
 import { Badge, Button, ButtonLink, Card, EmptyState, Field, Input, PageHeader, SectionHeader, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -178,6 +181,7 @@ function InterviewStudioContent() {
   const [transcript, setTranscript] = useState<TranscriptEntry[]>([]);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+  const [boardOpen, setBoardOpen] = useState(false);
   const [sessionTime, setSessionTime] = useState(0);
   const [alexStatus, setAlexStatus] = useState<'thinking' | 'speaking' | 'listening'>('listening');
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -205,6 +209,8 @@ function InterviewStudioContent() {
   const isMutedRef = useRef(false);
   const isCameraOffRef = useRef(false);
   const videoIntervalRef = useRef<ReturnType<typeof setInterval>>(undefined);
+  const videoFramesRef = useRef<VideoFrame[]>([]);
+  const sessionStartRef = useRef(0);
   const pastTranscriptCountRef = useRef<number>(0);
   const sessionIdRef = useRef<string | null>(null);
 
@@ -738,6 +744,8 @@ function InterviewStudioContent() {
       await connectToGemini(apiKey, instructions, pastEntries);
 
       setSessionStartTime(Date.now());
+      sessionStartRef.current = Date.now();
+      videoFramesRef.current = [];
       setSessionState('live');
       setAlexStatus('thinking');
       mutateSessions();
@@ -772,11 +780,23 @@ function InterviewStudioContent() {
 
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
+    const sampler = new FrameSampler();
+    let tick = 0;
 
     videoIntervalRef.current = setInterval(() => {
       if (!sessionRef.current || isCameraOffRef.current) return;
       const videoEl = videoRef.current;
       if (!videoEl || videoEl.readyState < 2 || videoEl.paused || videoEl.ended) return;
+
+      // keep a snapshot every 10 seconds for the on-camera part of the report
+      if (tick++ % 10 === 0) {
+        const started = sessionStartRef.current || Date.now();
+        sampler.sample(videoEl, (Date.now() - started) / 1000).then(f => {
+          if (!f) return;
+          videoFramesRef.current.push(f);
+          if (videoFramesRef.current.length > 60) videoFramesRef.current = thinFrames(videoFramesRef.current, 30);
+        }).catch(() => { /* a missed sample is fine */ });
+      }
 
       const vw = videoEl.videoWidth;
       const vh = videoEl.videoHeight;
@@ -825,6 +845,17 @@ function InterviewStudioContent() {
       }
     };
   }, [sessionState]);
+
+  // Sends the shared board to the interviewer as a normal turn
+  const shareBoard = (text: string) => {
+    if (!sessionRef.current) {
+      toast.error('The session is not connected.');
+      return;
+    }
+    sessionRef.current.sendClientContent({ turns: [{ role: 'user', parts: [{ text }] }], turnComplete: true });
+    setTranscript(prev => [...prev, { role: 'user', text: '(Shared their code or diagram on the board)', ts: Date.now() }]);
+    toast.success('Shared with Alex');
+  };
 
   // END session
   const endSession = useCallback(async () => {
@@ -895,6 +926,7 @@ function InterviewStudioContent() {
             role: targetRole,
             interview_type: 'general',
             session_time: sessionTime,
+            video_frames: thinFrames(videoFramesRef.current).map(({ t, data, luma, motion, face }) => ({ t, data, luma, motion, face })),
           }),
         });
         if (res.ok) {
@@ -944,6 +976,7 @@ function InterviewStudioContent() {
     const live = sessionState === 'live';
     return (
       <div className="flex min-h-full flex-col bg-canvas text-fg lg:h-dvh">
+        <SharedBoard open={boardOpen} onOpenChange={setBoardOpen} onShare={shareBoard} />
         {/* Top bar */}
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line bg-panel px-4 py-2.5 sm:px-6">
           <div className="flex min-w-0 items-center gap-2.5">
@@ -988,6 +1021,10 @@ function InterviewStudioContent() {
               }}
             >
               {isCameraOff ? <VideoOff size={16} /> : <Video size={16} />}
+            </Button>
+
+            <Button variant="secondary" size="icon" aria-label="Open shared board" onClick={() => setBoardOpen(true)}>
+              <PenTool size={16} />
             </Button>
 
             <Button variant="primary" onClick={endSession} className="bg-bad text-[var(--text-on-accent)] hover:bg-bad/90">

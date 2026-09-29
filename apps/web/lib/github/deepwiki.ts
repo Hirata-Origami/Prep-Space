@@ -1,7 +1,6 @@
 /**
  * DeepWiki MCP client (https://mcp.deepwiki.com/mcp).
- * DeepWiki only knows public repositories, so private repos must never be sent here:
- * callers check `repo.private` first. The server is stateless, so no handshake is needed.
+ * DeepWiki only knows public repositories, which is all PrepSpace reads. The server is stateless, so no handshake is needed.
  */
 
 const ENDPOINT = 'https://mcp.deepwiki.com/mcp';

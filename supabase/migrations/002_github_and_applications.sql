@@ -1,10 +1,7 @@
 -- ============================================================
--- 002 — GitHub token storage and the application tracker
+-- 002 — Application tracker (the GitHub feature reads public repos only, so it needs no schema)
 -- Run in the Supabase SQL editor. Safe to run more than once.
 -- ============================================================
-
--- Encrypted GitHub token (AES-256-GCM, key in APP_ENCRYPTION_KEY). Never readable in plaintext.
-ALTER TABLE users ADD COLUMN IF NOT EXISTS github_token_enc TEXT;
 
 CREATE TABLE IF NOT EXISTS applications (
   id                 UUID PRIMARY KEY DEFAULT gen_random_uuid(),

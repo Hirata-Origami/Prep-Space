@@ -1,10 +1,11 @@
 import type { RepoSummary } from './types';
 
-/** Server-side GitHub REST helpers. The token is only ever sent to api.github.com. */
+/** Server-side GitHub REST helpers. Public data only. An optional server-side GITHUB_TOKEN (read-only, no scopes) lifts the shared rate limit. */
 
 const API = 'https://api.github.com';
 
-function headers(token?: string | null, raw = false): HeadersInit {
+function headers(raw = false): HeadersInit {
+  const token = process.env.GITHUB_TOKEN;
   return {
     Accept: raw ? 'application/vnd.github.raw+json' : 'application/vnd.github+json',
     'X-GitHub-Api-Version': '2022-11-28',
@@ -19,25 +20,24 @@ export class GithubError extends Error {
   }
 }
 
-async function gh<T>(path: string, token?: string | null): Promise<T> {
-  const res = await fetch(`${API}${path}`, { headers: headers(token), cache: 'no-store' });
-  if (res.status === 401) throw new GithubError('GitHub rejected the token. It may be expired or revoked.', 401);
-  if (res.status === 403 || res.status === 429) {
+async function gh<T>(path: string): Promise<T> {
+  const res = await fetch(`${API}${path}`, { headers: headers(), cache: 'no-store' });
+    if (res.status === 403 || res.status === 429) {
     const remaining = res.headers.get('x-ratelimit-remaining');
     throw new GithubError(
       remaining === '0'
-        ? 'GitHub rate limit reached. Add a token for a much higher limit, or try again in an hour.'
-        : 'GitHub refused the request. The token may lack access to this repository.',
+        ? 'GitHub rate limit reached. Try again in a few minutes.'
+        : 'GitHub refused the request.',
       res.status
     );
   }
-  if (res.status === 404) throw new GithubError('Not found. Check the username, or add a token if the repository is private.', 404);
+  if (res.status === 404) throw new GithubError('Not found. Check the username. Only public repositories can be read.', 404);
   if (!res.ok) throw new GithubError(`GitHub returned ${res.status}`, res.status);
   return res.json() as Promise<T>;
 }
 
-async function ghText(path: string, token?: string | null): Promise<string | null> {
-  const res = await fetch(`${API}${path}`, { headers: headers(token, true), cache: 'no-store' });
+async function ghText(path: string): Promise<string | null> {
+  const res = await fetch(`${API}${path}`, { headers: headers(true), cache: 'no-store' });
   if (!res.ok) return null;
   return res.text();
 }
@@ -75,43 +75,15 @@ const toSummary = (r: ApiRepo): RepoSummary => ({
   topics: r.topics ?? [],
 });
 
-export interface TokenInfo {
-  login: string;
-  scopes: string[];
-}
-
-/** Confirms a token works and who it belongs to. */
-export async function verifyToken(token: string): Promise<TokenInfo> {
-  const res = await fetch(`${API}/user`, { headers: headers(token), cache: 'no-store' });
-  if (res.status === 401) throw new GithubError('GitHub rejected this token.', 401);
-  if (!res.ok) throw new GithubError(`GitHub returned ${res.status}`, res.status);
-  const body = (await res.json()) as { login: string };
-  const scopes = (res.headers.get('x-oauth-scopes') ?? '').split(',').map(s => s.trim()).filter(Boolean);
-  return { login: body.login, scopes };
-}
-
-/**
- * Lists repositories. With a token that belongs to `username`, private repos are included;
- * otherwise only public ones are visible.
- */
-export async function listRepos(username: string, token?: string | null): Promise<{ repos: RepoSummary[]; includesPrivate: boolean }> {
-  let ownToken = false;
-  if (token) {
-    const me = await verifyToken(token);
-    ownToken = me.login.toLowerCase() === username.toLowerCase();
-  }
-
+/** Lists a user's public repositories, newest push first. */
+export async function listRepos(username: string): Promise<{ repos: RepoSummary[] }> {
   const collected: ApiRepo[] = [];
   for (let page = 1; page <= 5; page++) {
-    const path = ownToken
-      ? `/user/repos?affiliation=owner&sort=pushed&per_page=100&page=${page}`
-      : `/users/${encodeURIComponent(username)}/repos?type=owner&sort=pushed&per_page=100&page=${page}`;
-    const batch = await gh<ApiRepo[]>(path, token);
+    const batch = await gh<ApiRepo[]>(`/users/${encodeURIComponent(username)}/repos?type=owner&sort=pushed&per_page=100&page=${page}`);
     collected.push(...batch);
     if (batch.length < 100) break;
   }
-
-  return { repos: collected.filter(r => r.owner.login.toLowerCase() === username.toLowerCase()).map(toSummary), includesPrivate: ownToken };
+  return { repos: collected.filter(r => !r.private && r.owner.login.toLowerCase() === username.toLowerCase()).map(toSummary) };
 }
 
 const MANIFESTS = [
@@ -132,23 +104,23 @@ export interface RepoFacts {
 const clip = (s: string | null, n: number) => (s ? s.slice(0, n) : '');
 
 /** Collects the facts the model may reason about: README, structure, manifests, languages, activity. */
-export async function getRepoFacts(fullName: string, token?: string | null): Promise<RepoFacts> {
-  const repo = await gh<ApiRepo>(`/repos/${fullName}`, token);
+export async function getRepoFacts(fullName: string, ): Promise<RepoFacts> {
+  const repo = await gh<ApiRepo>(`/repos/${fullName}`);
   const [readme, languages, contents, contributors, commits] = await Promise.all([
-    ghText(`/repos/${fullName}/readme`, token),
-    gh<Record<string, number>>(`/repos/${fullName}/languages`, token).catch(() => ({})),
-    gh<{ name: string; type: string; path: string }[]>(`/repos/${fullName}/contents`, token).catch(() => []),
-    fetch(`${API}/repos/${fullName}/contributors?per_page=1&anon=1`, { headers: headers(token), cache: 'no-store' })
+    ghText(`/repos/${fullName}/readme`),
+    gh<Record<string, number>>(`/repos/${fullName}/languages`).catch(() => ({})),
+    gh<{ name: string; type: string; path: string }[]>(`/repos/${fullName}/contents`).catch(() => []),
+    fetch(`${API}/repos/${fullName}/contributors?per_page=1&anon=1`, { headers: headers(), cache: 'no-store' })
       .then(r => (r.ok ? countFromLink(r) ?? 1 : null))
       .catch(() => null),
-    fetch(`${API}/repos/${fullName}/commits?per_page=1`, { headers: headers(token), cache: 'no-store' })
+    fetch(`${API}/repos/${fullName}/commits?per_page=1`, { headers: headers(), cache: 'no-store' })
       .then(r => (r.ok ? countFromLink(r) ?? 1 : null))
       .catch(() => null),
   ]);
 
   const tree = Array.isArray(contents) ? contents.map(c => (c.type === 'dir' ? `${c.name}/` : c.name)) : [];
   const present = MANIFESTS.filter(m => tree.includes(m));
-  const manifestTexts = await Promise.all(present.slice(0, 5).map(m => ghText(`/repos/${fullName}/contents/${m}`, token)));
+  const manifestTexts = await Promise.all(present.slice(0, 5).map(m => ghText(`/repos/${fullName}/contents/${m}`)));
   const manifests: Record<string, string> = {};
   present.slice(0, 5).forEach((m, i) => {
     if (manifestTexts[i]) manifests[m] = clip(manifestTexts[i], 2500);
