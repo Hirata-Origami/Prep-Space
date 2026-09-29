@@ -185,7 +185,73 @@ interface Prepared {
   skills: SkillCategories;
   achievements: string[];
   certifications: string[];
+  certificates: PreparedCertificate[];
   summary: string;
+}
+
+export interface PreparedCertificate {
+  name: string;
+  issuer?: string;
+  year?: string;
+  verifyUrl?: string;
+}
+
+export function normalizeCertificates(data: ResumeData): PreparedCertificate[] {
+  if (Array.isArray(data.certificates) && data.certificates.length > 0) {
+    return data.certificates
+      .filter(c => c && c.name?.trim())
+      .map(c => ({
+        name: c.name.trim(),
+        issuer: c.issuer?.trim() || undefined,
+        year: c.year?.trim() || undefined,
+        verifyUrl: c.verifyUrl?.trim() || undefined,
+      }));
+  }
+
+  // Fall back to parsing strings from data.certifications
+  const items = toItems(data.certifications);
+  return items.map(line => {
+    let name = line;
+    let verifyUrl = '';
+
+    // Extract URL if present: [url] or https://...
+    const urlMatch = line.match(/(https?:\/\/[^\s)\]]+)/i);
+    if (urlMatch) {
+      verifyUrl = urlMatch[1];
+      name = line.replace(urlMatch[0], '').replace(/[()[\]]/g, '').trim();
+    }
+
+    // Extract year
+    let year = '';
+    const yearMatch = name.match(/\b(20\d{2}|19\d{2})\b/);
+    if (yearMatch) {
+      year = yearMatch[1];
+      name = name.replace(yearMatch[0], '').replace(/[,\s-]+$/, '').trim();
+    }
+
+    // Extract issuer
+    let issuer = '';
+    if (name.includes(' - ')) {
+      const parts = name.split(' - ');
+      name = parts[0].trim();
+      issuer = parts[1].trim();
+    } else if (name.includes(' – ')) {
+      const parts = name.split(' – ');
+      name = parts[0].trim();
+      issuer = parts[1].trim();
+    } else if (name.includes(', ')) {
+      const parts = name.split(', ');
+      name = parts[0].trim();
+      issuer = parts.slice(1).join(', ').trim();
+    }
+
+    return {
+      name: name || line,
+      issuer: issuer || undefined,
+      year: year || undefined,
+      verifyUrl: verifyUrl || undefined,
+    };
+  });
 }
 
 type SectionKey = 'summary' | 'experience' | 'projects' | 'skills' | 'education' | 'achievements' | 'certifications';
@@ -213,6 +279,7 @@ function prepare(data: ResumeData): Prepared {
     skills: normalizeSkills(data),
     achievements: toItems(data.achievements),
     certifications: toItems(data.certifications),
+    certificates: normalizeCertificates(data),
     summary: (profile.summary || '').trim(),
   };
 }
@@ -274,10 +341,17 @@ function buildExperience(p: Prepared, L: Layout): string {
   return out;
 }
 
-function buildProjects(p: Prepared, L: Layout): string {
+function buildProjects(p: Prepared, L: Layout, maxProjectsHint?: number): string {
   if (p.projects.length === 0) return '';
+
+  // Cap the number of projects to avoid spilling onto page 2.
+  // The caller supplies maxProjectsHint based on template column layout.
+  // Default: 3 for single-column, 4 for two-column (tighter column).
+  const limit = maxProjectsHint ?? (L.textBlock === 'twocol' ? 4 : 3);
+  const shown = p.projects.slice(0, limit);
+
   let out = `\\sectiontitle{${L.titles.projects}}\n\n`;
-  p.projects.forEach((proj, idx) => {
+  shown.forEach((proj, idx) => {
     const title = markdownToLatex(proj.title || 'Project');
     const repo = sanitizeUrl(proj.repo_url || '');
     const demo = sanitizeUrl(proj.demo_url || '');
@@ -286,8 +360,12 @@ function buildProjects(p: Prepared, L: Layout): string {
     if (proj.context) out += `\\projcontext{${markdownToLatex(proj.context)}}\n`;
     if (demo) out += `\\demolink{${demo}}\n`;
     out += bulletList(proj.bullets);
-    out += idx < p.projects.length - 1 ? `\\projgap\n\n` : `\n`;
+    out += idx < shown.length - 1 ? `\\projgap\n\n` : `\n`;
   });
+
+  // Fill any remaining vertical space so the page looks deliberately full
+  if (shown.length > 0) out += `\\vfill\n`;
+
   return out;
 }
 
@@ -348,15 +426,50 @@ function buildEducation(p: Prepared, L: Layout): string {
   return `${out}\n`;
 }
 
-function buildSection(key: SectionKey, p: Prepared, L: Layout): string {
+function buildCertifications(p: Prepared, L: Layout): string {
+  if (p.certificates.length === 0) return '';
+  let out = `\\sectiontitle{${L.titles.certifications}}\n\n`;
+  p.certificates.forEach((cert, idx) => {
+    const name = markdownToLatex(cert.name);
+    const issuer = cert.issuer ? markdownToLatex(cert.issuer) : '';
+    const year = cert.year ? escapeLatexSpecialChars(cert.year) : '';
+    const verify = cert.verifyUrl ? sanitizeUrl(cert.verifyUrl) : '';
+
+    if (L.textBlock === 'twocol') {
+      out += `\\noindent{\\fontsize{8.5}{10.5}\\selectfont\\bfseries\\color{darktext} ${name}}`;
+      if (issuer) out += `{\\fontsize{8}{10}\\selectfont\\color{graytext}\\ \\textbullet\\ ${issuer}}`;
+      out += `\\par\n`;
+      if (year || verify) {
+        out += `\\noindent{\\fontsize{7.5}{9}\\selectfont\\color{graytext}`;
+        if (year) out += `${year}`;
+        if (year && verify) out += ` \\ \\textbullet\\ \\ `;
+        if (verify) out += `{\\color{accent}\\href{${verify}}{Verify \\faExternalLink}}`;
+        out += `}\\par\n`;
+      }
+      out += idx < p.certificates.length - 1 ? `\\vspace{3.5pt}\n\n` : `\\vspace{2pt}\n\n`;
+    } else {
+      out += `\\noindent{\\bfseries ${name}}`;
+      if (issuer) out += `\\ \\textbullet\\ ${issuer}`;
+      if (year) out += `\\hfill{\\small ${year}}`;
+      out += `\\par\n`;
+      if (verify) {
+        out += `\\noindent{\\small\\color{accent}\\href{${verify}}{Verify certificate \\faExternalLink}}\\par\n`;
+      }
+      out += `\\vspace{3pt}\n`;
+    }
+  });
+  return `${out}\n`;
+}
+
+function buildSection(key: SectionKey, p: Prepared, L: Layout, maxProjectsHint?: number): string {
   switch (key) {
     case 'summary': return buildSummary(p, L);
     case 'experience': return buildExperience(p, L);
-    case 'projects': return buildProjects(p, L);
+    case 'projects': return buildProjects(p, L, maxProjectsHint);
     case 'skills': return buildSkills(p, L);
     case 'education': return buildEducation(p, L);
     case 'achievements': return buildTextSection(L.titles.achievements, p.achievements, L, '8.2}{10.2');
-    case 'certifications': return buildTextSection(L.titles.certifications, p.certifications, L, '8.2}{10.2');
+    case 'certifications': return buildCertifications(p, L);
   }
 }
 
@@ -396,7 +509,7 @@ export function renderModernTwoColumn(data: ResumeData): string {
   const safeName = escapeLatexSpecialChars(p.upperName);
   const contacts = buildContacts(p, L.linkEmail);
 
-  const left = [buildExperience(p, L), buildProjects(p, L)].join('\n');
+  const left = [buildExperience(p, L), buildProjects(p, L, 4)].join('\n');
   const education = buildEducation(p, L);
   const right = [
     buildSummary(p, L),

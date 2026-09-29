@@ -7,6 +7,8 @@ import { Sidebar } from '@/components/shell/Sidebar';
 import { BottomTabs, MobileHeader } from '@/components/shell/MobileNav';
 import { CommandPalette } from '@/components/shell/CommandPalette';
 
+import { GeminiKeyGateModal } from '@/components/auth/GeminiKeyGateModal';
+
 interface DashboardLayoutProps {
   children: React.ReactNode;
 }
@@ -14,7 +16,7 @@ interface DashboardLayoutProps {
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { user, isLoading } = useUser();
+  const { user, isLoading, mutate } = useUser();
   const [mounted, setMounted] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
 
@@ -28,7 +30,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       router.push('/auth/login');
       return;
     }
-    const isIncomplete = !user.target_role || !user.target_company || !user.has_gemini_key;
+    const isIncomplete = !user.target_role || !user.target_company;
     if (isIncomplete && pathname !== '/onboarding') {
       router.push('/onboarding');
     }
@@ -52,6 +54,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     router.push('/');
   };
 
+  const isMissingKey = mounted && !!user && !user.has_gemini_key;
+
   return (
     <div className="dashboard-shell">
       <a
@@ -72,6 +76,14 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
       </div>
 
       <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onSignOut={handleSignOut} />
+
+      {/* Force gate: user cannot use dashboard pages without a valid Gemini API key */}
+      <GeminiKeyGateModal
+        isOpen={isMissingKey}
+        onKeySaved={() => {
+          mutate();
+        }}
+      />
     </div>
   );
 }

@@ -20,16 +20,22 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 ### Workspace (`/workspace`)
 - **Code and SQL editor** with line numbers, syntax colours, auto-indent and bracket pairing for SQL, JavaScript, TypeScript, Python, Java, Go and C++, plus a notes mode.
 - **Diagram canvas** for architecture diagrams: shapes for clients, load balancers, services, databases, caches, queues, storage, CDNs and external APIs; arrows with labels; freehand pen; drag, pan and zoom; undo; SVG and PNG export.
-- **The AI writes.** Review, explain, fix, optimise, write tests, solve a problem, or hand you a fresh practice problem. Replace your code with the result in one click.
+- **The AI writes.** Review, explain, fix, optimise, write tests, solve a problem, or hand you a fresh practice problem. Replace your code with the result in one click. Input queries persist in the composer and restore automatically on transient errors.
 - **The AI draws.** Describe a system and get a diagram with automatic layout. Ask for changes ("add a cache before the database") and it edits the same diagram while keeping your layout and pen strokes. It can also critique a design or write it up as notes.
+- **Gemini Live in Workspace.** Toggle Live mode to pair-program, design systems, or simulate technical interviews out loud. Features integrated camera feed, real-time bi-directional audio, auto-scrolling transcript, interactive text input fallback, and real-time live diagramming directly onto the canvas.
 - Documents autosave.
 
 ### Career tools
-- **Resume builder.** Five LaTeX templates (a faithful two-column original plus ATS-friendly single-column layouts), exact `.tex` import, live A4 preview, ATS checks, Overleaf export, plain-text copy, and draft protection.
+- **Resume builder.** Five LaTeX templates (a faithful two-column original plus ATS-friendly single-column layouts), exact `.tex` import, live A4 preview, ATS checks, Overleaf export, plain-text copy, and draft protection. Templates are engineered with calibrated spacing and project bounds to guarantee a clean 1-page fit without stripping bullet details.
 - **Tailor to a job.** Paste a job description and get rewritten bullets that keep every figure, plus a cover letter grounded in your resume.
-- **GitHub project indexing.** Enter a GitHub username. PrepSpace lists the public repositories, reads each one (README, structure, dependency files, languages, activity), asks DeepWiki for an architecture read, and summarises it with your Gemini key. When you tailor to a job it picks the best-fitting projects and writes about them from verified facts only.
+- **GitHub project indexing & Projects integration.** Enter a GitHub username to index public repositories with DeepWiki and Gemini. Indexed repositories appear directly in the Resume Projects tab with 1-click addition, and are intelligently selected and tailored based on target job descriptions.
 - **Application tracker.** Track statuses, next steps and job descriptions, and jump straight to tailoring or practising.
 - **Command palette** with Ctrl or Cmd + K.
+
+### Gemini Multi-Model Cascade & Resilience
+- **Auto-failover cascade.** PrepSpace uses an automated fallback chain across Gemini models (Gemini 3.8 Flash &rarr; Gemini 3.7 Flash &rarr; Gemini 3.5 Flash Lite). If a model encounters RPM/RPD rate limits (429) or high-demand capacity issues (503), it seamlessly switches to the next available tier without interrupting the user.
+- **Live quota & status dashboard.** Real-time tracking of requests per minute (RPM), requests per day (RPD), and tokens per minute (TPM) visible in Settings with cooldown countdowns.
+- **Key onboarding gate.** Mandatory Gemini API key validation on onboarding and page access, verified directly against Google AI Studio without consuming generation quota.
 
 ## How video analysis works
 

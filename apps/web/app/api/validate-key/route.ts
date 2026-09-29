@@ -39,20 +39,24 @@ export async function POST(req: Request) {
       }, { status: 400 });
     }
 
-    const genAI = new GoogleGenerativeAI(key);
-    const model = genAI.getGenerativeModel({ model: 'gemini-3.5-flash' });
+    // Verify the key directly against Google's API without consuming generation quota
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(key)}`);
+    const data = await res.json().catch(() => ({}));
 
-    // Trivial ping to check authentication
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: 'ping' }] }],
-    });
-
-    const text = result.response.text();
-    if (text) {
-      return NextResponse.json({ valid: true, message: 'Gemini API key is valid and active!' });
+    if (!res.ok) {
+      const errorMsg = data?.error?.message || `Validation failed with status ${res.status}`;
+      return NextResponse.json({ valid: false, error: errorMsg }, { status: 400 });
     }
 
-    return NextResponse.json({ valid: false, error: 'Unexpected response from Gemini API' }, { status: 400 });
+    if (Array.isArray(data?.models) && data.models.length > 0) {
+      return NextResponse.json({
+        valid: true,
+        message: 'Gemini API key is valid and active!',
+        modelCount: data.models.length,
+      });
+    }
+
+    return NextResponse.json({ valid: false, error: 'API key validated but returned no available models' }, { status: 400 });
   } catch (err: unknown) {
     console.error('API key validation error:', err);
     const msg = err instanceof Error ? err.message : 'Invalid key';

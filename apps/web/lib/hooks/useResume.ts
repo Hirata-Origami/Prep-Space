@@ -61,6 +61,13 @@ export type ResumeTemplateId =
   | 'accent-single'
   | 'executive-serif';
 
+export interface CertificateItem {
+  name: string;
+  issuer?: string;
+  year?: string;
+  verifyUrl?: string;
+}
+
 export interface ResumeData {
   templateId?: ResumeTemplateId;
   profile: ResumeProfile;
@@ -70,8 +77,10 @@ export interface ResumeData {
   skills: string; // flat string for quick editing
   skills_categorized?: SkillCategories;
   achievements?: string;
-  /** Newline-separated certifications and courses. */
+  /** Newline-separated certifications and courses (legacy/plain text). */
   certifications?: string;
+  /** Structured certificates with name and verification URL. */
+  certificates?: CertificateItem[];
   /** Repositories indexed from GitHub; used to pick and describe the best projects for a job. */
   github?: GithubIndex;
   latex_code: string;

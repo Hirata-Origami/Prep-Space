@@ -28,6 +28,9 @@ import { Markdownish } from './Markdownish';
 import type { Diagram, LanguageId } from '@/lib/workspace/types';
 import type { JudgeVerdict } from '@/lib/workspace/practice';
 import { cn } from '@/lib/cn';
+import useSWR from 'swr';
+
+const statusFetcher = (url: string) => fetch(url).then(r => r.json());
 
 type Target = 'code' | 'diagram';
 
@@ -96,6 +99,12 @@ export function AiPanel({
   const endRef = useRef<HTMLDivElement>(null);
   const prevDiagram = useRef<Diagram | null>(null);
   const [canUndoAi, setCanUndoAi] = useState(false);
+  const { data: geminiStatus } = useSWR<{
+    activeModel?: string;
+    activeLabel?: string;
+    allExhausted?: boolean;
+    models?: Array<{ name: string; label: string; rpm: number; rpd: number; status: string; retryAfterSec?: number }>;
+  }>('/api/gemini/status', statusFetcher, { refreshInterval: 15000 });
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
@@ -105,6 +114,9 @@ export function AiPanel({
 
   const call = async (action: string, instruction: string, label: string) => {
     if (busy) return;
+    const sentText = text;
+    // Clear textbox immediately when sending message
+    setText('');
     setBusy(action);
     if (instruction) push({ who: 'you', text: instruction });
     else push({ who: 'you', text: label });
@@ -151,8 +163,11 @@ export function AiPanel({
           }
         }
       }
-      setText('');
     } catch (e: unknown) {
+      // If request fails, restore message back to the textbox so user never loses it
+      if (sentText) {
+        setText(sentText);
+      }
       const message = e instanceof Error ? e.message : 'The AI request failed';
       toast.error(message);
       push({ who: 'ai', text: message });
@@ -189,13 +204,31 @@ export function AiPanel({
 
   return (
     <div className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-panel border border-line bg-panel">
-      <div className="flex items-center gap-2 border-b border-line px-4 py-3">
+      <div className="flex items-center gap-2 border-b border-line px-4 py-2.5">
         <Sparkles size={15} className="text-signal" aria-hidden />
         <h2 className="text-sm font-semibold text-fg">{target === 'code' ? 'Coach & Judge' : 'Diagram assistant'}</h2>
-        {target === 'diagram' && canUndoAi && (
-          <Button size="sm" variant="ghost" className="ml-auto" onClick={undoDiagram}>Undo last AI change</Button>
-        )}
+        <div className="ml-auto flex items-center gap-1.5">
+          {geminiStatus?.activeLabel && (
+            <span
+              title={`Cascade active: requests automatically fail over if rate limited. Primary: Gemini 3.8 Flash`}
+              className="inline-flex items-center gap-1 rounded-full border border-line bg-raised px-2 py-0.5 text-[11px] font-medium text-fg-2"
+            >
+              <span className="live-dot" />
+              {geminiStatus.activeLabel.replace('Gemini ', '')}
+            </span>
+          )}
+          {target === 'diagram' && canUndoAi && (
+            <Button size="sm" variant="ghost" onClick={undoDiagram}>Undo AI</Button>
+          )}
+        </div>
       </div>
+
+      {geminiStatus?.allExhausted && (
+        <div className="flex items-center gap-2 border-b border-amber-500/20 bg-amber-500/10 px-3 py-1.5 text-xs text-amber-500">
+          <AlertCircle size={14} className="shrink-0" />
+          <span>Gemini RPM/RPD limit reached. Requests will resume as quota replenishes.</span>
+        </div>
+      )}
 
       <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4" aria-live="polite">
         {entries.length === 0 && (

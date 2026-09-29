@@ -565,6 +565,39 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
                 </EntryCard>
               ))}
               {projects.length > 0 && <Button variant="secondary" onClick={() => setProjects(p => [...p, { title: '', repo_url: '', demo_url: '', context: '', bullets: '' }])}><Plus size={15} aria-hidden /> Add project</Button>}
+
+              {/* Indexed GitHub repos not yet on resume */}
+              {github && github.projects.length > 0 && (() => {
+                const unlinked = github.projects.filter(r => !projects.some(pr => projectMatchesRepo(pr, r)));
+                if (!unlinked.length) return null;
+                return (
+                  <div className="mt-2 space-y-3">
+                    <div className="flex items-center gap-2">
+                      <Github size={15} className="text-fg-3" aria-hidden />
+                      <h3 className="text-sm font-semibold text-fg">Available from GitHub ({unlinked.length})</h3>
+                      <span className="text-xs text-fg-3">— click Add to include on your resume</span>
+                    </div>
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {unlinked.sort((a, b) => b.complexity - a.complexity).map(repo => (
+                        <div key={repo.fullName} className="flex items-start gap-3 rounded-panel border border-dashed border-line bg-raised/30 p-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-medium text-fg truncate">{repo.name}</div>
+                            <div className="text-[12px] text-fg-3 mt-0.5 line-clamp-2">{repo.summary || repo.description || 'No description'}</div>
+                            <div className="mt-1 flex flex-wrap gap-1">
+                              {repo.techStack.slice(0, 4).map(t => (
+                                <span key={t} className="rounded bg-panel border border-line px-1.5 py-0.5 text-[10px] text-fg-2">{t}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <Button size="sm" variant="secondary" onClick={() => addRepoAsProject(repo)} className="shrink-0">
+                            <Plus size={13} aria-hidden /> Add
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
             </TabsContent>
 
             {/* skills */}
