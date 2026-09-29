@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { CheckCircle2, ChevronDown, GitFork, Github, Loader2, Plus, Lock, RefreshCw, Star, Trash2, XCircle } from 'lucide-react';
 import { Badge, Button, Card, EmptyState, Field, Input } from '@/components/ui';
+import { sameGithubAccount } from '@/lib/github/match';
 import { parseGithubUsername, type GithubIndex, type IndexProgress, type RepoProfile, type RepoSummary } from '@/lib/github/types';
 import { cn } from '@/lib/cn';
 
@@ -16,6 +17,8 @@ interface GithubPanelProps {
   onChange: (next: GithubIndex | undefined) => void;
   onIndexed: () => void;
   onAddProject: (repo: RepoProfile) => void;
+  /** Called once after indexing finishes, with everything indexed, when the username matches the resume profile. */
+  onAutoAdd: (index: GithubIndex) => void;
 }
 
 const complexityLabel = ['', 'Simple', 'Small', 'Solid', 'Advanced', 'Complex'];
@@ -29,8 +32,9 @@ function timeAgo(iso?: string | null) {
   return `${Math.floor(days / 365)}y ago`;
 }
 
-export function GithubPanel({ profileGithub, index, isOnResume, onChange, onIndexed, onAddProject }: GithubPanelProps) {
+export function GithubPanel({ profileGithub, index, isOnResume, onChange, onIndexed, onAddProject, onAutoAdd }: GithubPanelProps) {
   const [username, setUsername] = useState(index?.username || parseGithubUsername(profileGithub));
+  const sameAccount = sameGithubAccount(profileGithub, username);
 
   const [repos, setRepos] = useState<RepoSummary[] | null>(null);
   const [loadingRepos, setLoadingRepos] = useState(false);
@@ -116,6 +120,7 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
     if (ok) {
       toast.success(`Indexed ${ok} ${ok === 1 ? 'repository' : 'repositories'}`);
       onIndexed();
+      if (sameAccount && indexRef.current) onAutoAdd(indexRef.current);
     }
   };
 
@@ -148,6 +153,15 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
         <p className="flex items-start gap-2 text-xs leading-relaxed text-fg-3">
           <Lock size={13} className="mt-0.5 shrink-0" aria-hidden />
           Only public repositories are read. Each one is also looked up on DeepWiki for a deeper architecture read, then summarised with your Gemini key.</p>
+        {parseGithubUsername(username) && (
+          <div className={cn('rounded-control border px-3 py-2.5 text-[13px] leading-relaxed', sameAccount ? 'border-good/30 bg-good/5 text-fg-2' : 'border-line bg-raised text-fg-2')}>
+            {sameAccount
+              ? 'This is the GitHub account on your resume profile. When indexing finishes, the projects are added to your resume automatically, ranked for ATS and trimmed to fit one page.'
+              : profileGithub
+                ? 'This is not the account on your resume profile, so nothing is added automatically. Use Add to resume on the projects you want.'
+                : 'Your resume profile has no GitHub link yet. Use Add to resume on the projects you want.'}
+          </div>
+        )}
       </Card>
 
       {/* repo picker */}
@@ -283,7 +297,7 @@ export function GithubPanel({ profileGithub, index, isOnResume, onChange, onInde
                           <div className="text-[13px] text-fg-2"><span className="text-fg-3">Strong evidence for: </span>{p.roleFit.join(', ')}</div>
                         )}
                         <div className="flex flex-wrap gap-2 pt-1">
-                          {!onResume && (
+                          {!onResume && !sameAccount && (
                             <Button size="sm" onClick={() => onAddProject(p)}><Plus size={13} aria-hidden /> Add to resume</Button>
                           )}
                           <Button size="sm" variant="secondary" onClick={() => runIndex([p.fullName])} disabled={running}><RefreshCw size={13} aria-hidden /> Re-index</Button>

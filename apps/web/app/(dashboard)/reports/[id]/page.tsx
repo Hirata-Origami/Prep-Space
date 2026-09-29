@@ -173,6 +173,21 @@ export default function ReportDetailPage() {
     }
   };
 
+  const [makingCards, setMakingCards] = useState(false);
+  const handleFlashcards = async () => {
+    setMakingCards(true);
+    try {
+      const res = await fetch('/api/flashcards/generate', { method: 'POST' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error || 'Could not create cards');
+      toast.success(`Added ${json.count} ${json.count === 1 ? 'card' : 'cards'} to your flashcards`, { action: { label: 'Review', onClick: () => window.location.assign('/flashcards') } });
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not create cards');
+    } finally {
+      setMakingCards(false);
+    }
+  };
+
   const handleCopyLink = () => {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
@@ -271,6 +286,7 @@ export default function ReportDetailPage() {
         description={report.interview_sessions?.plan?.role || 'Software Engineer'}
         action={
           <div className="flex items-center gap-2 no-print">
+            <Button variant="secondary" onClick={handleFlashcards} loading={makingCards}>Make flashcards</Button>
             <Button variant="secondary" onClick={() => setShareOpen(true)} className="gap-1.5">
               <Link2 size={14} /> Share
             </Button>

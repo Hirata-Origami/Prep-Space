@@ -14,7 +14,8 @@ import { generateResumeLatex, normalizeEducation, normalizeProjects, normalizeSk
 import { parseResumeLatex } from '@/lib/resume/parseLatex';
 import { analyzeResume } from '@/lib/resume/ats';
 import { resumeToPlainText } from '@/lib/resume/text';
-import { projectFromRepo, projectMatchesRepo } from '@/lib/github/match';
+import { projectFromRepo, projectMatchesRepo, rankRepos } from '@/lib/github/match';
+import { fitToOnePage, measureFill } from '@/lib/resume/fit';
 import type { GithubIndex, ProjectChoice } from '@/lib/github/types';
 import { GithubPanel } from '@/components/resume/GithubPanel';
 import { ResumePreview } from '@/components/resume/ResumePreview';
@@ -162,7 +163,15 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
 
   const generatedLatex = useMemo(() => generateResumeLatex(data, templateId), [data, templateId]);
   const latex = latexOverride ?? generatedLatex;
-  const ats = useMemo(() => analyzeResume(data, templateId, jdText), [data, templateId, jdText]);
+  // the real page fill comes from laying the resume out, so it is measured after edits settle
+  const [measuredFill, setMeasuredFill] = useState<number | undefined>(undefined);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      try { setMeasuredFill(measureFill(data, templateId)); } catch { setMeasuredFill(undefined); }
+    }, 350);
+    return () => clearTimeout(t);
+  }, [data, templateId]);
+  const ats = useMemo(() => analyzeResume(data, templateId, jdText, measuredFill), [data, templateId, jdText, measuredFill]);
 
   /* ── unsaved changes, local draft and leave guard ── */
   const snapshot = useMemo(() => JSON.stringify({ ...data, latex_code: '' }), [data]);
@@ -335,7 +344,12 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
 
       setShowRoleModal(false);
       setSelection(json.project_selection ?? null);
-      if (json.resume_data) applyData(json.resume_data);
+      if (json.resume_data) {
+        // a tailored resume is trimmed to one page straight away
+        const fit = fitToOnePage({ ...data, ...json.resume_data } as ResumeData, templateId, jdText);
+        applyData({ ...json.resume_data, experience: fit.data.experience, projects: fit.data.projects, profile: fit.data.profile, achievements: fit.data.achievements, certifications: fit.data.certifications });
+        if (fit.steps.length) toast.message(`Trimmed to one page: ${fit.steps.join('. ')}.`, { duration: 8000 });
+      }
       mutateVersions();
       toast.success(`Tailored copy saved as “${json.version_name}”. Your saved resume is unchanged until you press Save.`);
       setViewTab('ats');
@@ -411,6 +425,37 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
       setSavedSnapshot(JSON.stringify({ ...data, github: githubRef.current, latex_code: '' }));
     } catch { /* the Save button still works */ }
   };
+  /** Fits the resume to one page and applies the result, reporting what was cut. */
+  const fitAndApply = (candidate: ResumeData, jd?: string, keepTitles: string[] = []) => {
+    const fit = fitToOnePage(candidate, templateId, jd, keepTitles);
+    applyData({ experience: fit.data.experience, projects: fit.data.projects, profile: fit.data.profile, achievements: fit.data.achievements, certifications: fit.data.certifications });
+    return fit;
+  };
+
+  /** Same GitHub account as the profile: every indexed project goes on the resume, best first, then it is trimmed to one page. */
+  const autoAddGithubProjects = (idx: GithubIndex) => {
+    const fresh = rankRepos(idx.projects).filter(r => !projects.some(pr => projectMatchesRepo(pr, r))).map(r => projectFromRepo(r));
+    setEditTab('projects');
+    if (!fresh.length) {
+      toast.message('Every indexed repository is already on your resume.');
+      return;
+    }
+    const fit = fitAndApply({ ...data, projects: [...projects, ...fresh], github: idx }, jdText, projects.map(p => p.title));
+    const kept = new Set(fit.data.projects?.map(p => p.title));
+    const added = fresh.filter(p => kept.has(p.title)).length;
+    const cut = fit.steps.filter(s => !s.startsWith('Dropped')).join('. ');
+    toast.success(
+      `Added ${added} of ${fresh.length} GitHub ${fresh.length === 1 ? 'project' : 'projects'}, the strongest for ATS. ${fresh.length - added > 0 ? `${fresh.length - added} did not fit on one page and stay in your GitHub index. ` : ''}${cut ? `${cut}.` : ''}`.trim(),
+      { duration: 9000 }
+    );
+  };
+
+  const handleFit = () => {
+    const fit = fitAndApply(data, jdText);
+    if (!fit.steps.length) toast.message(fit.fits ? 'Already fits on one page.' : 'Nothing left to trim without removing core content.');
+    else toast[fit.fits ? 'success' : 'warning'](`${fit.fits ? 'Now fits on one page' : 'Still slightly over one page'} (${fit.fill}%). ${fit.steps.join('. ')}.`, { duration: 9000 });
+  };
+
   const addRepoAsProject = (repo: Parameters<typeof projectFromRepo>[0]) => {
     setProjects(p => [...p, projectFromRepo(repo)]);
     toast.success(`Added ${repo.name} to your projects`);
@@ -620,6 +665,7 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
                 onChange={setGithubIndex}
                 onIndexed={onGithubIndexed}
                 onAddProject={addRepoAsProject}
+                onAutoAdd={autoAddGithubProjects}
               />
             </TabsContent>
 
@@ -753,7 +799,9 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
                   ATS <Badge tone={ats.score >= 80 ? 'good' : ats.score >= 60 ? 'live' : 'bad'} className="ml-1.5 font-mono">{ats.score}</Badge>
                 </TabsTrigger>
               </TabsList>
-              <div className="flex flex-wrap gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
+                {measuredFill !== undefined && <span className={cn('mr-1 font-mono text-xs', measuredFill > 100 ? 'text-bad' : 'text-fg-3')} title="How much of one A4 page the content fills">{measuredFill}% of page</span>}
+                <Button size="sm" variant={measuredFill !== undefined && measuredFill > 100 ? 'primary' : 'secondary'} onClick={handleFit}>Fit to one page</Button>
                 <Button size="sm" variant="secondary" onClick={download}><Download size={14} aria-hidden /> .tex</Button>
                 <Button size="sm" variant="secondary" onClick={copyPlainText}><Copy size={14} aria-hidden /> Text</Button>
                 <Button size="sm" variant="secondary" onClick={() => overleafForm.current?.submit()}><ExternalLink size={14} aria-hidden /> Open in Overleaf</Button>

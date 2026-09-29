@@ -259,6 +259,7 @@ export default function SettingsPage() {
           </RadixTabs.Content>
 
           <RadixTabs.Content value="privacy" className="space-y-5 outline-none">
+            <EmailPreference />
             <div>
               <h2 className="text-lg font-semibold text-fg">Privacy and data</h2>
               <p className="text-[13px] text-fg-3">What other people can see about your practice.</p>
@@ -279,6 +280,54 @@ export default function SettingsPage() {
           </RadixTabs.Content>
         </Card>
       </RadixTabs.Root>
+    </div>
+  );
+}
+/** Weekly digest and daily tip on or off. Shows a plain notice until the database has the column. */
+function EmailPreference() {
+  const [state, setState] = useState<{ enabled: boolean; available: boolean } | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/user/email-preferences')
+      .then(r => r.json())
+      .then(j => alive && setState(j.error ? null : j))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  const toggle = async (enabled: boolean) => {
+    setBusy(true);
+    try {
+      const res = await fetch('/api/user/email-preferences', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled }) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setState(s => (s ? { ...s, enabled } : s));
+      toast.success(enabled ? 'Weekly and daily emails are on' : 'Weekly and daily emails are off');
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not update your email settings');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h2 className="text-lg font-semibold text-fg">Email</h2>
+        <p className="text-[13px] text-fg-3">Choose what lands in your inbox.</p>
+      </div>
+      <div className="flex items-center gap-4 rounded-panel border border-line bg-raised p-4">
+        <div className="flex-1">
+          <div className="text-sm font-medium text-fg">Weekly summary and daily tip</div>
+          <div className="text-xs text-fg-3">Your week in numbers on Mondays and one interview tip a day. Emails that tell you a report is ready are always sent.</div>
+        </div>
+        <Switch checked={state?.enabled ?? true} disabled={!state || !state.available || busy} onCheckedChange={toggle} aria-label="Weekly summary and daily tip" />
+      </div>
+      {state && !state.available && <p className="text-[13px] text-fg-3">This needs a database update. Run <code className="font-mono text-fg-2">supabase/migrations/005_email_preferences.sql</code>.</p>}
     </div>
   );
 }

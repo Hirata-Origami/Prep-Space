@@ -4,8 +4,6 @@
 
 PrepSpace is an AI interview preparation platform. You practise out loud with a voice and video interviewer, get scored on what you said and how you came across, build a resume tailored to each job, and keep a workspace for code, SQL and system-design diagrams.
 
-The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
-
 ## Features
 
 ### Practise
@@ -16,11 +14,12 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 - **Roadmaps.** Paste a job description and get a study plan with modules and topics.
 - **Mock companies, groups and a leaderboard** for community practice.
 
-### Workspace (`/workspace`)
+### Workspace (/workspace)
+- **Talk to Alex.** A live voice and text session (Gemini Live, the same model as the interview) sits in a strip under the workspace, with the transcript and a message box. No camera.
+- **Alex draws and writes.** Ask for a diagram and Alex calls a drawing tool that puts it on the canvas; ask to change it ("add a cache before the database") and it edits the same diagram, keeping your layout. Ask for code or notes and Alex writes into the editor. Whatever you type or draw is sent back to Alex as context, so it always sees the current state.
 - **Code and SQL editor** with line numbers, syntax colours, auto-indent and bracket pairing for SQL, JavaScript, TypeScript, Python, Java, Go and C++, plus a notes mode.
-- **Diagram canvas** for architecture diagrams: shapes for clients, load balancers, services, databases, caches, queues, storage, CDNs and external APIs; arrows with labels; freehand pen; drag, pan and zoom; undo; SVG and PNG export.
-- **The AI writes.** Review, explain, fix, optimise, write tests, solve a problem, or hand you a fresh practice problem. Replace your code with the result in one click.
-- **The AI draws.** Describe a system and get a diagram with automatic layout. Ask for changes ("add a cache before the database") and it edits the same diagram while keeping your layout and pen strokes. It can also critique a design or write it up as notes.
+- **Diagram canvas:** shapes for clients, load balancers, services, databases, caches, queues, storage, CDNs and external APIs; labelled arrows; freehand pen; drag, pan, zoom, undo; SVG and PNG export. Code, diagram or both side by side, full width.
+- **Coach menu** for one-shot answers you want to keep: judge a solution, review, explain, fix, optimise, write tests, solve, get a practice problem, critique a design, write it up as notes.
 - Documents autosave.
 
 ### Practice tools
@@ -28,12 +27,14 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 - **Flashcards.** Recall cards built from the questions you answered poorly, plus your own. Reviews use SM-2 spaced repetition with keyboard shortcuts (Space to reveal, 1 to 4 to rate), and the dashboard shows what is due.
 - **STAR stories.** A bank of behavioural stories. The AI tidies structure from your own notes and a resume bullet, and is told never to invent numbers.
 - **Shareable reports.** Create a 30-day link so a mentor can read your scores and feedback without signing in. The link never exposes audio, your answers or your name, and can be turned off.
-- **Weekly digest.** A Monday email with your week in numbers, sent by a cron job.
+- **Emails.** Report-ready mails, a Monday summary (interviews, flashcards, coding, stories, cards due and application steps this week) and a daily tip, all in the app's look, with text escaped and a plain-text part. The summary and tip can be turned off in Settings.
 
 ### Career tools
-- **Resume builder.** Five LaTeX templates (a faithful two-column original plus ATS-friendly single-column layouts), exact `.tex` import, live A4 preview, ATS checks, Overleaf export, plain-text copy, and draft protection.
+- **Resume builder.** Five LaTeX templates (a faithful two-column original plus ATS-friendly single-column layouts), exact `.tex` import, live A4 preview, Overleaf export, plain-text copy and draft protection.
+- **One page, guaranteed.** The resume is laid out with the same renderer as the preview and measured against A4. "Fit to one page" shortens long bullets (never cutting a figure), trims the summary, keeps the strongest bullets per entry and drops the weakest projects, and says what it did. It runs automatically after tailoring and after GitHub projects are added.
+- **Strict ATS score.** Graded checks on contact details, links, sections, summary, bullets per entry, action verbs and repeats, measurable results, bullet length, weak or first-person phrasing, buzzwords, skills, projects, dates, page fill and job-description keywords. The total is curved so a resume with warnings does not score in the nineties, and a resume that runs to two pages is capped. The panel lists the three fixes worth the most points.
 - **Tailor to a job.** Paste a job description and get rewritten bullets that keep every figure, plus a cover letter grounded in your resume.
-- **GitHub project indexing.** Enter a GitHub username. PrepSpace lists the public repositories, reads each one (README, structure, dependency files, languages, activity), asks DeepWiki for an architecture read, and summarises it with your Gemini key. When you tailor to a job it picks the best-fitting projects and writes about them from verified facts only.
+- **GitHub project indexing.** Enter a GitHub username. PrepSpace lists the public repositories, reads each one (README, structure, dependency files, languages, activity), asks DeepWiki for an architecture read, and summarises it with your Gemini key. When you tailor to a job it picks the best-fitting projects and writes about them from verified facts only. If the username is the GitHub account on your resume profile, the indexed projects are added to the resume automatically, ranked for ATS and trimmed to one page; otherwise you choose which to add.
 - **Application tracker.** Track statuses, next steps and job descriptions, and jump straight to tailoring or practising.
 - **Offer coach.** Compare offers side by side (year-one cash and yearly total with equity) and get a counter-offer email built only from your numbers and notes. It never quotes market data.
 - **Command palette** with Ctrl or Cmd + K.
@@ -87,6 +88,7 @@ Run these in the Supabase SQL editor, in order. Every script is safe to run more
 
 1. `supabase/migrations/full_schema.sql`: the complete schema. For a fresh project this is all you need.
 2. `supabase/migrations/004_practice_features.sql`: for a project that already has the older base schema. It adds the application tracker, workspace documents, coding submissions, flashcards, STAR stories, offers and shared reports, and locks down `increment_xp` so only the server can award XP.
+3. `supabase/migrations/005_email_preferences.sql`: adds the email opt-out column. Until it runs, the cron jobs email everyone and the Settings switch shows a notice.
 
 The GitHub feature reads public repositories only, so it needs no schema.
 
@@ -107,7 +109,6 @@ apps/web
     github/             GitHub REST, DeepWiki client, indexer, project matching
     workspace/          diagram types, layout, syntax tokenizer, AI prompts
 supabase/migrations     SQL
-PLAN.md                 roadmap and status
 ```
 
 ## Quality checks

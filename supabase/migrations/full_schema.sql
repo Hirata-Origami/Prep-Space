@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS users (
   target_role         VARCHAR(255),
   target_company      VARCHAR(255),
   onboarding_complete BOOLEAN DEFAULT FALSE,
+  email_updates       BOOLEAN NOT NULL DEFAULT TRUE,
   created_at          TIMESTAMPTZ DEFAULT now(),
   UNIQUE(tenant_id, email)
 );

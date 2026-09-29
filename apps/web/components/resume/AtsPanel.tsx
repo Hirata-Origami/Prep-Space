@@ -25,26 +25,49 @@ function ScoreRing({ score }: { score: number }) {
   );
 }
 
+const GRADE_NOTE: Record<AtsReport['grade'], string> = {
+  Excellent: 'Ready to send.',
+  Strong: 'Good. A few fixes will lift it.',
+  Fair: 'Usable, but a screener will notice the gaps.',
+  Weak: 'Needs work before you apply.',
+};
+
 export function AtsPanel({ report }: { report: AtsReport }) {
-  const summary = report.score >= 80 ? 'Ready to send.' : report.score >= 60 ? 'Good, with a few fixes.' : 'Needs work before you apply.';
   const kw = report.keywordCoverage;
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
       <div className="flex items-center gap-4">
         <ScoreRing score={report.score} />
         <div>
-          <div className="text-base font-semibold text-fg">ATS readiness</div>
-          <div className="text-sm text-fg-2">{summary}</div>
-          <div className="mt-1 text-xs text-fg-3">Checked on structure and content. It does not replace a real ATS.</div>
+          <div className="text-base font-semibold text-fg">ATS readiness: {report.grade}</div>
+          <div className="text-sm text-fg-2">{GRADE_NOTE[report.grade]}</div>
+          <div className="mt-1 text-xs text-fg-3">Scored strictly on structure and content. It does not replace a real ATS.</div>
         </div>
       </div>
+
+      {report.topFixes.length > 0 && (
+        <div className="rounded-panel border border-signal/25 bg-signal/5 p-4">
+          <div className="mb-2 text-sm font-semibold text-fg">Fix these first</div>
+          <ol className="space-y-2 text-[13px] leading-snug text-fg-2">
+            {report.topFixes.map((c, i) => (
+              <li key={c.id} className="flex gap-2.5">
+                <span className="font-mono text-fg-3">{i + 1}.</span>
+                <span><span className="font-medium text-fg">{c.label}.</span> {c.fix}</span>
+              </li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       <ul className="divide-y divide-line rounded-panel border border-line">
         {report.checks.filter(c => c.weight > 0 || c.status !== 'pass').map(c => (
           <li key={c.id} className="flex items-start gap-3 px-4 py-3">
             <span className="mt-0.5 shrink-0">{ICON[c.status]}</span>
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-fg">{c.label}</div>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-baseline justify-between gap-3">
+                <div className="text-sm font-medium text-fg">{c.label}</div>
+                {c.weight > 0 && <div className="shrink-0 font-mono text-xs text-fg-3">{Math.round(c.earned * c.weight * 10) / 10}/{c.weight}</div>}
+              </div>
               <div className={cn('text-[13px]', c.status === 'pass' ? 'text-fg-3' : 'text-fg-2')}>{c.detail}</div>
             </div>
           </li>
