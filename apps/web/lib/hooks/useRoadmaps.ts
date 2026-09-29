@@ -30,6 +30,13 @@ export function useRoadmaps() {
   };
 }
 
+export interface SessionPlan {
+  topic?: string;
+  role?: string;
+  mode?: string;
+  [key: string]: unknown;
+}
+
 export interface InterviewSession {
   id: string;
   created_at: string;
@@ -42,8 +49,8 @@ export interface InterviewSession {
   company?: string;
   reports?: Array<{ id: string; overall_score: number; recommendation: string }>;
   interview_reports?: Array<{ id: string; session_id?: string; overall_score?: number; hire_recommendation?: string; recommendation?: string }>;
-  plan?: Record<string, any>;
-  question_log?: any[];
+  plan?: SessionPlan;
+  question_log?: unknown[];
 }
 
 export function useSessions() {

@@ -37,7 +37,7 @@ export async function POST(request: Request) {
     }
 
     // 2. Extract deep architecture info using DeepWiki MCP
-    const repoContexts = await Promise.all(repos.map(async (r: any) => {
+    const repoContexts = await Promise.all(repos.map(async (r: { name: string; description?: string | null; language?: string | null; html_url: string; stargazers_count?: number }) => {
       let analysis = "No detailed architecture available.";
       try {
         const repoName = `${username}/${r.name}`;

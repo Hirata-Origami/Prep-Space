@@ -46,19 +46,19 @@ export async function POST(
     return NextResponse.json({ error: msg }, { status: 400 });
   }
 
-  const sortedModules = [...(roadmap.modules || [])].sort((a: any, b: any) => a.sequence_order - b.sequence_order);
+  const sortedModules = [...(roadmap.modules || [])].sort((a: { sequence_order: number }, b: { sequence_order: number }) => a.sequence_order - b.sequence_order);
 
   const selectedModuleNames = selected_module_ids?.length
     ? sortedModules
-        .filter((_: any, i: number) => selected_module_ids.includes(i.toString()) || selected_module_ids.includes(sortedModules[i]?.id))
-        .map((m: any) => m.title)
+        .filter((_: unknown, i: number) => selected_module_ids.includes(i.toString()) || selected_module_ids.includes(sortedModules[i]?.id))
+        .map((m: { title: string }) => m.title)
     : [];
 
   const selectedText = selectedModuleNames.length
     ? `The user specifically selected these modules to update: ${selectedModuleNames.join(', ')}.`
     : 'The user wants to update the overall roadmap.';
 
-  const modulesText = sortedModules.map((m: any, i: number) => `${i + 1}. ${m.title}: ${m.description}`).join('\n');
+  const modulesText = sortedModules.map((m: { title: string; description?: string }, i: number) => `${i + 1}. ${m.title}: ${m.description}`).join('\n');
 
   const prompt = `You are updating an interview preparation roadmap titled "${roadmap.title}" for the role "${roadmap.target_role || roadmap.title}".
 
@@ -95,7 +95,15 @@ Rules:
 
     const text = result.response.text();
     const jsonStr = text.replace(/```(?:json)?\n?/g, '').replace(/```/g, '').trim();
-    const updatedModules: any[] = JSON.parse(jsonStr);
+    interface UpdatedModule {
+      id?: string | null;
+      title: string;
+      description?: string;
+      interview_topics?: string[];
+      sequence_order: number;
+      estimated_hours?: number;
+    }
+    const updatedModules: UpdatedModule[] = JSON.parse(jsonStr);
 
     // Update modules in DB
     for (const mod of updatedModules) {

@@ -20,8 +20,10 @@ import {
   Play,
   RotateCcw,
   CheckCircle2,
-  FileText
+  FileText,
 } from 'lucide-react';
+import { Badge, Button, ButtonLink, Card, EmptyState, Field, Input, PageHeader, SectionHeader, Skeleton } from '@/components/ui';
+import { cn } from '@/lib/cn';
 
 type SessionState = 'hub' | 'connecting' | 'live' | 'complete';
 
@@ -184,7 +186,6 @@ function InterviewStudioContent() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionStartTime, setSessionStartTime] = useState<number>(0);
   const [generatedReportId, setGeneratedReportId] = useState<string | null>(null);
-  const [takeToReportLoading, setTakeToReportLoading] = useState(false);
 
   // Refs
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -940,64 +941,44 @@ function InterviewStudioContent() {
   // RENDER: LIVE STUDIO / CONNECTING SCREEN
   // ==========================================
   if (sessionState === 'connecting' || sessionState === 'live') {
+    const live = sessionState === 'live';
     return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: 'var(--bg-base)', color: 'var(--text-primary)' }}>
+      <div className="flex min-h-full flex-col bg-canvas text-fg lg:h-dvh">
         {/* Top bar */}
-        <div style={{
-          minHeight: '58px',
-          borderBottom: '1px solid var(--border)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '8px clamp(12px, 3vw, 24px)',
-          background: 'var(--bg-surface)',
-          flexShrink: 0,
-          flexWrap: 'wrap',
-          gap: '10px',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0, flex: '1 1 auto' }}>
-            <div style={{
-              width: '9px',
-              height: '9px',
-              borderRadius: '50%',
-              background: sessionState === 'live' ? 'var(--accent-primary)' : 'var(--accent-amber)',
-              boxShadow: sessionState === 'live' ? '0 0 8px var(--accent-primary)' : 'none',
-              flexShrink: 0,
-            }} />
-            <span style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>
-              {activeMode === 'teach' ? 'Alex · Tutoring' : 'Live Interview'}
-            </span>
-            <span style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>· {targetRole}</span>
+        <div className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-line bg-panel px-4 py-2.5 sm:px-6">
+          <div className="flex min-w-0 items-center gap-2.5">
+            {live ? <span className="live-dot shrink-0" aria-hidden /> : <span className="h-2 w-2 shrink-0 rounded-full bg-fg-3" aria-hidden />}
+            <h1 className="whitespace-nowrap font-display text-[15px] font-semibold">
+              {activeMode === 'teach' ? 'Tutoring with Alex' : 'Live interview'}
+            </h1>
+            <span className="truncate text-xs text-fg-3">{live ? targetRole : 'Connecting…'}</span>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexShrink: 0 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontFamily: 'var(--font-mono)', color: 'var(--accent-primary)', fontWeight: 700 }}>
-              <Clock size={15} />
+          <div className="flex items-center gap-2">
+            <div className="mr-1 flex items-center gap-1.5 font-mono text-sm font-medium text-fg" role="timer" aria-label="Session time">
+              <Clock size={14} className="text-fg-3" aria-hidden />
               <span>{formatTime(sessionTime)}</span>
             </div>
 
-            {/* Mute toggle */}
-            <button
+            <Button
+              variant={isMuted ? 'danger' : 'secondary'}
+              size="icon"
+              aria-pressed={isMuted}
+              aria-label={isMuted ? 'Unmute microphone' : 'Mute microphone'}
               onClick={() => {
                 setIsMuted(v => !v);
                 const tracks = streamRef.current?.getAudioTracks();
                 tracks?.forEach(t => { t.enabled = isMuted; }); // toggle
               }}
-              title={isMuted ? 'Unmute' : 'Mute'}
-              style={{
-                width: '36px', height: '36px', borderRadius: '8px',
-                background: isMuted ? 'var(--accent-red-dim)' : 'var(--bg-elevated)',
-                border: `1px solid ${isMuted ? 'var(--accent-red)' : 'var(--border)'}`,
-                color: isMuted ? 'var(--accent-red)' : 'var(--text-secondary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}
             >
               {isMuted ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
+            </Button>
 
-            {/* Camera toggle */}
-            <button
+            <Button
+              variant={isCameraOff ? 'danger' : 'secondary'}
+              size="icon"
+              aria-pressed={isCameraOff}
+              aria-label={isCameraOff ? 'Turn camera on' : 'Turn camera off'}
               onClick={() => {
                 const nextOff = !isCameraOff;
                 setIsCameraOff(nextOff);
@@ -1005,192 +986,93 @@ function InterviewStudioContent() {
                 const tracks = streamRef.current?.getVideoTracks();
                 tracks?.forEach(t => { t.enabled = !nextOff; });
               }}
-              title={isCameraOff ? 'Turn on camera' : 'Turn off camera'}
-              style={{
-                width: '36px', height: '36px', borderRadius: '8px',
-                background: isCameraOff ? 'var(--accent-red-dim)' : 'var(--bg-elevated)',
-                border: `1px solid ${isCameraOff ? 'var(--accent-red)' : 'var(--border)'}`,
-                color: isCameraOff ? 'var(--accent-red)' : 'var(--text-secondary)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}
             >
               {isCameraOff ? <VideoOff size={16} /> : <Video size={16} />}
-            </button>
+            </Button>
 
-            <button
-              onClick={endSession}
-              style={{
-                display: 'flex', alignItems: 'center', gap: '7px',
-                padding: '8px 18px', borderRadius: '8px',
-                background: 'var(--accent-red)', color: '#fff',
-                border: 'none', fontWeight: 700, fontSize: '13px',
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-                boxShadow: '0 2px 12px rgba(var(--accent-red-rgb), 0.25)',
-              }}
-            >
-              <PhoneOff size={15} />
-              <span>End Session</span>
-            </button>
+            <Button variant="primary" onClick={endSession} className="bg-bad text-[var(--text-on-accent)] hover:bg-bad/90">
+              <PhoneOff size={15} aria-hidden /> End session
+            </Button>
           </div>
         </div>
 
-        {/* Main layout: Video row on top, transcript below */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', padding: '20px', gap: '16px' }}>
-
-          {/* Video Row — equal split between AI and User */}
-          <div className="grid-responsive-2" style={{ height: 'auto', minHeight: '200px', flexShrink: 0 }}>
-
-            {/* Alex AI Card with Glowing Audio Orb */}
-            <div style={{
-              background: 'var(--bg-surface)',
-              borderRadius: '16px',
-              border: `1px solid ${alexStatus === 'speaking' ? 'var(--accent-primary)' : 'var(--border)'}`,
-              boxShadow: alexStatus === 'speaking' ? '0 0 20px var(--accent-primary-glow)' : 'none',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-              overflow: 'hidden',
-              transition: 'border-color 0.3s, box-shadow 0.3s',
-            }}>
-              {/* Status badge */}
-              <div style={{
-                position: 'absolute', top: '12px', left: '12px',
-                padding: '3px 10px', borderRadius: '100px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                fontSize: '12px', fontWeight: 700,
-                color: alexStatus === 'speaking' ? 'var(--accent-primary)' : 'var(--text-muted)',
-                display: 'flex', alignItems: 'center', gap: '5px',
-                
-                zIndex: 2,
-              }}>
-                <div style={{
-                  width: '5px', height: '5px', borderRadius: '50%',
-                  background: alexStatus === 'speaking' ? 'var(--accent-primary)'
-                    : alexStatus === 'thinking' ? 'var(--accent-amber)' : 'var(--text-muted)',
-                  animation: alexStatus !== 'listening' ? 'pulse 1.4s ease-in-out infinite' : 'none',
-                }} />
+        {/* Stage */}
+        <div className="grid min-h-0 flex-1 gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,1fr)]">
+          <div className="grid min-h-0 gap-4 sm:grid-cols-2 lg:grid-cols-1 lg:grid-rows-2">
+            <Card padded={false} className={cn('relative flex min-h-[220px] items-center justify-center overflow-hidden transition-colors', alexStatus === 'speaking' && 'border-live/50')}>
+              <div className="absolute left-3 top-3 z-10 flex items-center gap-2 rounded-full border border-line bg-raised px-3 py-1 text-xs font-medium text-fg-2">
+                <span
+                  className={cn('h-1.5 w-1.5 rounded-full', alexStatus === 'speaking' ? 'bg-live' : alexStatus === 'thinking' ? 'bg-signal' : 'bg-fg-3')}
+                  style={alexStatus !== 'listening' ? { animation: 'pulse 1.4s ease-in-out infinite' } : undefined}
+                  aria-hidden
+                />
                 Alex · {alexStatus}
               </div>
-
-              {/* Glowing Interactive Audio Orb */}
-              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <div className="h-full w-full">
                 <AudioOrb status={alexStatus} waveData={waveData} />
               </div>
-            </div>
+            </Card>
 
-            {/* User Camera Card */}
-            <div style={{
-              background: '#000',
-              borderRadius: '16px',
-              border: '1px solid var(--border)',
-              position: 'relative',
-              overflow: 'hidden',
-            }}>
+            <div className="relative min-h-[220px] overflow-hidden rounded-panel border border-line bg-black">
               <video
                 ref={videoRef}
-                autoPlay playsInline muted
-                style={{ width: '100%', height: '100%', objectFit: 'cover', transform: 'scaleX(-1)', display: isCameraOff ? 'none' : 'block' }}
+                autoPlay
+                playsInline
+                muted
+                aria-label="Your camera preview"
+                className={cn('h-full w-full object-cover', isCameraOff && 'hidden')}
+                style={{ transform: 'scaleX(-1)' }}
               />
               {isCameraOff && (
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexDirection: 'column', gap: '8px', color: 'var(--text-muted)',
-                }}>
-                  <VideoOff size={32} />
-                  <span style={{ fontSize: '13px' }}>Camera off</span>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-3">
+                  <VideoOff size={30} aria-hidden />
+                  <span className="text-[13px]">Camera off</span>
                 </div>
               )}
-              {/* User label + mic wave */}
-              <div style={{
-                position: 'absolute', bottom: '12px', left: '12px',
-                display: 'flex', alignItems: 'center', gap: '8px',
-                background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
-                padding: '4px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: '#fff',
-              }}>
+              <div className="absolute bottom-3 left-3 flex items-center gap-2 rounded-control bg-black/65 px-2.5 py-1 text-xs font-medium text-white backdrop-blur">
                 <span>You</span>
                 {!isMuted && (
-                  <div style={{ display: 'flex', gap: '2px', alignItems: 'center', height: '14px' }}>
+                  <span className="flex h-3.5 items-center gap-0.5" aria-hidden>
                     {userWaveData.slice(0, 12).map((h, i) => (
-                      <div key={i} style={{ width: '2px', height: `${Math.min(14, h / 3)}px`, background: 'var(--accent-primary)', borderRadius: '1px' }} />
+                      <span key={i} className="w-0.5 rounded-sm bg-live" style={{ height: `${Math.max(2, Math.min(14, h / 3))}px` }} />
                     ))}
-                  </div>
+                  </span>
                 )}
-                {isMuted && <MicOff size={11} style={{ color: 'var(--accent-red)' }} />}
+                {isMuted && <MicOff size={11} className="text-bad" aria-label="Muted" />}
               </div>
             </div>
           </div>
 
-          {/* Live Transcript Panel */}
-          <div style={{
-            flex: 1,
-            background: 'var(--bg-surface)',
-            borderRadius: '16px',
-            border: '1px solid var(--border)',
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-          }}>
-            <div style={{
-              padding: '12px 18px',
-              borderBottom: '1px solid var(--border)',
-              display: 'flex', alignItems: 'center', gap: '8px',
-              fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
-              
-            }}>
-              <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--accent-primary)', animation: sessionState === 'live' ? 'pulse 1.4s ease-in-out infinite' : 'none' }} />
-              Live Transcript
+          {/* Live transcript */}
+          <Card padded={false} className="flex min-h-[280px] flex-col overflow-hidden lg:min-h-0">
+            <div className="flex items-center gap-2 border-b border-line px-4 py-3 text-[13px] font-medium text-fg-2">
+              {live && <span className="live-dot" aria-hidden />}
+              Live transcript
             </div>
-            <div
-              ref={transcriptContainerRef}
-              style={{
-                flex: 1, padding: '16px 20px', overflowY: 'auto',
-                display: 'flex', flexDirection: 'column', gap: '10px',
-              }}
-            >
+            <div ref={transcriptContainerRef} className="flex flex-1 flex-col gap-3 overflow-y-auto p-4" role="log" aria-live="polite" aria-label="Interview transcript">
               {transcript.length === 0 ? (
-                <div style={{ margin: 'auto', color: 'var(--text-muted)', fontSize: '13px', textAlign: 'center', lineHeight: 1.6 }}>
-                  <Sparkles size={20} style={{ marginBottom: '8px', opacity: 0.5 }} />
-                  <br />Connecting voice stream…<br />Say hello to Alex!
+                <div className="m-auto max-w-xs text-center text-[13px] leading-relaxed text-fg-3">
+                  <Sparkles size={20} className="mx-auto mb-2 opacity-60" aria-hidden />
+                  Connecting the voice stream. When it is live, say hello to Alex.
                 </div>
               ) : (
                 transcript.map((entry, i) => (
                   <div key={i}>
                     {pastTranscriptCountRef.current > 0 && i === pastTranscriptCountRef.current && (
-                      <div style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '12px',
-                        margin: '12px 0',
-                        color: 'var(--accent-primary)',
-                        fontSize: '12px',
-                        fontWeight: 700,
-                        
-                        
-                      }}>
-                        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
-                        <span>✦ Session Continued · Resumed From Here ✦</span>
-                        <div style={{ flex: 1, height: '1px', background: 'var(--border)' }} />
+                      <div className="my-3 flex items-center gap-3 text-xs font-medium text-signal">
+                        <span className="h-px flex-1 bg-line" />
+                        <span>Session resumed from here</span>
+                        <span className="h-px flex-1 bg-line" />
                       </div>
                     )}
-                    <div style={{
-                      alignSelf: entry.role === 'user' ? 'flex-end' : 'flex-start',
-                      maxWidth: '75%',
-                      marginLeft: entry.role === 'user' ? 'auto' : '0',
-                      padding: '9px 13px',
-                      borderRadius: '12px',
-                      background: entry.role === 'user' ? 'var(--accent-primary-dim)' : 'var(--bg-elevated)',
-                      border: `1px solid ${entry.role === 'user' ? 'rgba(var(--accent-primary-rgb), 0.25)' : 'var(--border)'}`,
-                      color: 'var(--text-primary)',
-                      fontSize: '13.5px',
-                      lineHeight: 1.55,
-                    }}>
-                      <div style={{ fontSize: '12px', color: entry.role === 'user' ? 'var(--accent-primary)' : 'var(--text-muted)', marginBottom: '3px', fontWeight: 700, }}>
-                        {entry.role === 'user' ? 'YOU' : 'ALEX'}
+                    <div
+                      className={cn(
+                        'max-w-[80%] rounded-panel border px-3.5 py-2.5 text-[13.5px] leading-relaxed',
+                        entry.role === 'user' ? 'ml-auto border-signal/25 bg-signal/10 text-fg' : 'border-line bg-raised text-fg'
+                      )}
+                    >
+                      <div className={cn('mb-0.5 text-xs font-semibold', entry.role === 'user' ? 'text-signal' : 'text-fg-3')}>
+                        {entry.role === 'user' ? 'You' : 'Alex'}
                       </div>
                       {entry.text}
                     </div>
@@ -1198,12 +1080,11 @@ function InterviewStudioContent() {
                 ))
               )}
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     );
   }
-
 
   // ==========================================
   // RENDER: SESSION COMPLETED SCREEN
@@ -1211,65 +1092,35 @@ function InterviewStudioContent() {
   if (sessionState === 'complete') {
     const isTeach = activeMode === 'teach';
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'clamp(24px, 6vw, 40px) 16px' }}>
-        <div style={{ maxWidth: '560px', width: '100%', textAlign: 'center' }}>
-          <div style={{
-            width: '72px', height: '72px', borderRadius: '50%',
-            background: 'var(--accent-primary-dim)',
-            border: '2px solid var(--accent-primary)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px',
-            
-            color: 'var(--accent-primary)',
-          }}>
-            <CheckCircle2 size={34} />
-          </div>
-          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
-            {isTeach ? 'Lesson Complete!' : 'Session Concluded'}
-          </h1>
-          <p className="text-[15px] text-fg-2">
-            {isTeach
-              ? `Great learning session with Alex! Duration: ${formatTime(sessionTime)}.`
-              : `Great work! Duration: ${formatTime(sessionTime)}.`}
+      <div className="flex min-h-full items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md text-center">
+          <span className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full border border-good/40 bg-good/10 text-good">
+            <CheckCircle2 size={30} aria-hidden />
+          </span>
+          <h1 className="font-display text-[28px] font-bold tracking-tight text-fg">{isTeach ? 'Lesson complete' : 'Session complete'}</h1>
+          <p className="mt-2 text-[15px] text-fg-2">
+            {isTeach ? 'Nice work with Alex.' : 'Nice work.'} You practised for <span className="font-mono text-fg">{formatTime(sessionTime)}</span>.
           </p>
           {!isTeach && (
-            <p style={{ fontSize: '14px', color: 'var(--text-muted)', marginBottom: '32px' }}>
-              {isGeneratingReport ? 'Generating your performance evaluation…' : 'Your session has been saved.'}
+            <p className="mt-1 text-sm text-fg-3" role="status">
+              {isGeneratingReport ? 'Generating your evaluation…' : 'Your session is saved.'}
             </p>
           )}
-          {isTeach && <div style={{ marginBottom: '32px' }} />}
 
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap' }}>
-            {/* Report button — interview sessions only */}
+          <div className="mt-8 flex flex-wrap justify-center gap-3">
             {!isTeach && (
               isGeneratingReport ? (
-                <div style={{
-                  display: 'flex', alignItems: 'center', gap: '8px',
-                  padding: '12px 24px', borderRadius: '10px',
-                  background: 'var(--bg-elevated)', border: '1px solid var(--border)',
-                  color: 'var(--text-muted)', fontSize: '14px',
-                }}>
-                  <div style={{ width: '14px', height: '14px', borderRadius: '50%', border: '2px solid var(--border)', borderTopColor: 'var(--accent-primary)', animation: 'spin 0.9s linear infinite' }} />
-                  Generating report…
-                </div>
+                <Button variant="secondary" loading disabled>Generating report…</Button>
               ) : generatedReportId ? (
-                <Link
-                  href={`/reports/${generatedReportId}`}
-                  style={{
-                    display: 'inline-flex', alignItems: 'center', gap: '8px',
-                    padding: '12px 24px', borderRadius: '10px',
-                    background: 'var(--accent-primary)', color: 'var(--text-on-accent)',
-                    fontWeight: 700, fontSize: '14px', textDecoration: 'none',
-                    
-                  }}
-                >
-                  <FileText size={16} />
-                  View Evaluation Report
-                </Link>
+                <ButtonLink href={`/reports/${generatedReportId}`} size="lg">
+                  <FileText size={16} aria-hidden /> View evaluation report
+                </ButtonLink>
               ) : null
             )}
 
-            <button
+            <Button
+              variant="secondary"
+              size="lg"
               onClick={() => {
                 setSessionState('hub');
                 setTranscript([]);
@@ -1277,20 +1128,9 @@ function InterviewStudioContent() {
                 setSessionId(null);
                 setGeneratedReportId(null);
               }}
-              style={{
-                padding: '12px 24px', borderRadius: '10px',
-                background: 'var(--bg-elevated)',
-                border: '1px solid var(--border)',
-                color: 'var(--text-primary)',
-                fontSize: '14px', fontWeight: 600,
-                cursor: 'pointer', fontFamily: 'var(--font-body)',
-                transition: 'border-color 0.15s',
-              }}
-              onMouseEnter={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border-hover)'; }}
-              onMouseLeave={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--border)'; }}
             >
-              ← Back to Studio
-            </button>
+              Back to studio
+            </Button>
           </div>
         </div>
       </div>
@@ -1300,362 +1140,171 @@ function InterviewStudioContent() {
   // ==========================================
   // RENDER: STUDIO HUB (Default)
   // ==========================================
+  const modes = [
+    { id: 'interview' as const, icon: Mic, title: 'Interview', desc: 'Adaptive technical and behavioural questions with live feedback' },
+    { id: 'teach' as const, icon: BookOpen, title: 'Teach me a topic', desc: 'Interactive walkthroughs of architecture and concepts' },
+  ];
+
   return (
-    <div className="page-container" style={{ maxWidth: '960px', margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '28px', flexWrap: 'wrap', gap: '16px' }}>
-        <div>
-          <h1 className="font-display mb-1.5 text-[26px] font-bold leading-tight tracking-tight text-fg sm:text-[32px]">
-            AI Interview Studio
-          </h1>
-          <p className="text-[15px] text-fg-2">
-            Practice real-time voice interviews or get step-by-step topic tutoring with Alex
-          </p>
-        </div>
+    <div className="page-container" style={{ maxWidth: 960 }}>
+      <PageHeader
+        title="AI interview studio"
+        description="Practise a live voice interview, or learn a topic step by step with Alex."
+        action={
+          <Button size="lg" onClick={() => startSession()}>
+            <Play size={16} className="fill-current" aria-hidden /> Start {activeMode === 'interview' ? 'interview' : 'lesson'}
+          </Button>
+        }
+      />
 
-        <button
-          onClick={() => startSession()}
-          className="btn-primary"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '8px',
-            fontSize: '15px',
-            fontWeight: 700,
-            padding: '12px 24px',
-            borderRadius: '12px',
-            cursor: 'pointer',
-            border: 'none',
-            color: 'var(--text-on-accent)',
-            
-          }}
-        >
-          <Play size={16} fill="currentColor" color="currentColor" />
-          <span>Start {activeMode === 'interview' ? 'Interview' : 'Lesson'}</span>
-        </button>
+      <div className="mb-6 grid gap-3 sm:grid-cols-2" role="radiogroup" aria-label="Session type">
+        {modes.map(({ id, icon: Icon, title, desc }) => {
+          const on = activeMode === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="radio"
+              aria-checked={on}
+              onClick={() => setActiveMode(id)}
+              className={cn('flex items-start gap-3.5 rounded-panel border p-4 text-left transition-colors', on ? 'border-signal bg-signal/10' : 'border-line bg-panel hover:border-line-strong hover:bg-raised')}
+            >
+              <span className={cn('flex h-10 w-10 shrink-0 items-center justify-center rounded-control', on ? 'bg-signal/15 text-signal' : 'bg-raised text-fg-3')}>
+                <Icon size={18} aria-hidden />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-fg">{title}</span>
+                <span className="mt-0.5 block text-[13px] leading-snug text-fg-3">{desc}</span>
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Mode Tabs — borderless modern segmented pill switch */}
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(2, 1fr)',
-        gap: '4px',
-        background: 'var(--bg-elevated)',
-        padding: '4px',
-        borderRadius: '14px',
-        marginBottom: '28px',
-      }}>
-        <button
-          onClick={() => setActiveMode('interview')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            cursor: 'pointer',
-            background: activeMode === 'interview' ? 'var(--bg-surface)' : 'transparent',
-            boxShadow: activeMode === 'interview' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            transition: 'all 0.2s ease',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            background: activeMode === 'interview' ? 'var(--accent-primary-dim)' : 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: activeMode === 'interview' ? 'var(--accent-primary)' : 'var(--text-muted)',
-            flexShrink: 0,
-          }}>
-            <Mic size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: activeMode === 'interview' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-              Interview
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-              Adaptive technical & behavioral questions with real-time feedback
-            </div>
-          </div>
-        </button>
-
-        <button
-          onClick={() => setActiveMode('teach')}
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '12px',
-            padding: '12px 18px',
-            borderRadius: '10px',
-            border: 'none',
-            cursor: 'pointer',
-            background: activeMode === 'teach' ? 'var(--bg-surface)' : 'transparent',
-            boxShadow: activeMode === 'teach' ? '0 1px 3px rgba(0,0,0,0.08)' : 'none',
-            transition: 'all 0.2s ease',
-            textAlign: 'left',
-          }}
-        >
-          <div style={{
-            width: '36px',
-            height: '36px',
-            borderRadius: '8px',
-            background: activeMode === 'teach' ? 'var(--accent-primary-dim)' : 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: activeMode === 'teach' ? 'var(--accent-primary)' : 'var(--text-muted)',
-            flexShrink: 0,
-          }}>
-            <BookOpen size={18} />
-          </div>
-          <div>
-            <div style={{ fontSize: '14px', fontWeight: 700, color: activeMode === 'teach' ? 'var(--text-primary)' : 'var(--text-secondary)' }}>
-              Teach me a topic
-            </div>
-            <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-              Interactive walkthroughs breaking down architecture & concepts
-            </div>
-          </div>
-        </button>
-      </div>
-
-      {/* Mode Configuration Card (NO "Select Interview Format" cards!) */}
-      <div style={{
-        background: 'var(--bg-surface)',
-        border: '1px solid var(--border)',
-        borderRadius: '16px',
-        padding: '24px',
-        marginBottom: '36px',
-      }}>
+      <Card className="mb-10 p-5 sm:p-6">
         {activeMode === 'interview' ? (
-          <div>
-            <div style={{ marginBottom: '18px' }}>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                Target Role
-              </label>
-              <input
-                className="input"
-                placeholder="e.g. Senior Backend Engineer, Fullstack Developer..."
-                value={targetRole}
-                onChange={(e) => setTargetRole(e.target.value)}
-                style={{ width: '100%', padding: '12px 14px', fontSize: '14px' }}
-              />
-            </div>
-
-            <div>
-              <label style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>
-                Specific Topic or Focus Area (Optional)
-              </label>
-              <input
-                className="input"
-                placeholder="e.g. Distributed caching, Kubernetes scaling, Stripe system design..."
-                value={customTopic}
-                onChange={(e) => setCustomTopic(e.target.value)}
-                style={{ width: '100%', padding: '12px 14px', fontSize: '14px' }}
-              />
-            </div>
+          <div className="space-y-5">
+            <Field label="Target role">
+              {a => <Input {...a} placeholder="Senior Backend Engineer" value={targetRole} onChange={e => setTargetRole(e.target.value)} />}
+            </Field>
+            <Field label="Topic or focus area (optional)">
+              {a => <Input {...a} placeholder="Distributed caching, Kubernetes scaling, Stripe system design" value={customTopic} onChange={e => setCustomTopic(e.target.value)} />}
+            </Field>
           </div>
         ) : (
-          <div>
-            <div style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '12px' }}>
-              Select a Topic or Enter Your Own
+          <div className="space-y-4">
+            <div className="text-[13px] font-medium text-fg">Pick a topic, or type your own</div>
+            <div className="flex flex-wrap gap-2" role="group" aria-label="Suggested topics">
+              {TEACH_TOPICS.map(topic => {
+                const on = selectedTopic === topic;
+                return (
+                  <button
+                    key={topic}
+                    type="button"
+                    aria-pressed={on}
+                    onClick={() => { setSelectedTopic(topic); setCustomTopic(''); }}
+                    className={cn('rounded-full border px-3.5 py-1.5 text-[13px] font-medium transition-colors', on ? 'border-signal bg-signal text-[var(--text-on-accent)]' : 'border-line bg-raised text-fg-2 hover:border-line-strong')}
+                  >
+                    {topic}
+                  </button>
+                );
+              })}
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', marginBottom: '18px' }}>
-              {TEACH_TOPICS.map((topic) => (
-                <button
-                  key={topic}
-                  onClick={() => {
-                    setSelectedTopic(topic);
-                    setCustomTopic('');
-                  }}
-                  style={{
-                    padding: '8px 16px',
-                    borderRadius: '100px',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    border: 'none',
-                    cursor: 'pointer',
-                    background: selectedTopic === topic ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                    color: selectedTopic === topic ? 'var(--text-on-accent)' : 'var(--text-secondary)',
-                    transition: 'all 0.15s ease',
-                    boxShadow: selectedTopic === topic ? '0 2px 8px var(--accent-primary-glow)' : 'none',
-                  }}
-                >
-                  {topic}
-                </button>
-              ))}
-            </div>
-
-            <input
-              className="input"
-              placeholder="Or type any custom topic (e.g. LSM Trees, Raft consensus, WebRTC)..."
+            <Input
+              aria-label="Custom topic"
+              placeholder="Or type any topic, for example LSM trees, Raft consensus or WebRTC"
               value={customTopic}
-              onChange={(e) => {
-                setCustomTopic(e.target.value);
-                setSelectedTopic('');
-              }}
-              style={{ width: '100%', padding: '12px 14px', fontSize: '14px' }}
+              onChange={e => { setCustomTopic(e.target.value); setSelectedTopic(''); }}
             />
           </div>
         )}
-      </div>
+      </Card>
 
-      {/* Past Sessions (Filtered strictly by mode) */}
-      <div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h2 style={{ fontSize: '18px', fontWeight: 700, color: 'var(--text-primary)' }}>
-            Past {activeMode === 'interview' ? 'Interview' : 'Topic Tutoring'} Sessions
-          </h2>
-          {filteredSessions.length > 0 && (
-            <Link href="/reports" style={{ fontSize: '13px', color: 'var(--accent-primary)', textDecoration: 'none', fontWeight: 600 }}>
-              View all reports
-            </Link>
-          )}
-        </div>
+      <section aria-labelledby="past-sessions">
+        <SectionHeader
+          title={`Past ${activeMode === 'interview' ? 'interview' : 'tutoring'} sessions`}
+          action={filteredSessions.length > 0 ? <Link href="/reports" className="text-sm font-medium text-signal hover:underline">View all reports</Link> : undefined}
+        />
+        <span id="past-sessions" className="sr-only">Past sessions</span>
 
         {filteredSessions.length === 0 ? (
-          <div style={{
-            padding: '40px 24px',
-            background: 'var(--bg-surface)',
-            border: '1px solid var(--border)',
-            borderRadius: '16px',
-            textAlign: 'center',
-          }}>
-            <div style={{ marginBottom: '10px', color: 'var(--accent-primary)', display: 'flex', justifyContent: 'center' }}><Mic size={30} aria-hidden /></div>
-            <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '4px' }}>
-              No {activeMode === 'interview' ? 'interview' : 'tutoring'} sessions yet
-            </div>
-            <div style={{ fontSize: '13px', color: 'var(--text-muted)', maxWidth: '340px', margin: '0 auto 16px', lineHeight: 1.5 }}>
-              Click &quot;Start {activeMode === 'interview' ? 'Interview' : 'Lesson'}&quot; above to launch your voice session with Alex.
-            </div>
-          </div>
+          <EmptyState
+            icon={<Mic size={20} aria-hidden />}
+            title={`No ${activeMode === 'interview' ? 'interview' : 'tutoring'} sessions yet`}
+            description={`Choose Start ${activeMode === 'interview' ? 'interview' : 'lesson'} above to open a voice session with Alex.`}
+          />
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {filteredSessions.slice(0, 10).map((session) => {
-              const report = session.interview_reports?.[0];
-              const isCompleted = session.state === 'COMPLETE';
-              const sessionTitle = session.plan?.topic || session.plan?.role || (activeMode === 'teach' ? 'Topic Tutoring' : 'Technical Interview');
+          <Card padded={false} className="overflow-hidden">
+            <ul className="divide-y divide-line">
+              {filteredSessions.slice(0, 10).map(session => {
+                const report = session.interview_reports?.[0];
+                const isCompleted = session.state === 'COMPLETE';
+                const sessionTitle = session.plan?.topic || session.plan?.role || (activeMode === 'teach' ? 'Topic tutoring' : 'Technical interview');
+                const score = report?.overall_score;
 
-              return (
-                <div
-                  key={session.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '16px 20px',
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--border)',
-                    borderRadius: '12px',
-                    gap: '16px',
-                    flexWrap: 'wrap',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
-                    <div style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: 'rgba(var(--accent-primary-rgb), 0.08)',
-                      border: '1px solid rgba(var(--accent-primary-rgb), 0.2)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '18px',
-                    }}>
-                      {activeMode === 'teach' ? <BookOpen size={18} aria-hidden /> : <Mic size={18} aria-hidden />}
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '15px', fontWeight: 700, color: 'var(--text-primary)', marginBottom: '2px' }}>
-                        {sessionTitle}
-                      </div>
-                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
-                        {formatDate(session.created_at)}
+                return (
+                  <li key={session.id} className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-5 py-4">
+                    <div className="flex min-w-0 items-center gap-3.5">
+                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control border border-line bg-raised text-signal">
+                        {activeMode === 'teach' ? <BookOpen size={17} aria-hidden /> : <Mic size={17} aria-hidden />}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium text-fg">{sessionTitle}</div>
+                        <div className="text-xs text-fg-3">{formatDate(session.created_at)}</div>
                       </div>
                     </div>
-                  </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    {isCompleted && report ? (
-                      <div style={{ textAlign: 'right', marginRight: '4px' }}>
-                        <div style={{ fontSize: '17px', fontWeight: 700, color: 'var(--accent-primary)' }}>
-                          {report.overall_score}%
+                    <div className="flex items-center gap-3">
+                      {isCompleted && report ? (
+                        <div className="mr-1 text-right">
+                          <div className={cn('font-mono text-lg font-semibold leading-none', typeof score === 'number' && (score >= 80 ? 'text-good' : score >= 60 ? 'text-live' : 'text-bad'))}>{score}%</div>
+                          <div className="mt-1 text-[12px] text-fg-3">Score</div>
                         </div>
-                        <div style={{ fontSize: '12px', color: 'var(--text-muted)', }}>
-                          Score
-                        </div>
-                      </div>
-                    ) : (
-                      <div style={{ fontSize: '12px', color: 'var(--accent-amber)', fontWeight: 600 }}>
-                        {session.state === 'IN_PROGRESS' ? '● In Progress' : '● Incomplete'}
-                      </div>
-                    )}
+                      ) : (
+                        <Badge tone="live">{session.state === 'IN_PROGRESS' ? 'In progress' : 'Incomplete'}</Badge>
+                      )}
 
-                    {/* Report button if available */}
-                    {report && (
-                      <Link
-                        href={`/reports/${report.id}`}
-                        style={{
-                          padding: '8px 14px',
-                          background: 'var(--bg-elevated)',
-                          border: '1px solid var(--border)',
-                          borderRadius: '8px',
-                          color: 'var(--text-primary)',
-                          textDecoration: 'none',
-                          fontSize: '13px',
-                          fontWeight: 600,
-                        }}
+                      {report && (
+                        <ButtonLink href={`/reports/${report.id}`} variant="secondary" size="sm">Report</ButtonLink>
+                      )}
+
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() =>
+                          startSession(
+                            session.id,
+                            session.plan?.topic,
+                            session.plan?.role,
+                            (session.interview_type === 'teach' || session.plan?.mode === 'teach') ? 'teach' : 'interview'
+                          )
+                        }
                       >
-                        Report
-                      </Link>
-                    )}
-
-                    {/* Continue Button — always working */}
-                    <button
-                      onClick={() =>
-                        startSession(
-                          session.id,
-                          session.plan?.topic,
-                          session.plan?.role,
-                          (session.interview_type === 'teach' || session.plan?.mode === 'teach') ? 'teach' : 'interview'
-                        )
-                      }
-                      style={{
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                        padding: '8px 14px',
-                        background: 'var(--accent-primary-dim)',
-                        border: '1px solid var(--accent-primary)',
-                        borderRadius: '8px',
-                        color: 'var(--accent-primary)',
-                        fontSize: '13px',
-                        fontWeight: 600,
-                        cursor: 'pointer',
-                      }}
-                    >
-                      <RotateCcw size={13} />
-                      <span>Continue</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+                        <RotateCcw size={13} aria-hidden /> Continue
+                      </Button>
+                    </div>
+                  </li>
+                );
+              })}
+            </ul>
+          </Card>
         )}
-      </div>
+      </section>
     </div>
   );
 }
 
 export default function AIInterviewPage() {
   return (
-    <Suspense fallback={<div style={{ padding: '32px', color: 'var(--text-muted)' }}>Loading AI Studio...</div>}>
+    <Suspense
+      fallback={
+        <div className="page-container" aria-busy="true" aria-label="Loading studio">
+          <Skeleton className="mb-3 h-9 w-72 max-w-full" />
+          <Skeleton className="mb-8 h-4 w-96 max-w-full" />
+          <Skeleton className="h-40 rounded-panel" />
+        </div>
+      }
+    >
       <InterviewStudioContent />
     </Suspense>
   );

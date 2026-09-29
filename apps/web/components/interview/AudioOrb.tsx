@@ -8,10 +8,27 @@ interface AudioOrbProps {
   className?: string;
 }
 
+/** Reads a theme token like "139, 153, 255" so canvas drawing follows light and dark mode. */
+function rgbToken(name: string, fallback: string): string {
+  if (typeof window === 'undefined') return fallback;
+  return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || fallback;
+}
+
+/**
+ * Alex's voice as a ring of bars. The ring stays calm while listening,
+ * pulses with the model's audio while speaking (amber, the on-air colour),
+ * and sweeps slowly while thinking.
+ */
 export function AudioOrb({ status, waveData = [], className }: AudioOrbProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animFrameRef = useRef<number>(0);
   const timeRef = useRef<number>(0);
+  const waveRef = useRef<number[]>(waveData);
+
+  // Keep the latest audio levels without restarting the animation loop on every frame
+  useEffect(() => {
+    waveRef.current = waveData;
+  }, [waveData]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -19,163 +36,87 @@ export function AudioOrb({ status, waveData = [], className }: AudioOrbProps) {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let width = (canvas.width = canvas.offsetWidth || 300);
-    let height = (canvas.height = canvas.offsetHeight || 300);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let width = 0;
+    let height = 0;
 
-    const handleResize = () => {
-      if (!canvas) return;
-      width = canvas.width = canvas.offsetWidth || 300;
-      height = canvas.height = canvas.offsetHeight || 300;
+    const resize = () => {
+      width = canvas.offsetWidth || 300;
+      height = canvas.offsetHeight || 300;
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     };
+    resize();
+    window.addEventListener('resize', resize);
 
-    window.addEventListener('resize', handleResize);
-
-    // Dynamic wave points
-    const pointCount = 64;
-    const baseRadius = Math.min(width, height) * 0.26;
+    const BARS = 72;
 
     const render = () => {
-      timeRef.current += status === 'speaking' ? 0.05 : status === 'thinking' ? 0.035 : 0.02;
+      const signal = rgbToken('--accent-primary-rgb', '139, 153, 255');
+      const live = rgbToken('--accent-amber-rgb', '255, 176, 32');
+      const muted = rgbToken('--text-muted', '#8089a6');
+      const raised = rgbToken('--bg-elevated', '#161d33');
+
+      const speaking = status === 'speaking';
+      const thinking = status === 'thinking';
+      timeRef.current += reduceMotion ? 0 : speaking ? 0.05 : thinking ? 0.04 : 0.018;
       const t = timeRef.current;
+
+      const wave = waveRef.current;
+      const energy = wave.length ? Math.min(1.4, wave.reduce((a, v) => a + v, 0) / (wave.length * 18)) : 0;
 
       ctx.clearRect(0, 0, width, height);
       const cx = width / 2;
       const cy = height / 2;
+      const size = Math.min(width, height);
+      const inner = size * 0.24;
+      const maxBar = size * 0.2;
+      const accent = speaking ? live : signal;
 
-      // Calculate audio energy from waveData
-      let audioEnergy = 0;
-      if (waveData && waveData.length > 0) {
-        const sum = waveData.reduce((acc, val) => acc + val, 0);
-        audioEnergy = Math.min(1.5, sum / (waveData.length * 18));
-      }
-      if (status === 'speaking' && audioEnergy < 0.2) {
-        audioEnergy = 0.35 + Math.sin(t * 3) * 0.2;
-      }
-
-      // Color scheme based on state
-      let coreColor1 = 'rgba(var(--accent-primary-rgb), 0.9)';   // emerald
-      let coreColor2 = 'rgba(0, 210, 255, 0.8)';   // cyan
-      let outerGlow = 'rgba(var(--accent-primary-rgb), 0.25)';
-      let rimColor = 'var(--accent-primary)';
-
-      if (status === 'speaking') {
-        coreColor1 = 'rgba(0, 240, 255, 0.95)';
-        coreColor2 = 'rgba(139, 92, 246, 0.9)';   // violet flare
-        outerGlow = 'rgba(0, 220, 255, 0.35)';
-        rimColor = '#38BDF8';
-      } else if (status === 'thinking') {
-        coreColor1 = 'rgba(251, 191, 36, 0.9)';   // amber
-        coreColor2 = 'rgba(244, 63, 94, 0.8)';    // rose
-        outerGlow = 'rgba(251, 191, 36, 0.25)';
-        rimColor = '#FBBF24';
-      }
-
-      // 1. Ambient Background Aura
-      const ambientRadius = baseRadius * (1.6 + (status === 'speaking' ? audioEnergy * 0.5 : Math.sin(t) * 0.08));
-      const ambientGrad = ctx.createRadialGradient(cx, cy, baseRadius * 0.3, cx, cy, ambientRadius);
-      ambientGrad.addColorStop(0, outerGlow);
-      ambientGrad.addColorStop(0.5, outerGlow.replace(/[\d.]+\)$/, '0.08)'));
-      ambientGrad.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = ambientGrad;
+      // core
       ctx.beginPath();
-      ctx.arc(cx, cy, ambientRadius, 0, Math.PI * 2);
+      ctx.arc(cx, cy, inner * 0.92, 0, Math.PI * 2);
+      ctx.fillStyle = raised;
+      ctx.fill();
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(${accent}, ${speaking ? 0.9 : 0.5})`;
+      ctx.stroke();
+
+      // soft pulse inside the core
+      const pulse = speaking ? 0.35 + energy * 0.35 : 0.18 + Math.sin(t * 1.4) * 0.06;
+      ctx.beginPath();
+      ctx.arc(cx, cy, inner * (0.28 + pulse * 0.4), 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(${accent}, ${0.35 + pulse * 0.5})`;
       ctx.fill();
 
-      // 2. Harmonic Outer Wave Rings
-      const ringCount = status === 'speaking' ? 3 : 2;
-      for (let r = 0; r < ringCount; r++) {
-        ctx.beginPath();
-        const ringOffset = r * 0.3;
-        const ringRadius = baseRadius * (1.15 + r * 0.2 + (status === 'speaking' ? audioEnergy * 0.25 : Math.sin(t + ringOffset) * 0.04));
-
-        for (let i = 0; i <= pointCount; i++) {
-          const angle = (i / pointCount) * Math.PI * 2;
-          const waveIdx = i % (waveData.length || 1);
-          const rawWave = waveData[waveIdx] || 4;
-          const waveVal = status === 'speaking' ? (rawWave / 60) * 16 : Math.sin(angle * 4 + t * 2 + ringOffset) * 4;
-
-          const dist = ringRadius + waveVal;
-          const px = cx + Math.cos(angle) * dist;
-          const py = cy + Math.sin(angle) * dist;
-
-          if (i === 0) ctx.moveTo(px, py);
-          else ctx.lineTo(px, py);
-        }
-        ctx.closePath();
-        ctx.strokeStyle = r === 0 ? rimColor : outerGlow;
-        ctx.lineWidth = r === 0 ? 1.8 : 1;
-        ctx.stroke();
-      }
-
-      // 3. Central Morphing Sphere Surface
-      ctx.beginPath();
-      for (let i = 0; i <= pointCount; i++) {
-        const angle = (i / pointCount) * Math.PI * 2;
-        const waveIdx = i % (waveData.length || 1);
-        const rawWave = waveData[waveIdx] || 4;
-        
-        let distortion = 0;
-        if (status === 'speaking') {
-          distortion = (rawWave / 60) * 22 * audioEnergy + Math.sin(angle * 6 + t * 4) * 8;
-        } else if (status === 'thinking') {
-          distortion = Math.sin(angle * 5 + t * 3) * 6;
+      // bars
+      ctx.lineCap = 'round';
+      ctx.lineWidth = Math.max(2, size * 0.012);
+      for (let i = 0; i < BARS; i++) {
+        const angle = (i / BARS) * Math.PI * 2 - Math.PI / 2;
+        let h: number;
+        if (speaking) {
+          const raw = wave.length ? wave[i % wave.length] : 4;
+          h = 0.08 + Math.min(1, raw / 60) * (0.55 + energy * 0.4) + Math.sin(angle * 5 + t * 3) * 0.05;
+        } else if (thinking) {
+          const sweep = (Math.sin(angle - t * 2) + 1) / 2;
+          h = 0.08 + sweep * 0.28;
         } else {
-          distortion = Math.sin(angle * 3 + t * 1.8) * 3 + Math.cos(angle * 2 - t) * 2;
+          h = 0.07 + (Math.sin(angle * 3 + t) + 1) * 0.03;
         }
-
-        const r = baseRadius + distortion;
-        const x = cx + Math.cos(angle) * r;
-        const y = cy + Math.sin(angle) * r;
-
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.closePath();
-
-      // Sphere core gradient
-      const coreGrad = ctx.createRadialGradient(
-        cx - baseRadius * 0.25,
-        cy - baseRadius * 0.25,
-        baseRadius * 0.1,
-        cx,
-        cy,
-        baseRadius * 1.2
-      );
-      coreGrad.addColorStop(0, '#FFFFFF');
-      coreGrad.addColorStop(0.2, coreColor1);
-      coreGrad.addColorStop(0.7, coreColor2);
-      coreGrad.addColorStop(1, 'rgba(10, 15, 28, 0.95)');
-
-      ctx.fillStyle = coreGrad;
-      ctx.shadowColor = rimColor;
-      ctx.shadowBlur = status === 'speaking' ? 24 : 12;
-      ctx.fill();
-      ctx.shadowBlur = 0; // Reset shadow
-
-      // 4. Iridescent Inner Rings / Filament Details
-      ctx.save();
-      ctx.beginPath();
-      ctx.arc(cx, cy, baseRadius * 0.9, 0, Math.PI * 2);
-      ctx.clip();
-
-      for (let j = 0; j < 3; j++) {
+        h = Math.max(0.06, h);
+        const r0 = inner * 1.08;
+        const r1 = r0 + h * maxBar;
         ctx.beginPath();
-        const innerAngleOffset = t * (j % 2 === 0 ? 1 : -1.2) + j;
-        const innerRadius = baseRadius * (0.35 + j * 0.22);
-        ctx.ellipse(
-          cx + Math.cos(innerAngleOffset) * (baseRadius * 0.15),
-          cy + Math.sin(innerAngleOffset) * (baseRadius * 0.15),
-          innerRadius,
-          innerRadius * 0.6,
-          innerAngleOffset,
-          0,
-          Math.PI * 2
-        );
-        ctx.strokeStyle = j === 0 ? 'rgba(255,255,255,0.6)' : outerGlow;
-        ctx.lineWidth = 1.4;
+        ctx.moveTo(cx + Math.cos(angle) * r0, cy + Math.sin(angle) * r0);
+        ctx.lineTo(cx + Math.cos(angle) * r1, cy + Math.sin(angle) * r1);
+        ctx.strokeStyle = speaking || thinking ? `rgba(${accent}, ${0.45 + h * 0.6})` : muted;
+        ctx.globalAlpha = speaking || thinking ? 1 : 0.5;
         ctx.stroke();
+        ctx.globalAlpha = 1;
       }
-      ctx.restore();
 
       animFrameRef.current = requestAnimationFrame(render);
     };
@@ -184,21 +125,18 @@ export function AudioOrb({ status, waveData = [], className }: AudioOrbProps) {
 
     return () => {
       cancelAnimationFrame(animFrameRef.current);
-      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', resize);
     };
-  }, [status, waveData]);
+  }, [status]);
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }} className={className}>
-      <canvas
-        ref={canvasRef}
-        style={{
-          width: '100%',
-          height: '100%',
-          display: 'block',
-          maxHeight: '260px',
-        }}
-      />
+    <div
+      role="img"
+      aria-label={`Alex is ${status}`}
+      style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      className={className}
+    >
+      <canvas ref={canvasRef} style={{ width: '100%', height: '100%', display: 'block', maxHeight: 280 }} />
     </div>
   );
 }
