@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { ChevronsUpDown, Flame, LogOut, Moon, Settings, Sun, Target } from 'lucide-react';
+import { ChevronsUpDown, Flame, LogOut, Moon, Search, Settings, Sun, Target } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/cn';
 import { Avatar } from '@/components/ui/Controls';
@@ -132,11 +132,22 @@ export function UserMenu({ user, mounted, onSignOut }: { user?: ShellUser | null
   );
 }
 
-export function Sidebar({ pathname, user, mounted, onSignOut }: { pathname: string; user?: ShellUser | null; mounted: boolean; onSignOut: () => void }) {
+export function Sidebar({ pathname, user, mounted, onSignOut, onOpenPalette }: { pathname: string; user?: ShellUser | null; mounted: boolean; onSignOut: () => void; onOpenPalette: () => void }) {
   return (
     <aside className="dashboard-sidebar-desktop">
       <div className="shrink-0 px-4 pb-4 pt-5">
         <Logo />
+      </div>
+      <div className="px-3 pb-3">
+        <button
+          type="button"
+          onClick={onOpenPalette}
+          className="flex h-9 w-full items-center gap-2 rounded-control border border-line bg-raised/50 px-3 text-sm text-fg-3 transition-colors hover:border-line-strong hover:text-fg-2"
+        >
+          <Search size={14} aria-hidden />
+          <span className="flex-1 text-left">Search</span>
+          <kbd className="rounded border border-line px-1.5 font-mono text-[11px]">Ctrl K</kbd>
+        </button>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-3">
         <NavList pathname={pathname} />

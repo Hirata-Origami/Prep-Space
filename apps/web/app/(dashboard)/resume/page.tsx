@@ -1,10 +1,10 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
 import {
-  ArrowDown, ArrowUp, Copy, Download, ExternalLink, FileText, Plus, Printer, RotateCcw, Save, Sparkles, Trash2, Upload,
+  ArrowDown, ArrowUp, Copy, Download, ExternalLink, FileText, Github, Mail, Plus, Printer, RotateCcw, Save, Sparkles, Trash2, Upload,
 } from 'lucide-react';
 import {
   useResume,
@@ -13,11 +13,15 @@ import {
 import { generateResumeLatex, normalizeEducation, normalizeProjects, normalizeSkills } from '@/lib/resume/templates';
 import { parseResumeLatex } from '@/lib/resume/parseLatex';
 import { analyzeResume } from '@/lib/resume/ats';
+import { resumeToPlainText } from '@/lib/resume/text';
+import { projectFromRepo, projectMatchesRepo } from '@/lib/github/match';
+import type { GithubIndex, ProjectChoice } from '@/lib/github/types';
+import { GithubPanel } from '@/components/resume/GithubPanel';
 import { ResumePreview } from '@/components/resume/ResumePreview';
 import { TemplatePicker } from '@/components/resume/TemplatePicker';
 import { AtsPanel } from '@/components/resume/AtsPanel';
 import {
-  Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, Textarea,
+  Badge, Button, Card, EmptyState, Field, Input, Modal, PageHeader, Select, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger, Textarea,
 } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
@@ -33,6 +37,27 @@ interface ResumeVersion {
 const EMPTY_SKILLS: SkillCategories = { languages: '', frameworks: '', cloud_and_databases: '', tools_and_architecture: '', area_of_interest: '' };
 const EMPTY_PROFILE: ResumeProfile = { name: '', email: '', phone: '', linkedin: '', github: '', location: '', summary: '', targetRole: '', targetCompany: '' };
 const blankEdu = (): EducationItem => ({ degree: '', institution: '', year: '', score: '' });
+const DRAFT_KEY = 'prepspace_resume_draft';
+
+/** The data the form starts with, in the same shape the snapshot uses, so a draft can be compared to it. */
+function initialFor(initial?: ResumeData): ResumeData {
+  const split = initial ? normalizeProjects(initial) : { workExperience: [], projects: [] };
+  const edu = initial ? normalizeEducation(initial) : [];
+  const skillsCat = initial ? normalizeSkills(initial) : EMPTY_SKILLS;
+  return {
+    templateId: initial?.templateId ?? 'modern-two-column',
+    profile: { ...EMPTY_PROFILE, ...(initial?.profile ?? {}) },
+    experience: split.workExperience,
+    projects: split.projects,
+    education: edu.length ? edu : [blankEdu()],
+    skills: Object.values(skillsCat).filter(Boolean).join(', ').replace(/\n/g, ', '),
+    skills_categorized: skillsCat,
+    achievements: initial?.achievements ?? '',
+    certifications: initial?.certifications ?? '',
+    github: initial?.github,
+    latex_code: '',
+  };
+}
 
 const SKILL_FIELDS: { key: keyof SkillCategories; label: string; placeholder: string }[] = [
   { key: 'languages', label: 'Programming languages', placeholder: 'Python, TypeScript, C++, SQL' },
@@ -89,6 +114,16 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
   const [achievements, setAchievements] = useState(initial?.achievements ?? '');
   const [certifications, setCertifications] = useState(initial?.certifications ?? '');
   const [latexOverride, setLatexOverride] = useState<string | null>(null);
+  const [github, setGithub] = useState<GithubIndex | undefined>(initial?.github);
+  const githubRef = useRef<GithubIndex | undefined>(initial?.github);
+  const [useGithub, setUseGithub] = useState(true);
+  const [maxProjects, setMaxProjects] = useState(4);
+  const [selection, setSelection] = useState<{ choices: ProjectChoice[]; dropped: string[] } | null>(null);
+  const [letter, setLetter] = useState('');
+  const [letterTone, setLetterTone] = useState('professional');
+  const [writingLetter, setWritingLetter] = useState(false);
+  const [savedSnapshot, setSavedSnapshot] = useState('');
+  const [draftOffer, setDraftOffer] = useState<ResumeData | null>(null);
 
   /* ── ui state ── */
   const [editTab, setEditTab] = useState('profile');
@@ -122,12 +157,56 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
   );
   const data: ResumeData = useMemo(() => ({
     templateId, profile, experience, projects, education, skills: flatSkills, skills_categorized: skillsCat,
-    achievements, certifications, latex_code: '',
-  }), [templateId, profile, experience, projects, education, flatSkills, skillsCat, achievements, certifications]);
+    achievements, certifications, github, latex_code: '',
+  }), [templateId, profile, experience, projects, education, flatSkills, skillsCat, achievements, certifications, github]);
 
   const generatedLatex = useMemo(() => generateResumeLatex(data, templateId), [data, templateId]);
   const latex = latexOverride ?? generatedLatex;
   const ats = useMemo(() => analyzeResume(data, templateId, jdText), [data, templateId, jdText]);
+
+  /* ── unsaved changes, local draft and leave guard ── */
+  const snapshot = useMemo(() => JSON.stringify({ ...data, latex_code: '' }), [data]);
+  const dirty = savedSnapshot !== '' && snapshot !== savedSnapshot;
+
+  useEffect(() => {
+    // The first render defines "saved": what the server returned, or a blank form
+    setSavedSnapshot(prev => (prev === '' ? snapshot : prev));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const t = setTimeout(() => {
+      try { localStorage.setItem(DRAFT_KEY, snapshot); } catch { /* storage is optional */ }
+    }, 700);
+    return () => clearTimeout(t);
+  }, [dirty, snapshot]);
+
+  useEffect(() => {
+    if (!dirty) return;
+    const guard = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [dirty]);
+
+  useEffect(() => {
+    try {
+      const pending = sessionStorage.getItem('prepspace_pending_jd');
+      if (pending) {
+        const j = JSON.parse(pending) as { company?: string; role?: string; jd?: string };
+        setJdCompany(j.company ?? '');
+        setJdRole(j.role ?? '');
+        setJdText(j.jd ?? '');
+        setEditTab('tailor');
+        sessionStorage.removeItem('prepspace_pending_jd');
+      }
+    } catch { /* ignore */ }
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (raw && raw !== JSON.stringify({ ...(initialFor(initial)), latex_code: '' })) setDraftOffer(JSON.parse(raw) as ResumeData);
+    } catch { /* ignore a corrupt draft */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   /* ── helpers ── */
   const applyData = (rd: Partial<ResumeData>) => {
@@ -138,6 +217,7 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
     else if (rd.skills) setSkillsCat(normalizeSkills({ ...data, skills: rd.skills, skills_categorized: undefined }));
     if (rd.achievements !== undefined) setAchievements(rd.achievements);
     if (rd.certifications !== undefined) setCertifications(rd.certifications);
+    if (rd.github !== undefined) { setGithub(rd.github); githubRef.current = rd.github; }
     if (rd.education) {
       const edu = normalizeEducation({ ...data, education: rd.education });
       setEducation(edu.length ? edu : [blankEdu()]);
@@ -148,6 +228,8 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
   const persist = async (next?: ResumeData) => {
     const payload = next ?? data;
     await updateResume({ ...payload, latex_code: next ? generateResumeLatex(next, templateId) : latex });
+    setSavedSnapshot(JSON.stringify({ ...payload, latex_code: '' }));
+    try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ }
   };
 
   const handleSave = async () => {
@@ -236,6 +318,8 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
       fd.append('role', roleOverride || jdRole);
       fd.append('template_id', templateId);
       fd.append('resume_data', JSON.stringify(data));
+      fd.append('use_github', useGithub && (github?.projects.length ?? 0) > 0 ? '1' : '0');
+      fd.append('max_projects', String(maxProjects));
       if (roleOverride) fd.append('selected_role', roleOverride);
 
       const res = await fetch('/api/resume/optimize', { method: 'POST', body: fd });
@@ -250,6 +334,7 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
       }
 
       setShowRoleModal(false);
+      setSelection(json.project_selection ?? null);
       if (json.resume_data) applyData(json.resume_data);
       mutateVersions();
       toast.success(`Tailored copy saved as “${json.version_name}”. Your saved resume is unchanged until you press Save.`);
@@ -292,6 +377,45 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
     toast.success('LaTeX copied');
   };
 
+  const writeLetter = async () => {
+    setWritingLetter(true);
+    try {
+      const res = await fetch('/api/resume/cover-letter', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resume_data: data, jd_text: jdText, company: jdCompany || detectedCompany, role: jdRole, tone: letterTone }),
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      setLetter(json.letter);
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not write the letter');
+    } finally {
+      setWritingLetter(false);
+    }
+  };
+
+  const copyPlainText = async () => {
+    await navigator.clipboard.writeText(resumeToPlainText(data));
+    toast.success('Plain text copied. Paste it into application forms.');
+  };
+
+  /* ── github ── */
+  const setGithubIndex = (next: GithubIndex | undefined) => {
+    githubRef.current = next;
+    setGithub(next);
+  };
+  const onGithubIndexed = async () => {
+    try {
+      await updateResume({ ...data, github: githubRef.current, latex_code: latex });
+      setSavedSnapshot(JSON.stringify({ ...data, github: githubRef.current, latex_code: '' }));
+    } catch { /* the Save button still works */ }
+  };
+  const addRepoAsProject = (repo: Parameters<typeof projectFromRepo>[0]) => {
+    setProjects(p => [...p, projectFromRepo(repo)]);
+    toast.success(`Added ${repo.name} to your projects`);
+  };
+
   /* ── list helpers ── */
   const setExp = (i: number, patch: Partial<Experience>) => setExperience(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const setProj = (i: number, patch: Partial<ProjectItem>) => setProjects(p => p.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
@@ -320,12 +444,23 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
             <Button variant="secondary" onClick={handleEnhance} loading={busy === 'enhance'}>
               <Sparkles size={15} aria-hidden /> Improve wording
             </Button>
+            {dirty && <Badge tone="live" className="self-center">Unsaved changes</Badge>}
             <Button onClick={handleSave} loading={saving}>
               <Save size={15} aria-hidden /> Save
             </Button>
           </>
         }
       />
+
+      {draftOffer && (
+        <div role="status" className="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-panel border border-live/30 bg-live/10 px-4 py-3 text-sm text-fg-2">
+          <span>You have an unsaved draft from an earlier visit.</span>
+          <span className="flex gap-2">
+            <Button size="sm" variant="secondary" onClick={() => { applyData(draftOffer); if (draftOffer.templateId) setTemplateId(draftOffer.templateId); setDraftOffer(null); }}>Restore draft</Button>
+            <Button size="sm" variant="ghost" onClick={() => { try { localStorage.removeItem(DRAFT_KEY); } catch { /* ignore */ } setDraftOffer(null); }}>Discard</Button>
+          </span>
+        </div>
+      )}
 
       <section aria-labelledby="tpl-heading" className="mb-6">
         <h2 id="tpl-heading" className="mb-2.5 text-sm font-semibold text-fg">Template</h2>
@@ -354,7 +489,7 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
             <TabsList aria-label="Resume sections" className="mb-5">
               {[
                 ['profile', 'Profile'], ['experience', `Experience (${experience.length})`], ['projects', `Projects (${projects.length})`],
-                ['skills', 'Skills'], ['education', 'Education'], ['extras', 'Achievements'], ['tailor', 'Tailor to a job'],
+                ['skills', 'Skills'], ['education', 'Education'], ['extras', 'Achievements'], ['github', `GitHub (${github?.projects.length ?? 0})`], ['tailor', 'Tailor to a job'],
               ].map(([id, label]) => <TabsTrigger key={id} value={id}>{label}</TabsTrigger>)}
             </TabsList>
 
@@ -476,6 +611,18 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
               </Card>
             </TabsContent>
 
+            {/* github */}
+            <TabsContent value="github" className="outline-none">
+              <GithubPanel
+                profileGithub={profile.github}
+                index={github}
+                isOnResume={r => projects.some(pr => projectMatchesRepo(pr, r))}
+                onChange={setGithubIndex}
+                onIndexed={onGithubIndexed}
+                onAddProject={addRepoAsProject}
+              />
+            </TabsContent>
+
             {/* tailor to a job */}
             <TabsContent value="tailor" className="space-y-5 outline-none">
               <Card className="space-y-4">
@@ -497,9 +644,74 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
                     <input type="file" accept=".pdf,.docx,application/pdf" className="sr-only" onChange={e => { const f = e.target.files?.[0]; if (f) { setJdFile(f); toast.success(`Attached ${f.name}`); } }} />
                   </label>
                 </div>
+                {(github?.projects.length ?? 0) > 0 ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-panel border border-line bg-raised px-4 py-3">
+                    <label className="flex items-center gap-2 text-sm text-fg">
+                      <input type="checkbox" checked={useGithub} onChange={e => setUseGithub(e.target.checked)} className="h-4 w-4 accent-[var(--accent-primary)]" />
+                      Pick the best projects from my {github?.projects.length} indexed GitHub repositories
+                    </label>
+                    <div className="flex items-center gap-2 text-[13px] text-fg-2">
+                      Show up to
+                      <Select aria-label="Number of projects" value={maxProjects} onChange={e => setMaxProjects(Number(e.target.value))} className="h-9 w-16">
+                        {[2, 3, 4, 5, 6].map(n => <option key={n} value={n}>{n}</option>)}
+                      </Select>
+                    </div>
+                  </div>
+                ) : (
+                  <button type="button" onClick={() => setEditTab('github')} className="flex w-full items-center gap-2 rounded-panel border border-dashed border-line-strong px-4 py-3 text-left text-[13px] text-fg-2 transition-colors hover:border-signal">
+                    <Github size={15} className="text-fg-3" aria-hidden /> Index your GitHub repositories so the best projects are picked for each job.
+                  </button>
+                )}
                 <Button size="lg" className="w-full" onClick={() => handleOptimize()} loading={busy === 'optimize'}>
                   {busy === 'optimize' ? 'Tailoring…' : 'Tailor my resume'}
                 </Button>
+              </Card>
+
+              {selection && (
+                <Card className="space-y-3">
+                  <h3 className="text-sm font-semibold text-fg">Projects chosen for this job</h3>
+                  <ol className="space-y-2.5">
+                    {selection.choices.map((c, i) => (
+                      <li key={c.ref} className="flex gap-3 rounded-control border border-line bg-raised p-3">
+                        <span className="font-mono text-sm text-fg-3">{i + 1}</span>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-medium text-fg">{c.ref}</span>
+                            <Badge tone={c.source === 'github' ? 'violet' : 'signal'}>{c.source === 'github' ? 'From GitHub' : 'From resume'}</Badge>
+                            <Badge tone={c.relevance >= 75 ? 'good' : c.relevance >= 50 ? 'live' : 'neutral'} className="font-mono">{c.relevance}% match</Badge>
+                          </div>
+                          <p className="mt-1 text-[13px] text-fg-2">{c.reason}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ol>
+                  {selection.dropped.length > 0 && <p className="text-xs text-fg-3">Left out for this job: {selection.dropped.join(', ')}.</p>}
+                </Card>
+              )}
+
+              <Card className="space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-fg">Cover letter</h3>
+                    <p className="mt-1 text-[13px] text-fg-3">Written from your resume and this job description. It only states facts you have already listed.</p>
+                  </div>
+                  <Select aria-label="Tone" value={letterTone} onChange={e => setLetterTone(e.target.value)} className="h-9 w-36 shrink-0">
+                    <option value="professional">Professional</option>
+                    <option value="warm">Warm</option>
+                    <option value="bold">Direct</option>
+                  </Select>
+                </div>
+                <Button variant="secondary" onClick={writeLetter} loading={writingLetter} disabled={!jdText.trim()}>
+                  <Mail size={15} aria-hidden /> {letter ? 'Write again' : 'Write cover letter'}
+                </Button>
+                {letter && (
+                  <>
+                    <Textarea aria-label="Cover letter" rows={14} value={letter} onChange={e => setLetter(e.target.value)} />
+                    <div className="flex gap-2">
+                      <Button size="sm" variant="secondary" onClick={() => { navigator.clipboard.writeText(letter); toast.success('Letter copied'); }}><Copy size={13} aria-hidden /> Copy</Button>
+                    </div>
+                  </>
+                )}
               </Card>
 
               <Card padded={false}>
@@ -543,6 +755,7 @@ function ResumeBuilder({ initial }: { initial?: ResumeData }) {
               </TabsList>
               <div className="flex flex-wrap gap-1.5">
                 <Button size="sm" variant="secondary" onClick={download}><Download size={14} aria-hidden /> .tex</Button>
+                <Button size="sm" variant="secondary" onClick={copyPlainText}><Copy size={14} aria-hidden /> Text</Button>
                 <Button size="sm" variant="secondary" onClick={() => overleafForm.current?.submit()}><ExternalLink size={14} aria-hidden /> Open in Overleaf</Button>
                 <Button size="sm" variant="secondary" onClick={() => window.print()}><Printer size={14} aria-hidden /> Print</Button>
               </div>

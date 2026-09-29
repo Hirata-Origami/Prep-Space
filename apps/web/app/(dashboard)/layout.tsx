@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 import { useUser } from '@/lib/hooks/useUser';
 import { Sidebar } from '@/components/shell/Sidebar';
 import { BottomTabs, MobileHeader } from '@/components/shell/MobileNav';
+import { CommandPalette } from '@/components/shell/CommandPalette';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -15,6 +16,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, isLoading } = useUser();
   const [mounted, setMounted] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
@@ -32,6 +34,17 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     }
   }, [user, isLoading, pathname, router]);
 
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen(o => !o);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+
   const handleSignOut = async () => {
     const { createClient } = await import('@/lib/supabase/client');
     const supabase = createClient();
@@ -48,7 +61,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         Skip to content
       </a>
 
-      <Sidebar pathname={pathname} user={user} mounted={mounted} onSignOut={handleSignOut} />
+      <Sidebar pathname={pathname} user={user} mounted={mounted} onSignOut={handleSignOut} onOpenPalette={() => setPaletteOpen(true)} />
 
       <div className="relative flex h-dvh min-w-0 flex-1 flex-col overflow-hidden">
         <MobileHeader pathname={pathname} user={user} mounted={mounted} onSignOut={handleSignOut} />
@@ -57,6 +70,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
         </main>
         <BottomTabs pathname={pathname} />
       </div>
+
+      <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} onSignOut={handleSignOut} />
     </div>
   );
 }

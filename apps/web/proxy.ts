@@ -11,6 +11,7 @@ const PROTECTED_PREFIXES = [
   '/groups',
   '/leaderboard',
   '/settings',
+  '/applications',
 ];
 
 export async function proxy(request: NextRequest) {

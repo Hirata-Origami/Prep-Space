@@ -5,6 +5,7 @@ import mammoth from 'mammoth';
 import { generateResumeLatex, normalizeProjects } from '@/lib/resume/templates';
 import { applyAiEdits, coerceTemplateId, parseJsonReply, type AiEdits } from '@/lib/resume/merge';
 import type { ResumeData, ResumeTemplateId } from '@/lib/hooks/useResume';
+import { applySelection, chooseProjects, type Selection } from '@/lib/github/select';
 
 export const dynamic = 'force-dynamic';
 
@@ -45,6 +46,8 @@ export async function POST(req: Request) {
     let selectedRole = '';
     let templateId: ResumeTemplateId = 'modern-two-column';
     let clientResumeData: Partial<ResumeData> | null = null;
+    let useGithub = false;
+    let maxProjects = 4;
 
     const contentType = req.headers.get('content-type') || '';
 
@@ -56,6 +59,8 @@ export async function POST(req: Request) {
       targetRole = (formData.get('role') as string) || '';
       selectedRole = (formData.get('selected_role') as string) || '';
       templateId = coerceTemplateId(formData.get('template_id'));
+      useGithub = formData.get('use_github') === '1';
+      maxProjects = Math.max(2, Math.min(6, Number(formData.get('max_projects')) || 4));
       const rawResume = formData.get('resume_data') as string | null;
       if (rawResume) {
         try { clientResumeData = JSON.parse(rawResume); } catch { /* ignore malformed client data */ }
@@ -90,6 +95,8 @@ export async function POST(req: Request) {
       selectedRole = body.selected_role || '';
       templateId = coerceTemplateId(body.template_id);
       clientResumeData = body.resume_data || null;
+      useGithub = !!body.use_github;
+      maxProjects = Math.max(2, Math.min(6, Number(body.max_projects) || 4));
     }
 
     if (!jdText || jdText.trim().length < 20) {
@@ -159,6 +166,7 @@ Return ONLY a valid JSON object (no markdown):
       skills_categorized: source.skills_categorized,
       achievements: source.achievements ?? '',
       certifications: source.certifications ?? '',
+      github: source.github,
       latex_code: '',
     };
 
@@ -209,6 +217,18 @@ Return ONLY this JSON:
       console.warn('Tailoring failed, using existing data:', e);
     }
 
+    // Step 3b: Pick the best projects for this job from the resume and the indexed GitHub repositories
+    let selection: Selection | null = null;
+    const catalog = base.github?.projects ?? [];
+    if (useGithub && catalog.length > 0) {
+      try {
+        selection = await chooseProjects({ model, jd: jdText, role: finalRole, company: finalCompany, data: base, catalog, max: maxProjects });
+        tailored = { ...tailored, projects: applySelection(base, selection, catalog) };
+      } catch (e) {
+        console.warn('Project selection failed, keeping the existing projects:', e);
+      }
+    }
+
     // Step 4: Generate LaTeX via the deterministic template engine
     const latexCode = generateResumeLatex(tailored, templateId);
     const versionName = `${finalCompany} — ${finalRole}`;
@@ -240,6 +260,7 @@ Return ONLY this JSON:
       resume_data: { ...tailored, latex_code: latexCode },
       version_id: savedVersion?.id,
       tailored: usedAi,
+      project_selection: selection,
     });
 
   } catch (err: unknown) {

@@ -1,6 +1,7 @@
 'use client';
 
 import useSWR from 'swr';
+import type { GithubIndex } from '@/lib/github/types';
 
 export interface ResumeProfile {
   name: string;
@@ -71,6 +72,8 @@ export interface ResumeData {
   achievements?: string;
   /** Newline-separated certifications and courses. */
   certifications?: string;
+  /** Repositories indexed from GitHub; used to pick and describe the best projects for a job. */
+  github?: GithubIndex;
   latex_code: string;
 }
 
