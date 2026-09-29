@@ -6,12 +6,9 @@ import { useTheme } from 'next-themes';
 import * as RadixTabs from '@radix-ui/react-tabs';
 import { useUser } from '@/lib/hooks/useUser';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { AlertCircle, CheckCircle2, KeyRound, Layers, LogOut, Moon, Palette, Shield, Sparkles, Sun, User as UserIcon } from 'lucide-react';
-import { Avatar, Badge, Button, Card, Field, Input, PageHeader, Switch } from '@/components/ui';
+import { AlertCircle, CheckCircle2, KeyRound, LogOut, Moon, Palette, Shield, Sun, User as UserIcon } from 'lucide-react';
+import { Avatar, Button, Card, Field, Input, PageHeader, Switch } from '@/components/ui';
 import { cn } from '@/lib/cn';
-import useSWR from 'swr';
-
-const statusFetcher = (url: string) => fetch(url).then(r => r.json());
 
 const TABS = [
   { id: 'profile', label: 'Profile', icon: UserIcon },
@@ -35,21 +32,6 @@ export default function SettingsPage() {
 
   // Gemini key state
   const [geminiKey, setGeminiKey] = useState('');
-  const { data: geminiStatus } = useSWR<{
-    activeModel?: string;
-    activeLabel?: string;
-    allExhausted?: boolean;
-    models?: Array<{
-      name: string;
-      label: string;
-      rpm: number;
-      rpd: number;
-      tpm: number;
-      description: string;
-      status: 'ok' | '429_quota' | '503_overload' | 'unavailable';
-      retryAfterSec?: number;
-    }>;
-  }>('/api/gemini/status', statusFetcher, { refreshInterval: 10000 });
 
   useEffect(() => {
     if (user) {
@@ -240,82 +222,6 @@ export default function SettingsPage() {
             <p className="rounded-control border border-line bg-raised px-4 py-3 text-[13px] leading-relaxed text-fg-2">
               <strong className="text-fg">Secure storage.</strong> Your key is stored in your private profile row behind row-level security and is never sent to other users.
             </p>
-
-            {/* Gemini Multi-Model Cascade and Quota Limits Table */}
-            <div className="space-y-3 pt-3 border-t border-line">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-semibold text-fg flex items-center gap-1.5">
-                    <Layers size={15} className="text-signal" /> Available Models & Quota Cascade
-                  </h3>
-                  <p className="text-xs text-fg-3 mt-0.5">
-                    Requests automatically cascade across models so your practice is never halted when single quotas run out.
-                  </p>
-                </div>
-                {geminiStatus?.activeLabel && (
-                  <Badge tone="signal" className="text-xs">
-                    Serving on: {geminiStatus.activeLabel}
-                  </Badge>
-                )}
-              </div>
-
-              {geminiStatus?.allExhausted && (
-                <div className="flex items-center gap-2 rounded-control border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-500">
-                  <AlertCircle size={15} className="shrink-0" />
-                  <span>All Gemini models have temporarily reached their RPM / RPD limits. Requests will resume automatically as quotas replenish.</span>
-                </div>
-              )}
-
-              <div className="overflow-x-auto rounded-control border border-line">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-line bg-raised/70 font-semibold text-fg-2">
-                    <tr>
-                      <th className="px-3 py-2">Model</th>
-                      <th className="px-3 py-2">RPM</th>
-                      <th className="px-3 py-2">RPD</th>
-                      <th className="px-3 py-2">TPM</th>
-                      <th className="px-3 py-2 text-right">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line">
-                    {(geminiStatus?.models ?? []).map((m, idx) => {
-                      const isActive = m.name === geminiStatus?.activeModel;
-                      const isRateLimited = m.status === '429_quota';
-                      const isOverloaded = m.status === '503_overload';
-                      return (
-                        <tr key={m.name} className={cn(isActive && 'bg-signal/5 font-medium')}>
-                          <td className="px-3 py-2 text-fg">
-                            <div className="flex items-center gap-1.5">
-                              {idx === 0 ? (
-                                <Badge tone="neutral" className="text-[10px] px-1.5 py-0">Primary</Badge>
-                              ) : (
-                                <span className="text-fg-3 font-mono text-[10px]">#{idx + 1}</span>
-                              )}
-                              <span>{m.label}</span>
-                            </div>
-                            <div className="text-[11px] text-fg-3">{m.description}</div>
-                          </td>
-                          <td className="px-3 py-2 font-mono text-fg-2">{m.rpm} req/m</td>
-                          <td className="px-3 py-2 font-mono text-fg-2">{m.rpd.toLocaleString()} req/d</td>
-                          <td className="px-3 py-2 font-mono text-fg-2">{(m.tpm / 1000).toFixed(0)}k/m</td>
-                          <td className="px-3 py-2 text-right">
-                            {isRateLimited ? (
-                              <Badge tone="live" className="text-[10px]">429 Quota ({m.retryAfterSec}s)</Badge>
-                            ) : isOverloaded ? (
-                              <Badge tone="live" className="text-[10px]">503 Demand ({m.retryAfterSec}s)</Badge>
-                            ) : isActive ? (
-                              <Badge tone="good" className="text-[10px]">Active</Badge>
-                            ) : (
-                              <span className="text-xs text-fg-3">Ready</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
           </RadixTabs.Content>
 
           <RadixTabs.Content value="appearance" className="space-y-5 outline-none">

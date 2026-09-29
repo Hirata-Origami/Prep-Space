@@ -4,12 +4,11 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { ArrowLeft, Check, Copy, Network, Radio, SquareCode, Trash2 } from 'lucide-react';
+import { ArrowLeft, Check, Copy, Network, SquareCode, Trash2 } from 'lucide-react';
 import { Button, ButtonLink, EmptyState, Select, Skeleton } from '@/components/ui';
 import { CodeEditor } from '@/components/workspace/CodeEditor';
 import { DiagramCanvas } from '@/components/workspace/DiagramCanvas';
 import { AiPanel } from '@/components/workspace/AiPanel';
-import { WorkspaceGeminiLive } from '@/components/workspace/WorkspaceGeminiLive';
 import { EMPTY_DIAGRAM, LANGUAGES, type Diagram, type LanguageId, type WorkspaceDoc } from '@/lib/workspace/types';
 import { cn } from '@/lib/cn';
 
@@ -26,7 +25,6 @@ export default function WorkspaceDocPage() {
   const [diagram, setDiagram] = useState<Diagram>(EMPTY_DIAGRAM);
   const [view, setView] = useState<View>('write');
   const [save, setSave] = useState<Save>('saved');
-  const [liveOpen, setLiveOpen] = useState(false);
 
   const latest = useRef({ title, language, content, diagram });
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -165,18 +163,6 @@ export default function WorkspaceDocPage() {
           {LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
         </Select>
 
-        <Button
-          size="sm"
-          variant={liveOpen ? 'primary' : 'secondary'}
-          onClick={() => setLiveOpen(o => !o)}
-          className={cn('flex items-center gap-1.5 transition-all', liveOpen && 'ring-2 ring-live/60')}
-          title="Open Gemini Live voice conversation"
-        >
-          <span className={cn('h-2 w-2 rounded-full', liveOpen ? 'bg-live animate-ping' : 'bg-live')} />
-          <Radio size={14} className={liveOpen ? 'text-live' : 'text-fg-2'} aria-hidden />
-          <span>Gemini Live</span>
-        </Button>
-
         <span className="flex items-center gap-1.5 text-xs text-fg-3" role="status">
           {save === 'saved' && <><Check size={13} className="text-good" aria-hidden /> Saved</>}
           {save === 'saving' && 'Saving…'}
@@ -189,10 +175,7 @@ export default function WorkspaceDocPage() {
         <Button size="sm" variant="ghost" onClick={remove} aria-label="Delete document"><Trash2 size={14} aria-hidden /></Button>
       </div>
 
-      <div className={cn(
-        'grid min-h-0 flex-1 gap-3',
-        liveOpen ? 'lg:grid-cols-1' : 'lg:grid-cols-[minmax(0,1fr)_340px]'
-      )}>
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="min-h-[420px] min-w-0 lg:min-h-0">
           {view === 'write' ? (
             <CodeEditor
@@ -205,38 +188,22 @@ export default function WorkspaceDocPage() {
             <DiagramCanvas diagram={diagram} onChange={update.diagram} />
           )}
         </div>
-        {!liveOpen && (
-          <div className="min-h-[360px] lg:min-h-0">
-            <AiPanel
-              key={view}
-              target={view === 'write' ? 'code' : 'diagram'}
-              language={language}
-              code={content}
-              notes={content}
-              diagram={diagram}
-              docId={id}
-              docTitle={title}
-              onApplyCode={update.content}
-              onDiagram={update.diagram}
-              onInsertNotes={md => update.content(content.trim() ? `${content.trimEnd()}\n\n${md}\n` : `${md}\n`)}
-            />
-          </div>
-        )}
+        <div className="min-h-[360px] lg:min-h-0">
+          <AiPanel
+            key={view}
+            target={view === 'write' ? 'code' : 'diagram'}
+            language={language}
+            code={content}
+            notes={content}
+            diagram={diagram}
+            docId={id}
+            docTitle={title}
+            onApplyCode={update.content}
+            onDiagram={update.diagram}
+            onInsertNotes={md => update.content(content.trim() ? `${content.trimEnd()}\n\n${md}\n` : `${md}\n`)}
+          />
+        </div>
       </div>
-
-      {/* When Live is open, show it as a panel pinned to the right; otherwise as floating overlay */}
-      <WorkspaceGeminiLive
-        isOpen={liveOpen}
-        onClose={() => setLiveOpen(false)}
-        target={view}
-        title={title}
-        language={language}
-        content={content}
-        diagram={diagram}
-        onInsertText={text => update.content(content.trim() ? `${content.trimEnd()}\n\n${text}\n` : `${text}\n`)}
-        onDiagram={update.diagram}
-        inlineMode={liveOpen}
-      />
     </div>
   );
 }

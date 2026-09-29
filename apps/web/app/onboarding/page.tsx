@@ -39,30 +39,19 @@ export default function OnboardingPage() {
 
     setSaving(true);
     try {
-      // Strictly validate the Gemini key before saving
-      const valRes = await fetch('/api/validate-key', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: formData.gemini_api_key.trim() }),
-      });
-      const valJson = await valRes.json();
-      if (!valRes.ok || !valJson.valid) {
-        throw new Error(valJson.error || 'The Gemini API key is invalid or inactive. Please verify in Google AI Studio.');
-      }
-
       const res = await fetch('/api/user/profile', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           target_role: formData.target_role,
           target_company: formData.target_company,
-          gemini_api_key: formData.gemini_api_key.trim(),
+          gemini_api_key: formData.gemini_api_key,
         }),
       });
 
       if (!res.ok) throw new Error('Failed to save profile');
       await mutate();
-      toast.success('Gemini key verified and profile created! Welcome to PrepSpace.');
+      toast.success('Profile created successfully! Welcome to PrepSpace.');
       router.push('/dashboard');
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'An error occurred');
