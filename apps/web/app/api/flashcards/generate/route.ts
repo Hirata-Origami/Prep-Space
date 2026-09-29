@@ -12,7 +12,7 @@ interface GeneratedCard {
   difficulty: 'easy' | 'medium' | 'hard';
 }
 
-export async function POST(request: Request) {
+export async function POST() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -42,25 +42,31 @@ export async function POST(request: Request) {
       const a = r.analysis as Record<string, unknown> | null;
       if (!a) continue;
 
-      if (Array.isArray(a.areas_for_improvement)) {
-        weakPoints.push(...a.areas_for_improvement.map(String));
+      for (const key of ['improvements', 'next_focus_areas']) {
+        const list = a[key];
+        if (Array.isArray(list)) weakPoints.push(...list.map(String));
       }
-      if (Array.isArray(a.next_focus_areas)) {
-        weakPoints.push(...a.next_focus_areas.map(String));
+      // questions the candidate answered poorly are the best material for recall cards
+      if (Array.isArray(a.sample_answers)) {
+        for (const q of a.sample_answers as { question?: string; score?: number }[]) {
+          if (q.question && typeof q.score === 'number' && q.score < 70) weakPoints.push(`Answered poorly: ${q.question}`);
+        }
       }
-      if (Array.isArray(a.competencies)) {
-        for (const comp of a.competencies as { name?: string; score?: number; feedback?: string }[]) {
-          if (comp.score !== undefined && comp.score < 7) {
-            weakPoints.push(`${comp.name || 'Skill'}: ${comp.feedback || 'Needs practice'}`);
-          }
+      if (a.scores && typeof a.scores === 'object') {
+        for (const [name, score] of Object.entries(a.scores as Record<string, number>)) {
+          if (typeof score === 'number' && score < 65) weakPoints.push(`Low ${name.replace(/_/g, ' ')} score (${score}%)`);
         }
       }
     }
   }
 
+  // do not create cards the user already has
+  const { data: existing } = await supabase.from('flashcards').select('question').eq('user_id', dbUser.id).order('created_at', { ascending: false }).limit(200);
+  const known = new Set((existing ?? []).map(c => String(c.question).trim().toLowerCase()));
+
   const prompt = `You are an expert technical interview tutor creating spaced repetition flashcards.
 Target Candidate Weak Areas from Interview Feedback:
-${weakPoints.length > 0 ? weakPoints.slice(0, 8).map(w => `- ${w}`).join('\n') : '- System design fundamentals, database concurrency, caching trade-offs, and algorithm time complexities'}
+${weakPoints.length > 0 ? [...new Set(weakPoints)].slice(0, 10).map(w => `- ${w}`).join('\n') : '- System design fundamentals, database concurrency, caching trade-offs, and algorithm time complexities'}
 
 Generate 5 high-yield active-recall interview flashcards addressing these weak points.
 Requirements:
@@ -84,10 +90,10 @@ Return ONLY valid JSON:
   try {
     const result = await withRetry(() => model.generateContent([{ text: prompt }]));
     const parsed = parseJsonReply<{ cards?: GeneratedCard[] }>(result.response.text());
-    const cards = parsed.cards ?? [];
+    const cards = (parsed.cards ?? []).filter(c => c.question?.trim() && c.answer?.trim() && !known.has(c.question.trim().toLowerCase()));
 
     if (cards.length === 0) {
-      return NextResponse.json({ error: 'Could not generate flashcards' }, { status: 500 });
+      return NextResponse.json({ error: 'No new cards this time. Try again after your next interview.' }, { status: 422 });
     }
 
     const reportId = reports?.[0]?.id || null;
@@ -97,7 +103,7 @@ Return ONLY valid JSON:
       question: c.question,
       answer: c.answer,
       category: c.category || 'Interview Prep',
-      difficulty: c.difficulty || 'medium',
+      difficulty: ['easy', 'medium', 'hard'].includes(c.difficulty) ? c.difficulty : 'medium',
       interval: 1,
       repetition: 0,
       ease_factor: 2.5,

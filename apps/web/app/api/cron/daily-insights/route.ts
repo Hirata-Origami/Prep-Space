@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(request: Request) {
   // Simple cron auth to prevent direct malicious hits if exposed
   const authHeader = request.headers.get('authorization');
-  if (process.env.CRON_SECRET && authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     console.warn("Unauthorized cron hit");
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }

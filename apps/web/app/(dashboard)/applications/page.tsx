@@ -159,7 +159,7 @@ export default function ApplicationsPage() {
         <Card className="border-live/30 bg-live/5">
           <h2 className="text-sm font-semibold text-fg">One-time database setup needed</h2>
           <p className="mt-1 text-[13px] leading-relaxed text-fg-2">
-            The applications table does not exist yet. Open the Supabase SQL editor and run <code className="font-mono text-fg">supabase/migrations/002_github_and_applications.sql</code>, then reload this page.
+            The applications table does not exist yet. Open the Supabase SQL editor and run <code className="font-mono text-fg">supabase/migrations/004_practice_features.sql</code>, then reload this page.
           </p>
         </Card>
       ) : (

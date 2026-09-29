@@ -15,33 +15,43 @@ export async function GET() {
   const { data: dbUser } = await supabase.from('users').select('id, xp').eq('supabase_uid', user.id).single();
   if (!dbUser) return NextResponse.json({ submissions: [], stats: { total: 0, passed: 0, easy: 0, medium: 0, hard: 0 } });
 
+  const empty = { total: 0, solved: 0, passed: 0, easy: 0, medium: 0, hard: 0, userXp: dbUser.xp ?? 0 };
   try {
-    const { data: submissions, error } = await supabase
+    const { data: rows, error } = await supabase
       .from('coding_submissions')
       .select('id, workspace_doc_id, title, language, track, difficulty, status, score, time_complexity, space_complexity, created_at')
       .eq('user_id', dbUser.id)
       .order('created_at', { ascending: false })
-      .limit(50);
+      .limit(500);
 
     if (error) {
-      // If table does not exist yet
-      return NextResponse.json({ submissions: [], stats: { total: 0, passed: 0, easy: 0, medium: 0, hard: 0 } });
+      const missing = /relation|does not exist|schema cache/i.test(error.message);
+      return NextResponse.json({ submissions: [], solvedTracks: {}, stats: empty, setupNeeded: missing }, { status: missing ? 200 : 500 });
     }
 
-    const subs = submissions ?? [];
-    const passedSubs = subs.filter(s => s.status === 'passed');
-    const stats = {
-      total: subs.length,
-      passed: passedSubs.length,
-      easy: passedSubs.filter(s => s.difficulty === 'easy').length,
-      medium: passedSubs.filter(s => s.difficulty === 'medium').length,
-      hard: passedSubs.filter(s => s.difficulty === 'hard').length,
-      userXp: dbUser.xp ?? 0,
-    };
+    const subs = rows ?? [];
+    // a problem counts once, however many times it was passed
+    const solved = new Map<string, (typeof subs)[number]>();
+    for (const s of subs) if (s.status === 'passed' && !solved.has(`${s.title}|${s.language}`)) solved.set(`${s.title}|${s.language}`, s);
+    const solvedList = [...solved.values()];
+    const solvedTracks: Record<string, number> = {};
+    for (const s of solvedList) solvedTracks[s.track] = (solvedTracks[s.track] ?? 0) + 1;
 
-    return NextResponse.json({ submissions: subs, stats });
+    return NextResponse.json({
+      submissions: subs.slice(0, 50),
+      solvedTracks,
+      stats: {
+        total: subs.length,
+        solved: solvedList.length,
+        passed: solvedList.length,
+        easy: solvedList.filter(s => s.difficulty === 'easy').length,
+        medium: solvedList.filter(s => s.difficulty === 'medium').length,
+        hard: solvedList.filter(s => s.difficulty === 'hard').length,
+        userXp: dbUser.xp ?? 0,
+      },
+    });
   } catch {
-    return NextResponse.json({ submissions: [], stats: { total: 0, passed: 0, easy: 0, medium: 0, hard: 0 } });
+    return NextResponse.json({ submissions: [], solvedTracks: {}, stats: empty });
   }
 }
 
@@ -100,24 +110,10 @@ Return ONLY this JSON structure:
     const starter = (parsed.starterCode ?? '').replace(/^```\w*\n?|```$/g, '').trim();
     const description = (parsed.descriptionMarkdown ?? '').trim();
 
-    const initialContent = language === 'sql'
-      ? `/* ============================================================
- * ${docTitle}
- * Track: ${track.name} | Difficulty: ${difficulty}
- * ============================================================
-${description.split('\n').map(l => ` * ${l}`).join('\n')}
- */
-
-${starter || '-- Write your SQL query here\n'}`
-      : `# ============================================================
-# ${docTitle}
-# Track: ${track.name} | Difficulty: ${difficulty}
-# ============================================================
-"""
-${description}
-"""
-
-${starter || '# Write your solution here\n'}`;
+    // every language gets a header in its own comment syntax, so the file runs as written
+    const mark = language === 'sql' ? '--' : language === 'python' ? '#' : '//';
+    const header = [docTitle, `Track: ${track.name}  Difficulty: ${difficulty}`, '', ...description.split('\n')].map(l => `${mark} ${l}`.trimEnd());
+    const initialContent = `${header.join('\n')}\n\n${starter || `${mark} Write your solution here`}\n`;
 
     // Create the workspace document
     const { data: doc, error: docError } = await supabase

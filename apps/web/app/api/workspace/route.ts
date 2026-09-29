@@ -4,7 +4,7 @@ import { LANGUAGES, sanitizeDiagram } from '@/lib/workspace/types';
 
 export const dynamic = 'force-dynamic';
 
-const MIGRATION_HINT = 'The workspace table is missing. Run supabase/migrations/003_workspace.sql in the Supabase SQL editor.';
+const MIGRATION_HINT = 'The workspace table is missing. Run supabase/migrations/004_practice_features.sql in the Supabase SQL editor.';
 const isMissing = (message: string) => /relation|does not exist|schema cache/i.test(message);
 
 async function owner() {

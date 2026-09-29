@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { ArrowLeft, Check, Copy, Download, Link2, Link2Off, MessageCircle, Send, X } from 'lucide-react';
-import { Badge, Button, ButtonLink, Card, EmptyState, Input, PageHeader, Skeleton } from '@/components/ui';
+import { Badge, Button, ButtonLink, Card, EmptyState, Input, Modal, PageHeader, Skeleton } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 interface VideoAnalysis {
@@ -63,6 +63,7 @@ export default function ReportDetailPage() {
   const [shareLoading, setShareLoading] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [confirmRevoke, setConfirmRevoke] = useState(false);
 
   // Chat state
   const [chatOpen, setChatOpen] = useState(false);
@@ -132,7 +133,7 @@ export default function ReportDetailPage() {
     fetchReport();
   }, [id]);
 
-  const shareUrl = share?.is_active
+  const shareUrl = share?.is_active && !(share.expires_at && new Date(share.expires_at) < new Date())
     ? `${typeof window !== 'undefined' ? window.location.origin : ''}/shared/${share.share_token}`
     : null;
 
@@ -147,7 +148,7 @@ export default function ReportDetailPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
       setShare(data.share);
-      toast.success('Share link created (valid 30 days)');
+      toast.success('Link created. It works for 30 days.');
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : 'Failed to create link');
     } finally {
@@ -156,7 +157,6 @@ export default function ReportDetailPage() {
   };
 
   const handleRevokeShare = async () => {
-    if (!confirm('Revoke this share link? Anyone with the URL will lose access.')) return;
     setShareLoading(true);
     try {
       await fetch(`/api/reports/${id}/share`, {
@@ -177,7 +177,7 @@ export default function ReportDetailPage() {
     if (!shareUrl) return;
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
-    toast.success('Link copied!');
+    toast.success('Link copied');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -271,7 +271,7 @@ export default function ReportDetailPage() {
         description={report.interview_sessions?.plan?.role || 'Software Engineer'}
         action={
           <div className="flex items-center gap-2 no-print">
-            <Button variant="secondary" onClick={() => setShareOpen(!shareOpen)} className="gap-1.5">
+            <Button variant="secondary" onClick={() => setShareOpen(true)} className="gap-1.5">
               <Link2 size={14} /> Share
             </Button>
             <Button variant="secondary" onClick={handleDownloadPDF}><Download size={15} aria-hidden /> Export PDF</Button>
@@ -279,46 +279,39 @@ export default function ReportDetailPage() {
         }
       />
 
-      {/* Share Panel */}
-      {shareOpen && (
-        <div className="no-print mb-4 rounded-panel border border-line bg-panel p-4 space-y-3 animate-in fade-in">
-          <div className="flex items-center justify-between">
-            <div className="text-sm font-semibold text-fg flex items-center gap-2">
-              <Link2 size={14} className="text-signal" /> Share with mentor
+      <Modal
+        open={shareOpen}
+        onOpenChange={setShareOpen}
+        title="Share this report"
+        description="Anyone with the link can read the scores, strengths and question feedback. Your name, audio and answers are not included."
+      >
+        {shareUrl ? (
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 rounded-control border border-line bg-raised p-2 pl-3">
+              <span className="min-w-0 flex-1 truncate font-mono text-xs text-fg-2">{shareUrl}</span>
+              <Button size="sm" onClick={handleCopyLink}>{copied ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} Copy</Button>
             </div>
-            <button type="button" onClick={() => setShareOpen(false)} className="text-fg-3 hover:text-fg"><X size={15} /></button>
+            <p className="text-xs text-fg-3">
+              Opened {share?.view_count ?? 0} {(share?.view_count ?? 0) === 1 ? 'time' : 'times'}.
+              {share?.expires_at && ` Expires ${new Date(share.expires_at).toLocaleDateString()}.`}
+            </p>
+            {confirmRevoke ? (
+              <div className="flex items-center gap-2 rounded-control border border-bad/30 bg-bad/5 p-3 text-[13px] text-fg-2">
+                <span className="flex-1">Anyone using this link will lose access.</span>
+                <Button size="sm" variant="danger" loading={shareLoading} onClick={async () => { await handleRevokeShare(); setConfirmRevoke(false); }}>Turn off link</Button>
+                <Button size="sm" variant="ghost" onClick={() => setConfirmRevoke(false)}>Keep</Button>
+              </div>
+            ) : (
+              <Button size="sm" variant="ghost" onClick={() => setConfirmRevoke(true)}><Link2Off size={14} aria-hidden /> Turn off this link</Button>
+            )}
           </div>
-          {shareUrl ? (
-            <div className="space-y-2">
-              <div className="flex items-center gap-2 rounded-control border border-line bg-raised/40 p-2">
-                <span className="flex-1 truncate text-xs text-fg-2 font-mono">{shareUrl}</span>
-                <button type="button" onClick={handleCopyLink} className="shrink-0 text-signal hover:text-signal/70">
-                  {copied ? <Check size={14} /> : <Copy size={14} />}
-                </button>
-              </div>
-              <div className="flex items-center justify-between text-xs text-fg-3">
-                <span>{share?.view_count ?? 0} view{(share?.view_count ?? 0) !== 1 ? 's' : ''}</span>
-                {share?.expires_at && <span>Expires: {new Date(share.expires_at).toLocaleDateString()}</span>}
-              </div>
-              <button
-                type="button"
-                disabled={shareLoading}
-                onClick={handleRevokeShare}
-                className="flex items-center gap-1.5 text-xs text-rose-400 hover:text-rose-300 disabled:opacity-50"
-              >
-                <Link2Off size={12} /> Revoke link
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-xs text-fg-3">Generate a public link that mentors can view without logging in. Valid for 30 days.</p>
-              <Button onClick={handleCreateShare} loading={shareLoading} size="sm" className="gap-1.5">
-                <Link2 size={13} /> Create share link
-              </Button>
-            </div>
-          )}
-        </div>
-      )}
+        ) : (
+          <div className="space-y-4">
+            <p className="text-sm text-fg-2">The link works without signing in and stops working after 30 days. You can turn it off at any time.</p>
+            <Button onClick={handleCreateShare} loading={shareLoading}><Link2 size={14} aria-hidden /> Create link</Button>
+          </div>
+        )}
+      </Modal>
 
       {/* Overall */}
       <Card className="print-card mb-6 flex flex-wrap items-center gap-6 p-5 sm:p-8">

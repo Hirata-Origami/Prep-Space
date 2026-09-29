@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import useSWR from 'swr';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/lib/hooks/useUser';
@@ -19,6 +20,8 @@ import {
   KeyRound,
   Mic,
   Map,
+  BrainCircuit,
+  PenTool,
 } from 'lucide-react';
 import { Badge, ButtonLink, Card, EmptyState, PageHeader, Progress, SectionHeader, Skeleton, Stat } from '@/components/ui';
 import { cn } from '@/lib/cn';
@@ -31,11 +34,31 @@ const DRILLS = [
 
 const SHORTCUTS = [
   { label: 'AI voice studio', href: '/interview', icon: Mic },
+  { label: 'Coding and design workspace', href: '/workspace', icon: PenTool },
   { label: 'Mock companies', href: '/mock-company', icon: Building2 },
   { label: 'Resume optimizer', href: '/resume', icon: FileUser },
   { label: 'Leaderboard', href: '/leaderboard', icon: Trophy },
   { label: 'Study groups', href: '/groups', icon: Users },
 ];
+
+/** Cards waiting for review. Renders nothing until there is something to say. */
+function FlashcardsDue() {
+  const { data } = useSWR<{ stats?: { dueToday: number; total: number } }>('/api/flashcards');
+  const due = data?.stats?.dueToday ?? 0;
+  if (!due) return null;
+  return (
+    <Card>
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-sm font-semibold text-fg">
+          <BrainCircuit size={16} className="text-signal" aria-hidden /> Flashcards
+        </div>
+        <span className="font-mono text-sm text-signal">{due} due</span>
+      </div>
+      <p className="mt-2 text-[13px] text-fg-2">Recall cards from your last interviews are ready. A few minutes now saves relearning later.</p>
+      <ButtonLink href="/flashcards" variant="secondary" size="sm" className="mt-4">Review now</ButtonLink>
+    </Card>
+  );
+}
 
 function GeminiKeyBanner({ hasKey }: { hasKey: boolean }) {
   if (hasKey) return null;
@@ -250,6 +273,8 @@ export default function DashboardPage() {
               ))}
             </div>
           </Card>
+
+          <FlashcardsDue />
 
           {/* Shortcuts */}
           <Card padded={false} className="overflow-hidden">

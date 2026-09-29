@@ -4,6 +4,8 @@ import { getModel } from '@/lib/gemini';
 import { CODE_ACTIONS, DIAGRAM_ACTIONS, runCodeAction, runDiagramAction, runJudgeAction, type CodeAction, type DiagramAction } from '@/lib/workspace/ai';
 import { LANGUAGES, sanitizeDiagram, type LanguageId } from '@/lib/workspace/types';
 import { mergeIntoExisting } from '@/lib/workspace/layout';
+import { createClient as createServiceClient } from '@supabase/supabase-js';
+import { DIFFICULTY_CONFIG } from '@/lib/workspace/practice';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 90;
@@ -54,15 +56,40 @@ export async function POST(request: Request) {
       }
 
       if (action === 'judge') {
-        const problemContext = body.notes || instruction || body.code?.slice(0, 500) || '';
+        // practice documents carry their problem in the header and the level in the title
+        let docTitle = body.problemTitle ?? '';
+        let docContent = '';
+        if (body.docId) {
+          const { data: doc } = await supabase.from('workspace_docs').select('title, content').eq('id', body.docId).eq('user_id', profile?.id ?? '').maybeSingle();
+          if (doc) {
+            docTitle = doc.title;
+            docContent = doc.content;
+          }
+        }
+        const LEVEL_TAG = /^\[(EASY|MEDIUM|HARD)\]\s*/i;
+        const level = LEVEL_TAG.exec(docTitle)?.[1]?.toLowerCase() as 'easy' | 'medium' | 'hard' | undefined;
+        const trackName = /Track:\s*(.+?)\s{2,}Difficulty:/.exec(docContent)?.[1];
+        const problemContext = docContent.slice(0, 3000) || instruction || body.code?.slice(0, 500) || '';
         const judgeResult = await runJudgeAction(model, language, body.code ?? '', problemContext);
 
         // Try saving submission to coding_submissions and award XP
         if (profile?.id) {
           try {
-            const track = body.track || (language === 'sql' ? 'SQL Practice' : 'Algorithms & Data Structures');
-            const difficulty = body.difficulty || 'medium';
-            const title = body.problemTitle || (body.notes ? body.notes.split('\n')[0].replace(/^#*\s*/, '').slice(0, 100) : 'Coding Challenge');
+            const track = trackName || (language === 'sql' ? 'SQL practice' : 'Free practice');
+            const difficulty = level && level in DIFFICULTY_CONFIG ? level : 'medium';
+            const title = (docTitle.replace(LEVEL_TAG, '') || 'Coding challenge').slice(0, 100);
+
+            // XP is decided here, never by the client or the model, and each problem pays out once
+            const { data: prior } = await supabase
+              .from('coding_submissions')
+              .select('status')
+              .eq('user_id', profile.id)
+              .eq('title', title)
+              .eq('language', language);
+            const alreadyPassed = (prior ?? []).some(p => p.status === 'passed');
+            const firstTry = (prior ?? []).length === 0;
+            const base = DIFFICULTY_CONFIG[difficulty].xp;
+            judgeResult.xpAwarded = alreadyPassed ? 0 : judgeResult.status === 'passed' ? base : firstTry && judgeResult.status === 'partial' ? Math.round(base * 0.3) : 0;
 
             const { data: sub } = await supabase.from('coding_submissions').insert({
               user_id: profile.id,
@@ -84,8 +111,12 @@ export async function POST(request: Request) {
               judgeResult.submissionId = sub.id;
             }
 
-            if (judgeResult.xpAwarded > 0) {
-              await supabase.rpc('increment_xp', { user_id: profile.id, amount: judgeResult.xpAwarded });
+            if (judgeResult.xpAwarded > 0 && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+              // increment_xp is locked to the service role (see migration 004)
+              const admin = createServiceClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY);
+              await admin.rpc('increment_xp', { user_id: profile.id, amount: judgeResult.xpAwarded });
+            } else {
+              judgeResult.xpAwarded = 0;
             }
           } catch (dbErr) {
             console.warn('Could not record coding submission:', dbErr);

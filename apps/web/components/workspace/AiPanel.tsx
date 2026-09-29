@@ -3,10 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import {
-  AlertCircle,
-  Award,
   Bug,
-  CheckCircle2,
   ChevronDown,
   ChevronRight,
   ClipboardCheck,
@@ -21,7 +18,6 @@ import {
   Shapes,
   Sparkles,
   Wand2,
-  XCircle,
 } from 'lucide-react';
 import { Badge, Button, Card, Textarea } from '@/components/ui';
 import { Markdownish } from './Markdownish';
@@ -56,7 +52,7 @@ interface AiPanelProps {
 }
 
 const CODE_ACTIONS = [
-  { id: 'judge', label: 'AI Judge', icon: Scale },
+  { id: 'judge', label: 'Judge', icon: Scale },
   { id: 'problem', label: 'Give me a problem', icon: Shapes },
   { id: 'review', label: 'Review', icon: ClipboardCheck },
   { id: 'explain', label: 'Explain', icon: Lightbulb },
@@ -143,11 +139,11 @@ export function AiPanel({
 
         if (json.judge) {
           if (json.judge.status === 'passed') {
-            toast.success(`Passed! +${json.judge.xpAwarded} XP earned.`);
+            toast.success(json.judge.xpAwarded > 0 ? `Passed. +${json.judge.xpAwarded} XP.` : 'Passed.');
           } else if (json.judge.status === 'partial') {
-            toast('Partial pass. Check test cases.', { icon: '⚠️' });
+            toast.message('Partly right. Check the cases below.');
           } else {
-            toast.error('Test cases failed. Review feedback.');
+            toast.error('Not there yet. See the cases below.');
           }
         }
       }
@@ -191,7 +187,7 @@ export function AiPanel({
     <div className="flex h-full min-h-[320px] flex-col overflow-hidden rounded-panel border border-line bg-panel">
       <div className="flex items-center gap-2 border-b border-line px-4 py-3">
         <Sparkles size={15} className="text-signal" aria-hidden />
-        <h2 className="text-sm font-semibold text-fg">{target === 'code' ? 'Coach & Judge' : 'Diagram assistant'}</h2>
+        <h2 className="text-sm font-semibold text-fg">{target === 'code' ? 'Coach' : 'Diagram assistant'}</h2>
         {target === 'diagram' && canUndoAi && (
           <Button size="sm" variant="ghost" className="ml-auto" onClick={undoDiagram}>Undo last AI change</Button>
         )}
@@ -201,7 +197,7 @@ export function AiPanel({
         {entries.length === 0 && (
           <div className="space-y-3 text-[13px] leading-relaxed text-fg-3">
             {target === 'code' ? (
-              <p>Write code or SQL, then click <span className="font-semibold text-fg">AI Judge</span> to test your solution across edge cases and score your complexity, or use <span className="text-fg-2">Review</span> and <span className="text-fg-2">Solve it</span> for coaching.</p>
+              <p>Write code or SQL, then press <span className="font-semibold text-fg">Judge</span> to have the AI walk your solution through test cases and estimate its complexity, or use <span className="text-fg-2">Review</span> and <span className="text-fg-2">Solve it</span> for coaching.</p>
             ) : (
               <>
                 <p>Describe a system and the AI draws it. Then ask for changes such as <span className="text-fg-2">&ldquo;add a cache before the database&rdquo;</span> and it edits the same diagram, keeping your layout.</p>
@@ -284,107 +280,61 @@ export function AiPanel({
 
 function JudgeView({ judge }: { judge: JudgeVerdict }) {
   const [showTests, setShowTests] = useState(true);
-
-  const statusConfig = {
-    passed: {
-      badge: 'Passed',
-      color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20',
-      icon: CheckCircle2,
-    },
-    partial: {
-      badge: 'Partial',
-      color: 'text-amber-400 bg-amber-500/10 border-amber-500/20',
-      icon: AlertCircle,
-    },
-    failed: {
-      badge: 'Failed',
-      color: 'text-rose-400 bg-rose-500/10 border-rose-500/20',
-      icon: XCircle,
-    },
-  }[judge.status];
-
-  const StatusIcon = statusConfig.icon;
+  const tone = { passed: 'good', partial: 'live', failed: 'bad' } as const;
+  const label = { passed: 'Passed', partial: 'Partly right', failed: 'Not yet' } as const;
+  const passed = judge.testResults?.filter(t => t.passed).length ?? 0;
 
   return (
     <div className="space-y-3">
-      {/* Header Verdict */}
-      <div className={cn('flex items-center justify-between rounded-control border p-2.5', statusConfig.color)}>
-        <div className="flex items-center gap-2">
-          <StatusIcon size={16} />
-          <span className="text-sm font-semibold">{statusConfig.badge}</span>
-          <span className="text-xs opacity-80">• Score {judge.score}/100</span>
-        </div>
-        {judge.xpAwarded > 0 && (
-          <span className="inline-flex items-center gap-1 rounded bg-black/20 px-2 py-0.5 text-xs font-medium">
-            <Award size={12} /> +{judge.xpAwarded} XP
-          </span>
-        )}
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge tone={tone[judge.status]}>{label[judge.status]}</Badge>
+        <span className="font-mono text-sm font-semibold text-fg">{judge.score}/100</span>
+        {judge.xpAwarded > 0 && <Badge tone="signal">+{judge.xpAwarded} XP</Badge>}
       </div>
 
-      {/* Complexity stats */}
       <div className="grid grid-cols-2 gap-2 text-xs">
-        <div className="rounded-control border border-line bg-raised/50 p-2">
-          <div className="text-fg-3">Time Complexity</div>
-          <div className="font-mono font-medium text-fg">{judge.timeComplexity}</div>
+        <div className="rounded-control bg-raised p-2.5">
+          <div className="text-fg-3">Time</div>
+          <div className="mt-0.5 font-mono font-medium text-fg">{judge.timeComplexity}</div>
         </div>
-        <div className="rounded-control border border-line bg-raised/50 p-2">
-          <div className="text-fg-3">Space Complexity</div>
-          <div className="font-mono font-medium text-fg">{judge.spaceComplexity}</div>
+        <div className="rounded-control bg-raised p-2.5">
+          <div className="text-fg-3">Space</div>
+          <div className="mt-0.5 font-mono font-medium text-fg">{judge.spaceComplexity}</div>
         </div>
       </div>
-      {judge.optimalComplexity && (
-        <div className="text-[11px] text-fg-3">
-          Target: <span className="font-mono text-fg-2">{judge.optimalComplexity}</span>
-        </div>
-      )}
+      {judge.optimalComplexity && <p className="text-xs text-fg-3">Best known: <span className="font-mono text-fg-2">{judge.optimalComplexity}</span></p>}
 
-      {/* Test cases */}
-      {judge.testResults && judge.testResults.length > 0 && (
-        <div className="space-y-1.5 border-t border-line/60 pt-2">
-          <button
-            type="button"
-            onClick={() => setShowTests(!showTests)}
-            className="flex w-full items-center justify-between text-xs font-medium text-fg-2 hover:text-fg"
-          >
-            <span>Test Cases ({judge.testResults.filter(t => t.passed).length}/{judge.testResults.length} passed)</span>
-            {showTests ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+      {judge.testResults?.length > 0 && (
+        <div className="border-t border-line pt-2.5">
+          <button type="button" onClick={() => setShowTests(v => !v)} aria-expanded={showTests} className="flex w-full items-center justify-between text-xs font-medium text-fg-2 hover:text-fg">
+            <span>{passed} of {judge.testResults.length} cases passed</span>
+            {showTests ? <ChevronDown size={14} aria-hidden /> : <ChevronRight size={14} aria-hidden />}
           </button>
-
           {showTests && (
-            <div className="space-y-1.5 pt-1">
-              {judge.testResults.map((t, idx) => (
-                <div
-                  key={t.id || idx}
-                  className={cn(
-                    'rounded-control border p-2 text-xs font-mono',
-                    t.passed ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-rose-500/20 bg-rose-500/5'
-                  )}
-                >
-                  <div className="flex items-center justify-between text-[11px] font-sans font-medium">
-                    <span className={t.passed ? 'text-emerald-400' : 'text-rose-400'}>
-                      Test {idx + 1}: {t.passed ? 'Passed' : 'Failed'}
-                    </span>
-                    {t.note && <span className="text-fg-3 font-normal">{t.note}</span>}
+            <ul className="mt-2 space-y-1.5">
+              {judge.testResults.map((t, i) => (
+                <li key={t.id ?? i} className={cn('rounded-control border p-2 text-xs', t.passed ? 'border-good/25 bg-good/5' : 'border-bad/30 bg-bad/5')}>
+                  <div className="flex items-center justify-between gap-2 font-medium">
+                    <span className={t.passed ? 'text-good' : 'text-bad'}>Case {i + 1}: {t.passed ? 'passed' : 'failed'}</span>
+                    {t.note && <span className="truncate font-normal text-fg-3">{t.note}</span>}
                   </div>
-                  <div className="mt-1 text-fg-3">Input: <span className="text-fg-2">{t.input}</span></div>
-                  <div className="text-fg-3">Expected: <span className="text-emerald-400/90">{t.expected}</span></div>
-                  {!t.passed && (
-                    <div className="text-fg-3">Actual: <span className="text-rose-400/90">{t.actual}</span></div>
-                  )}
-                </div>
+                  <dl className="mt-1 space-y-0.5 font-mono text-[11px]">
+                    <div className="flex gap-1.5"><dt className="text-fg-3">in</dt><dd className="break-all text-fg-2">{t.input}</dd></div>
+                    <div className="flex gap-1.5"><dt className="text-fg-3">expected</dt><dd className="break-all text-fg-2">{t.expected}</dd></div>
+                    {!t.passed && <div className="flex gap-1.5"><dt className="text-fg-3">got</dt><dd className="break-all text-bad">{t.actual}</dd></div>}
+                  </dl>
+                </li>
               ))}
-            </div>
+            </ul>
           )}
         </div>
       )}
 
-      {/* Feedback markdown */}
-      {judge.feedback && (
-        <div className="border-t border-line/60 pt-2 text-xs">
-          <Markdownish text={judge.feedback} />
-        </div>
-      )}
+      {judge.feedback && <div className="border-t border-line pt-2.5"><Markdownish text={judge.feedback} /></div>}
+
+      <p className="border-t border-line pt-2.5 text-[11px] leading-snug text-fg-3">
+        The AI reads your code and predicts how it behaves. Nothing was executed, so run it yourself before you rely on the result.
+      </p>
     </div>
   );
 }
-

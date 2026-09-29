@@ -766,6 +766,8 @@ function InterviewStudioContent() {
       directStartedRef.current = true;
       startSession(resumeId || undefined);
     }
+    // startSession is recreated every render; directStartedRef makes this run once
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams, sessionState]);
 
   // 1 FPS real-time video frame capture and transmission to Gemini Live
@@ -945,7 +947,7 @@ function InterviewStudioContent() {
     } else {
       mutateSessions();
     }
-  }, [sessionId, sessionStartTime, targetRole, activeMode, sessionTime, mutateSessions]);
+  }, [sessionId, sessionStartTime, targetRole, activeMode, sessionTime, mutateSessions, mutateUser]);
 
   // Clean up on unmount
   useEffect(() => {

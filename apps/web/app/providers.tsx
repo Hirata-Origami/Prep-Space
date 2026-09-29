@@ -31,14 +31,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
       <SWRConfig
         value={{
           fetcher: (url: string) => fetch(url).then(res => res.json()),
+          // In-memory only. A localStorage-backed cache made the first client render differ from the
+          // server HTML (hydration errors) and could show one person's data to the next user of the browser.
           provider: () => {
-            if (typeof window === 'undefined') return new Map();
-            const map = new Map(JSON.parse(localStorage.getItem('app-cache') || '[]'));
-            window.addEventListener('beforeunload', () => {
-              const appCache = JSON.stringify(Array.from(map.entries()));
-              localStorage.setItem('app-cache', appCache);
-            });
-            return map;
+            try { localStorage.removeItem('app-cache'); } catch { /* storage unavailable */ }
+            return new Map();
           },
           revalidateOnFocus: false,
           revalidateIfStale: true,

@@ -13,6 +13,9 @@ const PROTECTED_PREFIXES = [
   '/settings',
   '/applications',
   '/workspace',
+  '/flashcards',
+  '/behavioral',
+  '/negotiation',
 ];
 
 export async function proxy(request: NextRequest) {

@@ -41,22 +41,28 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     id: 'practice',
-    label: 'Community',
+    label: 'Practice',
     items: [
-      { icon: Building2, label: 'Mock Companies', href: '/mock-company' },
-      { icon: Users, label: 'Groups', href: '/groups' },
+      { icon: PenTool, label: 'Workspace', href: '/workspace' },
+      { icon: BrainCircuit, label: 'Flashcards', href: '/flashcards' },
+      { icon: MessageSquareCode, label: 'STAR stories', href: '/behavioral' },
+      { icon: Building2, label: 'Mock companies', href: '/mock-company' },
     ],
   },
   {
     id: 'tools',
-    label: 'Career tools',
+    label: 'Career',
     items: [
-      { icon: FileUser, label: 'Resume Builder', href: '/resume' },
-      { icon: PenTool, label: 'Workspace', href: '/workspace' },
+      { icon: FileUser, label: 'Resume builder', href: '/resume' },
       { icon: Send, label: 'Applications', href: '/applications' },
-      { icon: BrainCircuit, label: 'Flashcards', href: '/flashcards' },
-      { icon: MessageSquareCode, label: 'STAR Stories', href: '/behavioral' },
-      { icon: DollarSign, label: 'Offer Coach', href: '/negotiation' },
+      { icon: DollarSign, label: 'Offer coach', href: '/negotiation' },
+    ],
+  },
+  {
+    id: 'community',
+    label: 'Community',
+    items: [
+      { icon: Users, label: 'Groups', href: '/groups' },
       { icon: Trophy, label: 'Leaderboard', href: '/leaderboard' },
     ],
   },

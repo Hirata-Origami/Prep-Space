@@ -12,7 +12,6 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 - **Live AI interview.** Real-time voice conversation with an interviewer (Gemini Live). The interviewer also sees your camera.
 - **Performance report.** Scores for technical depth, communication, problem solving, conciseness and confidence, with question-by-question feedback, timestamped audio markers, words per minute and filler words.
 - **On-camera analysis.** The report also scores eye contact, posture, expression, framing and lighting, and focus, with notes tied to timestamps. See [How video analysis works](#how-video-analysis-works).
-- **Story bank and flashcards.** Save STAR stories for behavioural interview practice and review due flashcards by difficulty.
 - **Shared board.** Inside a live interview you can open a board, write code or sketch a diagram, and share it so the interviewer reacts to it.
 - **Roadmaps.** Paste a job description and get a study plan with modules and topics.
 - **Mock companies, groups and a leaderboard** for community practice.
@@ -24,11 +23,19 @@ The roadmap for what is built and what is next lives in [PLAN.md](PLAN.md).
 - **The AI draws.** Describe a system and get a diagram with automatic layout. Ask for changes ("add a cache before the database") and it edits the same diagram while keeping your layout and pen strokes. It can also critique a design or write it up as notes.
 - Documents autosave.
 
+### Practice tools
+- **Coding practice.** Ten tracks (algorithms and SQL) at three levels. Each click creates a fresh problem in a workspace document; press Judge and the AI walks your solution through test cases and estimates its complexity. Passing a problem for the first time earns XP by level. The verdict is a prediction: nothing is executed.
+- **Flashcards.** Recall cards built from the questions you answered poorly, plus your own. Reviews use SM-2 spaced repetition with keyboard shortcuts (Space to reveal, 1 to 4 to rate), and the dashboard shows what is due.
+- **STAR stories.** A bank of behavioural stories. The AI tidies structure from your own notes and a resume bullet, and is told never to invent numbers.
+- **Shareable reports.** Create a 30-day link so a mentor can read your scores and feedback without signing in. The link never exposes audio, your answers or your name, and can be turned off.
+- **Weekly digest.** A Monday email with your week in numbers, sent by a cron job.
+
 ### Career tools
 - **Resume builder.** Five LaTeX templates (a faithful two-column original plus ATS-friendly single-column layouts), exact `.tex` import, live A4 preview, ATS checks, Overleaf export, plain-text copy, and draft protection.
 - **Tailor to a job.** Paste a job description and get rewritten bullets that keep every figure, plus a cover letter grounded in your resume.
 - **GitHub project indexing.** Enter a GitHub username. PrepSpace lists the public repositories, reads each one (README, structure, dependency files, languages, activity), asks DeepWiki for an architecture read, and summarises it with your Gemini key. When you tailor to a job it picks the best-fitting projects and writes about them from verified facts only.
 - **Application tracker.** Track statuses, next steps and job descriptions, and jump straight to tailoring or practising.
+- **Offer coach.** Compare offers side by side (year-one cash and yearly total with equity) and get a counter-offer email built only from your numbers and notes. It never quotes market data.
 - **Command palette** with Ctrl or Cmd + K.
 
 ## How video analysis works
@@ -67,19 +74,21 @@ Each user brings their own Gemini API key, which they add during onboarding. No 
 | Variable | Needed | Purpose |
 | --- | --- | --- |
 | `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes | Supabase client |
-| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server-side admin operations |
+| `SUPABASE_SERVICE_ROLE_KEY` | yes | Server-side admin operations: shared report links, XP awards, cron jobs |
 | `UPSTASH_REDIS_REST_URL`, `UPSTASH_REDIS_REST_TOKEN` | optional | Caching |
 | `SMTP_*` | optional | Report emails |
 | `NEXT_PUBLIC_SITE_URL` | yes | Links in emails |
+| `CRON_SECRET` | yes, for cron | Bearer secret that the daily insight and weekly digest endpoints require. Without it they refuse every request. |
 | `GITHUB_TOKEN` | optional | A read-only token with no scopes, set on the server, that lifts GitHub's shared 60 requests per hour limit for public repository lookups. Users never enter a token. |
 
 ### Database
 
 Run these in the Supabase SQL editor, in order. Every script is safe to run more than once.
 
-1. `supabase/migrations/full_schema.sql`: the base schema.
-2. `supabase/migrations/002_github_and_applications.sql`: the application tracker table. (The GitHub feature reads public repositories only, so it needs no schema.)
-3. `supabase/migrations/003_workspace.sql`: workspace documents.
+1. `supabase/migrations/full_schema.sql`: the complete schema. For a fresh project this is all you need.
+2. `supabase/migrations/004_practice_features.sql`: for a project that already has the older base schema. It adds the application tracker, workspace documents, coding submissions, flashcards, STAR stories, offers and shared reports, and locks down `increment_xp` so only the server can award XP.
+
+The GitHub feature reads public repositories only, so it needs no schema.
 
 Until a migration is run, the page that needs it shows a notice with the file name instead of failing.
 

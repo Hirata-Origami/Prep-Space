@@ -18,7 +18,10 @@ export async function GET() {
       .eq('user_id', dbUser.id)
       .order('created_at', { ascending: false });
 
-    if (error) return NextResponse.json({ offers: [] });
+    if (error) {
+      const missing = /relation|does not exist|schema cache/i.test(error.message);
+      return NextResponse.json({ offers: [], setupNeeded: missing, error: missing ? 'The offers table is missing. Run supabase/migrations/004_practice_features.sql in the Supabase SQL editor.' : error.message }, { status: missing ? 200 : 500 });
+    }
     return NextResponse.json({ offers: offers ?? [] });
   } catch {
     return NextResponse.json({ offers: [] });
@@ -85,7 +88,9 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Offer id required' }, { status: 400 });
 
-  const { error } = await supabase.from('negotiation_offers').delete().eq('id', id);
+  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  const { error } = await supabase.from('negotiation_offers').delete().eq('id', id).eq('user_id', dbUser.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

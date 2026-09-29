@@ -15,7 +15,7 @@ async function currentUser() {
   return { supabase, dbUser };
 }
 
-const MIGRATION_HINT = 'The applications table is missing. Run supabase/migrations/002_github_and_applications.sql in the Supabase SQL editor.';
+const MIGRATION_HINT = 'The applications table is missing. Run supabase/migrations/004_practice_features.sql in the Supabase SQL editor.';
 
 export async function GET() {
   const { supabase, dbUser } = await currentUser();

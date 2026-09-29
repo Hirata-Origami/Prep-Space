@@ -1,23 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import {
-  Award,
-  Check,
-  Copy,
-  FileText,
-  MessageSquare,
-  MessageSquareCode,
-  PenTool,
-  Plus,
-  Sparkles,
-  Target,
-  Trash2,
-  Users,
-} from 'lucide-react';
-import { Badge, Button, Card, EmptyState, PageHeader, Skeleton } from '@/components/ui';
+import { Check, Copy, MessageSquareCode, Pencil, Plus, Sparkles, Trash2, Undo2 } from 'lucide-react';
+import { Badge, Button, Card, EmptyState, ErrorState, Field, Input, Modal, PageHeader, Select, Skeleton, Textarea } from '@/components/ui';
 import { cn } from '@/lib/cn';
 
 interface StarStory {
@@ -28,467 +15,277 @@ interface StarStory {
   task: string;
   action: string;
   result: string;
-  metrics?: string;
-  feedback?: string;
+  metrics?: string | null;
+  feedback?: string | null;
   updated_at: string;
 }
 
-const THEMES = [
-  'All',
-  'Leadership & Ownership',
-  'Conflict & Disagreement',
-  'Failure & Post-Mortem',
-  'Tight Deadlines',
-  'Ambiguity & Innovation',
-  'Customer Obsession',
-];
+interface Draft {
+  id: string | null;
+  title: string;
+  theme: string;
+  situation: string;
+  task: string;
+  action: string;
+  result: string;
+  metrics: string;
+  feedback: string;
+}
 
-const fetcher = (url: string) => fetch(url).then(r => r.json());
+const THEMES = ['Leadership and ownership', 'Conflict and disagreement', 'Failure and learning', 'Tight deadlines', 'Ambiguity and initiative', 'Customer focus'];
+
+const EMPTY: Draft = { id: null, title: '', theme: THEMES[0], situation: '', task: '', action: '', result: '', metrics: '', feedback: '' };
+
+const fetcher = async (url: string) => {
+  const res = await fetch(url);
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || 'Could not load your stories');
+  return json as { stories: StarStory[]; resumeBullets: string[] };
+};
+
+const asAnswer = (s: Pick<StarStory, 'situation' | 'task' | 'action' | 'result'>) =>
+  [s.situation, s.task, s.action, s.result].map(p => p?.trim()).filter(Boolean).join('\n\n');
 
 export default function BehavioralPage() {
-  const { data, mutate, isLoading } = useSWR<{ stories: StarStory[]; resumeBullets: string[] }>('/api/behavioral', fetcher);
-  const [selectedTheme, setSelectedTheme] = useState('All');
-  const [isEditing, setIsEditing] = useState(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { data, error, mutate, isLoading } = useSWR('/api/behavioral', fetcher);
+  const [theme, setTheme] = useState('All');
+  const [editing, setEditing] = useState<Draft | null>(null);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
-  // Form State
-  const [title, setTitle] = useState('');
-  const [theme, setTheme] = useState(THEMES[1]);
-  const [situation, setSituation] = useState('');
-  const [task, setTask] = useState('');
-  const [action, setAction] = useState('');
-  const [result, setResult] = useState('');
-  const [metrics, setMetrics] = useState('');
-  const [feedback, setFeedback] = useState('');
+  const stories = useMemo(() => data?.stories ?? [], [data]);
+  const themes = useMemo(() => ['All', ...Array.from(new Set([...THEMES, ...stories.map(s => s.theme)])).filter(t => THEMES.includes(t) || stories.some(s => s.theme === t))], [stories]);
+  const shown = theme === 'All' ? stories : stories.filter(s => s.theme === theme);
+
+  const copy = (s: StarStory) => {
+    navigator.clipboard.writeText(asAnswer(s));
+    setCopied(s.id);
+    toast.success('Copied as a spoken answer');
+    setTimeout(() => setCopied(null), 1800);
+  };
+
+  const remove = async (id: string) => {
+    const res = await fetch(`/api/behavioral?id=${id}`, { method: 'DELETE' });
+    setDeleting(null);
+    if (res.ok) {
+      toast.success('Story deleted');
+      mutate();
+    } else toast.error('Could not delete the story');
+  };
+
+  return (
+    <div className="page-container">
+      <PageHeader
+        title="STAR stories"
+        description="Keep a handful of real stories ready. Most behavioural questions can be answered with one of them."
+        action={<Button onClick={() => setEditing({ ...EMPTY })}><Plus size={15} aria-hidden /> New story</Button>}
+      />
+
+      {error && <ErrorState title="Could not load your stories" description={error.message} onRetry={() => mutate()} />}
+      {isLoading && <div className="grid gap-4 md:grid-cols-2">{[0, 1].map(i => <Skeleton key={i} className="h-56" />)}</div>}
+
+      {data && stories.length === 0 && (
+        <EmptyState
+          icon={<MessageSquareCode size={20} aria-hidden />}
+          title="No stories yet"
+          description="Write down one thing you are proud of, even roughly. The AI can shape it into Situation, Task, Action and Result without adding anything you did not say."
+          action={<Button onClick={() => setEditing({ ...EMPTY })}><Plus size={15} aria-hidden /> Write your first story</Button>}
+        />
+      )}
+
+      {stories.length > 0 && (
+        <>
+          <div className="mb-5 flex flex-wrap gap-2" role="group" aria-label="Filter by theme">
+            {themes.map(t => (
+              <button
+                key={t}
+                type="button"
+                aria-pressed={theme === t}
+                onClick={() => setTheme(t)}
+                className={cn('rounded-full border px-3 py-1 text-[13px] transition-colors', theme === t ? 'border-signal bg-signal/12 text-fg' : 'border-line text-fg-2 hover:border-line-strong hover:text-fg')}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <ul className="grid gap-4 lg:grid-cols-2">
+            {shown.map(s => (
+              <li key={s.id}>
+                <Card className="flex h-full flex-col">
+                  <div className="mb-3 flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <h2 className="text-[15px] font-semibold text-fg">{s.title}</h2>
+                      <div className="mt-1.5 flex flex-wrap items-center gap-2">
+                        <Badge>{s.theme}</Badge>
+                        {s.metrics && <Badge tone="good">{s.metrics}</Badge>}
+                      </div>
+                    </div>
+                  </div>
+
+                  <dl className="flex-1 space-y-2.5 text-[13px] leading-relaxed">
+                    {([['Situation', s.situation], ['Task', s.task], ['Action', s.action], ['Result', s.result]] as const).filter(([, v]) => v?.trim()).map(([k, v]) => (
+                      <div key={k} className="grid grid-cols-[72px_1fr] gap-3">
+                        <dt className="pt-px text-fg-3">{k}</dt>
+                        <dd className="line-clamp-4 whitespace-pre-line text-fg-2">{v}</dd>
+                      </div>
+                    ))}
+                  </dl>
+
+                  <div className="mt-4 flex items-center gap-1.5 border-t border-line pt-3">
+                    <Button size="sm" variant="ghost" onClick={() => copy(s)}>
+                      {copied === s.id ? <Check size={14} aria-hidden /> : <Copy size={14} aria-hidden />} Copy answer
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditing({ id: s.id, title: s.title, theme: s.theme, situation: s.situation, task: s.task, action: s.action, result: s.result, metrics: s.metrics ?? '', feedback: s.feedback ?? '' })}>
+                      <Pencil size={14} aria-hidden /> Edit
+                    </Button>
+                    <span className="ml-auto flex items-center gap-1.5">
+                      {deleting === s.id ? (
+                        <>
+                          <Button size="sm" variant="danger" onClick={() => remove(s.id)}>Delete</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setDeleting(null)}>Keep</Button>
+                        </>
+                      ) : (
+                        <Button size="icon" variant="ghost" aria-label={`Delete ${s.title}`} onClick={() => setDeleting(s.id)}><Trash2 size={15} aria-hidden /></Button>
+                      )}
+                    </span>
+                  </div>
+                </Card>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {editing && (
+        <StoryEditor
+          key={editing.id ?? 'new'}
+          initial={editing}
+          bullets={data?.resumeBullets ?? []}
+          onClose={() => setEditing(null)}
+          onSaved={() => { setEditing(null); mutate(); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function StoryEditor({ initial, bullets, onClose, onSaved }: { initial: Draft; bullets: string[]; onClose: () => void; onSaved: () => void }) {
+  const [d, setD] = useState<Draft>(initial);
+  const [bullet, setBullet] = useState('');
   const [score, setScore] = useState<number | null>(null);
-
+  const [before, setBefore] = useState<Draft | null>(null);
   const [polishing, setPolishing] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const openNew = () => {
-    setEditingId(null);
-    setTitle('');
-    setTheme(THEMES[1]);
-    setSituation('');
-    setTask('');
-    setAction('');
-    setResult('');
-    setMetrics('');
-    setFeedback('');
-    setScore(null);
-    setIsEditing(true);
-  };
+  const set = <K extends keyof Draft>(k: K, v: Draft[K]) => setD(prev => ({ ...prev, [k]: v }));
 
-  const openEdit = (s: StarStory) => {
-    setEditingId(s.id);
-    setTitle(s.title);
-    setTheme(s.theme);
-    setSituation(s.situation);
-    setTask(s.task);
-    setAction(s.action);
-    setResult(s.result);
-    setMetrics(s.metrics || '');
-    setFeedback(s.feedback || '');
-    setScore(null);
-    setIsEditing(true);
-  };
+  const notes = [d.situation && `Situation: ${d.situation}`, d.task && `Task: ${d.task}`, d.action && `Action: ${d.action}`, d.result && `Result: ${d.result}`, d.metrics && `Metrics: ${d.metrics}`].filter(Boolean).join('\n');
 
-  const handlePolish = async () => {
-    const raw = `Situation: ${situation}\nTask: ${task}\nAction: ${action}\nResult: ${result}\nMetrics: ${metrics}`;
-    if (!raw.trim()) {
-      toast.error('Write some story notes first to polish');
+  const polish = async () => {
+    if (!notes.trim() && !bullet) {
+      toast.error('Write a few notes first, or pick a resume bullet to start from.');
       return;
     }
-
     setPolishing(true);
     try {
       const res = await fetch('/api/behavioral', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'polish',
-          rawInput: raw,
-          theme,
-        }),
+        body: JSON.stringify({ operation: 'polish', rawInput: notes || bullet, theme: d.theme, resumeBullet: bullet }),
       });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error);
-
-      const p = json.polished;
-      if (p.title && !title) setTitle(p.title);
-      if (p.situation) setSituation(p.situation);
-      if (p.task) setTask(p.task);
-      if (p.action) setAction(p.action);
-      if (p.result) setResult(p.result);
-      if (p.metrics) setMetrics(p.metrics);
-      if (p.feedback) setFeedback(p.feedback);
-      if (p.score) setScore(p.score);
-
-      toast.success('STAR story polished & rated!');
+      const p = json.polished as Partial<Draft> & { score?: number };
+      setBefore(d);
+      setD(prev => ({
+        ...prev,
+        title: prev.title || p.title || '',
+        situation: p.situation ?? prev.situation,
+        task: p.task ?? prev.task,
+        action: p.action ?? prev.action,
+        result: p.result ?? prev.result,
+        metrics: p.metrics ?? prev.metrics,
+        feedback: p.feedback ?? prev.feedback,
+      }));
+      setScore(typeof p.score === 'number' ? p.score : null);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Polish failed');
+      toast.error(e instanceof Error ? e.message : 'The rewrite failed');
     } finally {
       setPolishing(false);
     }
   };
 
-  const handleSave = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim() || !situation.trim() || !action.trim()) {
-      toast.error('Title, Situation, and Action are required');
-      return;
-    }
-
+  const save = async () => {
     setSaving(true);
     try {
-      const res = await fetch('/api/behavioral', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          operation: 'save',
-          id: editingId || undefined,
-          title,
-          theme,
-          situation,
-          task,
-          action,
-          result,
-          metrics,
-          feedback,
-        }),
-      });
-      if (!res.ok) throw new Error();
-      toast.success(editingId ? 'Story updated' : 'Story saved to bank');
-      setIsEditing(false);
-      mutate();
-    } catch {
-      toast.error('Could not save story');
+      const res = await fetch('/api/behavioral', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ operation: 'save', ...d }) });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error);
+      toast.success('Story saved');
+      onSaved();
+    } catch (e: unknown) {
+      toast.error(e instanceof Error ? e.message : 'Could not save the story');
     } finally {
       setSaving(false);
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Delete this story?')) return;
-    try {
-      const res = await fetch(`/api/behavioral?id=${id}`, { method: 'DELETE' });
-      if (res.ok) {
-        toast.success('Story deleted');
-        mutate();
-      }
-    } catch {
-      toast.error('Failed to delete');
-    }
-  };
-
-  const copyStory = (s: StarStory) => {
-    const text = `**${s.title}** (${s.theme})
-
-*Situation:* ${s.situation}
-*Task:* ${s.task}
-*Action:* ${s.action}
-*Result:* ${s.result}${s.metrics ? `\n*Impact:* ${s.metrics}` : ''}`;
-
-    navigator.clipboard.writeText(text);
-    setCopiedId(s.id);
-    toast.success('Story copied to clipboard');
-    setTimeout(() => setCopiedId(null), 2000);
-  };
-
-  const stories = data?.stories ?? [];
-  const filteredStories = stories.filter(s => selectedTheme === 'All' || s.theme === selectedTheme);
-
   return (
-    <div className="page-container space-y-8">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <PageHeader
-          title="STAR Behavioural Story Bank"
-          description="Craft, polish, and store high-scoring Situation-Task-Action-Result responses tied to your resume bullets for leadership and behavioral rounds."
-        />
-        <Button onClick={openNew} className="flex items-center gap-1.5">
-          <Plus size={16} /> New Story
-        </Button>
-      </div>
-
-      {/* Theme Filters */}
-      <div className="flex flex-wrap gap-1.5 border-b border-line pb-4">
-        {THEMES.map(t => (
-          <button
-            key={t}
-            type="button"
-            onClick={() => setSelectedTheme(t)}
-            className={cn(
-              'rounded-[6px] px-3 py-1.5 text-xs font-medium transition-colors',
-              selectedTheme === t
-                ? 'bg-signal text-[var(--text-on-accent)]'
-                : 'text-fg-2 hover:bg-raised hover:text-fg'
+    <Modal
+      open
+      onOpenChange={o => !o && onClose()}
+      title={initial.id ? 'Edit story' : 'New story'}
+      description="Rough notes are fine. Use the AI to tidy the structure; it only works from what you wrote."
+      className="max-w-2xl"
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>Cancel</Button>
+          <Button onClick={save} loading={saving} disabled={!d.title.trim() || !d.situation.trim() || !d.action.trim()}>Save story</Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        {bullets.length > 0 && (
+          <Field label="Start from a resume bullet" hint="Optional. The AI keeps its facts and asks you for anything missing.">
+            {a => (
+              <Select {...a} value={bullet} onChange={e => { setBullet(e.target.value); if (e.target.value && !d.action) set('action', e.target.value); }}>
+                <option value="">None</option>
+                {bullets.map(b => <option key={b} value={b}>{b.length > 90 ? `${b.slice(0, 90)}…` : b}</option>)}
+              </Select>
             )}
-          >
-            {t}
-          </button>
-        ))}
-      </div>
+          </Field>
+        )}
 
-      {/* Editor Modal / Section */}
-      {isEditing && (
-        <Card className="border-signal/30 p-6 space-y-5 bg-panel shadow-lg">
-          <div className="flex items-center justify-between border-b border-line pb-3">
-            <h2 className="text-base font-semibold text-fg">
-              {editingId ? 'Edit STAR Story' : 'Build a New STAR Story'}
-            </h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={polishing}
-                onClick={handlePolish}
-                className="flex items-center gap-1.5 text-signal"
-              >
-                <Sparkles size={14} />
-                {polishing ? 'Scoring & Enhancing…' : 'AI Bar-Raiser Polish'}
-              </Button>
-              <button
-                type="button"
-                onClick={() => setIsEditing(false)}
-                className="text-fg-3 hover:text-fg"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
-
-          {score && (
-            <div className="flex items-center justify-between rounded-control border border-signal/20 bg-signal/5 p-3 text-xs">
-              <div className="flex items-center gap-2 text-signal font-semibold">
-                <Award size={16} /> FAANG Bar Score: {score}/100
-              </div>
-              {metrics && <span className="font-mono text-fg-2">Metrics: {metrics}</span>}
-            </div>
-          )}
-
-          {data?.resumeBullets && data.resumeBullets.length > 0 && (
-            <div>
-              <label className="mb-1 block text-xs font-medium text-fg-3">
-                Quick-import from your Resume:
-              </label>
-              <select
-                onChange={e => {
-                  if (e.target.value) {
-                    setSituation(`While working on this project: ${e.target.value}`);
-                    setAction(`Led the implementation by...`);
-                  }
-                }}
-                className="w-full rounded-control border border-line bg-raised/50 p-2 text-xs text-fg-2 outline-none"
-              >
-                <option value="">-- Choose a bullet point to expand into STAR --</option>
-                {data.resumeBullets.map((b, idx) => (
-                  <option key={idx} value={b}>
-                    {b.slice(0, 90)}...
-                  </option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <form onSubmit={handleSave} className="space-y-4 text-xs">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block font-medium text-fg-2">Story Title</label>
-                <input
-                  required
-                  value={title}
-                  onChange={e => setTitle(e.target.value)}
-                  placeholder="e.g. Migrating payments to event-driven ledger"
-                  className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-medium text-fg-2">Behavioral Theme</label>
-                <select
-                  value={theme}
-                  onChange={e => setTheme(e.target.value)}
-                  className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-                >
-                  {THEMES.filter(t => t !== 'All').map(t => (
-                    <option key={t} value={t}>
-                      {t}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="mb-1 block font-medium text-fg-2">
-                <span className="font-bold text-signal">S</span>ituation (Context & Scale)
-              </label>
-              <textarea
-                required
-                rows={2}
-                value={situation}
-                onChange={e => setSituation(e.target.value)}
-                placeholder="What was the business context, company scale, and challenge at hand?"
-                className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block font-medium text-fg-2">
-                <span className="font-bold text-signal">T</span>ask (Your Specific Ownership)
-              </label>
-              <textarea
-                rows={2}
-                value={task}
-                onChange={e => setTask(e.target.value)}
-                placeholder="What was your direct responsibility? What constraints or risks existed?"
-                className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block font-medium text-fg-2">
-                <span className="font-bold text-signal">A</span>ction (Decisions & Leadership — emphasize &quot;I&quot;)
-              </label>
-              <textarea
-                required
-                rows={3}
-                value={action}
-                onChange={e => setAction(e.target.value)}
-                placeholder="Detailed steps you took, technical trade-offs resolved, and pushback handled."
-                className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-              />
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block font-medium text-fg-2">
-                  <span className="font-bold text-signal">R</span>esult (Measurable Business Impact)
-                </label>
-                <textarea
-                  rows={2}
-                  value={result}
-                  onChange={e => setResult(e.target.value)}
-                  placeholder="What was the concrete outcome? Customer impact, time saved?"
-                  className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-medium text-fg-2">Quantifiable Metrics</label>
-                <input
-                  value={metrics}
-                  onChange={e => setMetrics(e.target.value)}
-                  placeholder="e.g. 99.99% uptime, -40% p99 latency, $120k cost savings"
-                  className="w-full rounded-control border border-line bg-panel p-2.5 text-fg outline-none focus:border-signal"
-                />
-              </div>
-            </div>
-
-            {feedback && (
-              <div className="rounded-control border border-line bg-raised/40 p-3 text-xs text-fg-2">
-                <div className="mb-1 font-semibold text-signal">Coach Feedback & Delivery Tip:</div>
-                <p className="leading-relaxed">{feedback}</p>
-              </div>
+        <div className="grid gap-3 sm:grid-cols-[1fr_200px]">
+          <Field label="Title">{a => <Input {...a} value={d.title} onChange={e => set('title', e.target.value)} placeholder="Cut checkout latency by half" />}</Field>
+          <Field label="Theme">
+            {a => (
+              <Select {...a} value={d.theme} onChange={e => set('theme', e.target.value)}>
+                {Array.from(new Set([...THEMES, d.theme])).map(t => <option key={t}>{t}</option>)}
+              </Select>
             )}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <Button type="button" variant="secondary" onClick={() => setIsEditing(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" loading={saving}>
-                Save Story
-              </Button>
-            </div>
-          </form>
-        </Card>
-      )}
-
-      {/* Story Cards List */}
-      {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2">{[0, 1].map(i => <Skeleton key={i} className="h-44" />)}</div>
-      ) : filteredStories.length === 0 ? (
-        <EmptyState
-          icon={<MessageSquareCode size={24} className="text-signal" />}
-          title="No stories in this theme yet"
-          description="Draft high-impact STAR answers to nail leadership and behavioral questions."
-          action={
-            <Button onClick={openNew} className="gap-1.5">
-              <Plus size={15} /> Build First Story
-            </Button>
-          }
-        />
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {filteredStories.map(s => (
-            <Card key={s.id} className="flex flex-col justify-between p-5 space-y-4">
-              <div className="space-y-3">
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <h3 className="text-base font-semibold text-fg">{s.title}</h3>
-                    <Badge className="mt-1">{s.theme}</Badge>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => copyStory(s)}
-                      aria-label="Copy story"
-                    >
-                      {copiedId === s.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} />}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => openEdit(s)}
-                      aria-label="Edit story"
-                    >
-                      <PenTool size={14} />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDelete(s.id)}
-                      aria-label="Delete story"
-                      className="text-fg-3 hover:text-rose-400"
-                    >
-                      <Trash2 size={14} />
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="space-y-2 text-xs leading-relaxed">
-                  <div>
-                    <span className="font-semibold text-signal">Situation: </span>
-                    <span className="text-fg-2">{s.situation}</span>
-                  </div>
-                  {s.task && (
-                    <div>
-                      <span className="font-semibold text-fg-3">Task: </span>
-                      <span className="text-fg-2">{s.task}</span>
-                    </div>
-                  )}
-                  <div>
-                    <span className="font-semibold text-signal">Action: </span>
-                    <span className="text-fg-2">{s.action}</span>
-                  </div>
-                  {s.result && (
-                    <div>
-                      <span className="font-semibold text-emerald-400">Result: </span>
-                      <span className="text-fg-2">{s.result}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {s.metrics && (
-                <div className="border-t border-line/60 pt-2.5 flex items-center gap-2 text-xs font-mono text-emerald-400">
-                  <Target size={13} /> {s.metrics}
-                </div>
-              )}
-            </Card>
-          ))}
+          </Field>
         </div>
-      )}
-    </div>
+
+        <Field label="Situation" hint="Where and when, and what was at stake.">{a => <Textarea {...a} rows={2} value={d.situation} onChange={e => set('situation', e.target.value)} />}</Field>
+        <Field label="Task" hint="What you were responsible for.">{a => <Textarea {...a} rows={2} value={d.task} onChange={e => set('task', e.target.value)} />}</Field>
+        <Field label="Action" hint="What you did. Say I, not we.">{a => <Textarea {...a} rows={4} value={d.action} onChange={e => set('action', e.target.value)} />}</Field>
+        <Field label="Result">{a => <Textarea {...a} rows={2} value={d.result} onChange={e => set('result', e.target.value)} />}</Field>
+        <Field label="Numbers" hint="Only real figures, such as 40% faster or 3 engineers.">{a => <Input {...a} value={d.metrics} onChange={e => set('metrics', e.target.value)} />}</Field>
+
+        <div className="flex flex-wrap items-center gap-2 rounded-panel border border-line bg-raised p-3">
+          <Button variant="secondary" size="sm" onClick={polish} loading={polishing}><Sparkles size={14} aria-hidden /> Tidy with AI</Button>
+          {before && <Button variant="ghost" size="sm" onClick={() => { setD(before); setBefore(null); setScore(null); }}><Undo2 size={14} aria-hidden /> Undo rewrite</Button>}
+          {score !== null && <Badge tone={score >= 80 ? 'good' : score >= 60 ? 'live' : 'bad'}>Strength {score}/100</Badge>}
+        </div>
+        {d.feedback && (
+          <div className="rounded-panel border border-signal/20 bg-signal/5 p-3.5">
+            <div className="mb-1 text-xs font-medium text-signal">Coach notes</div>
+            <p className="whitespace-pre-line text-[13px] leading-relaxed text-fg-2">{d.feedback}</p>
+          </div>
+        )}
+      </div>
+    </Modal>
   );
 }

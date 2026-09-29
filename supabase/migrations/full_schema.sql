@@ -507,9 +507,18 @@ CREATE POLICY "shared_reports_owner_manage" ON shared_reports
   FOR ALL USING (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()))
   WITH CHECK (user_id IN (SELECT id FROM users WHERE supabase_uid = auth.uid()));
 
+
+-- ============================================================
+-- Hardening
+-- ============================================================
+-- Shared links are looked up by the server with the service role, so nobody needs
+-- to list them. Remove the old public read policy if an earlier version created it.
 DROP POLICY IF EXISTS "shared_reports_public_read" ON shared_reports;
-CREATE POLICY "shared_reports_public_read" ON shared_reports
-  FOR SELECT USING (is_active = TRUE);
+
+-- increment_xp is SECURITY DEFINER and takes any user id, so it must not be callable
+-- by signed-in users. Only the server (service role) awards XP.
+REVOKE EXECUTE ON FUNCTION increment_xp(UUID, INT) FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION increment_xp(UUID, INT) TO service_role;
 
 -- ============================================================
 -- 017 — AUTOMATION & CRONS

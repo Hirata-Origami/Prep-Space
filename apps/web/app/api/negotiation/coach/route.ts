@@ -38,6 +38,7 @@ export async function POST(request: Request) {
   }
 
   const { offer } = await request.json() as { offer: OfferPayload };
+  if (!offer?.company || !offer?.role) return NextResponse.json({ error: 'Save the offer with a company and role first.' }, { status: 400 });
 
   const totalComp = (offer.base_salary || 0) + (offer.bonus || 0) + (offer.signing_bonus || 0);
 
@@ -56,8 +57,8 @@ Offer Details:
 
 Write a professional, confident, warm counter-offer email/script. The candidate should:
 1. Express genuine excitement for the role.
-2. Reference market data and their competing interest (if mentioned in notes).
-3. Ask for a specific counter (suggest 10-15% above base + improved equity or signing).
+2. Mention competing offers or other leverage ONLY if the notes state them. Never quote market salary figures, percentiles or statistics: you do not have reliable data, so say the candidate has researched the market instead.
+3. Ask for a specific counter: use a base figure the candidate can adjust, roughly 8-15% above the current base, and put the exact figure in square brackets like [$X] so they can change it.
 4. Keep tone collaborative, not confrontational.
 5. End with a clear ask and timeline.
 

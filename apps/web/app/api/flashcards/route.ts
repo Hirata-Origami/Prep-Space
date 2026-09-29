@@ -4,6 +4,8 @@ import { calculateSM2, type ReviewRating } from '@/lib/flashcards/sm2';
 
 export const dynamic = 'force-dynamic';
 
+const MIGRATION_HINT = 'The flashcards table is missing. Run supabase/migrations/004_practice_features.sql in the Supabase SQL editor.';
+
 export async function GET() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -21,7 +23,8 @@ export async function GET() {
       .order('due_date', { ascending: true });
 
     if (error) {
-      return NextResponse.json({ cards: [], dueCards: [], stats: { total: 0, dueToday: 0, mastered: 0, learning: 0 } });
+      const missing = /relation|does not exist|schema cache/i.test(error.message);
+      return NextResponse.json({ cards: [], dueCards: [], stats: { total: 0, dueToday: 0, mastered: 0, learning: 0 }, setupNeeded: missing, error: missing ? MIGRATION_HINT : error.message }, { status: missing ? 200 : 500 });
     }
 
     const allCards = cards ?? [];
@@ -56,6 +59,7 @@ export async function POST(request: Request) {
 
   if (body.action === 'review') {
     const { id, rating } = body as { id: string; rating: ReviewRating };
+    if (![1, 2, 3, 4].includes(rating)) return NextResponse.json({ error: 'Invalid rating' }, { status: 400 });
     const { data: card } = await supabase.from('flashcards').select('*').eq('id', id).eq('user_id', dbUser.id).single();
     if (!card) return NextResponse.json({ error: 'Card not found' }, { status: 404 });
 
@@ -78,6 +82,7 @@ export async function POST(request: Request) {
         last_reviewed_at: new Date().toISOString(),
       })
       .eq('id', id)
+      .eq('user_id', dbUser.id)
       .select()
       .single();
 
@@ -119,7 +124,9 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Card id required' }, { status: 400 });
 
-  const { error } = await supabase.from('flashcards').delete().eq('id', id);
+  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  const { error } = await supabase.from('flashcards').delete().eq('id', id).eq('user_id', dbUser.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

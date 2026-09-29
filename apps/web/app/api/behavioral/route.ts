@@ -34,12 +34,9 @@ export async function GET() {
     const bullets: string[] = [];
     const sections = (resumesRes.data?.profile_sections ?? {}) as Record<string, unknown>;
     if (Array.isArray(sections.experience)) {
-      for (const exp of sections.experience as { highlights?: string[]; description?: string }[]) {
-        if (Array.isArray(exp.highlights)) {
-          bullets.push(...exp.highlights);
-        } else if (typeof exp.description === 'string') {
-          bullets.push(exp.description);
-        }
+      for (const exp of sections.experience as { bullets?: string | string[] }[]) {
+        const list = Array.isArray(exp.bullets) ? exp.bullets : String(exp.bullets ?? '').split('\n');
+        bullets.push(...list.map(b => b.replace(/^[-•*]\s*/, '').trim()).filter(b => b.length > 20));
       }
     }
 
@@ -58,7 +55,6 @@ export async function POST(request: Request) {
   if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
   const body = await request.json();
-
   if (body.operation === 'save') {
     const { id, title, theme, situation, task, action, result, metrics, feedback } = body;
     if (!title?.trim() || !situation?.trim() || !action?.trim()) {
@@ -117,8 +113,12 @@ export async function POST(request: Request) {
     }
 
     const { rawInput, theme, resumeBullet } = body;
+    if (!String(rawInput ?? '').replace(/(Situation|Task|Action|Result|Metrics):/g, '').trim()) {
+      return NextResponse.json({ error: 'Write a few notes about what happened first.' }, { status: 400 });
+    }
     const prompt = `You are a principal bar raiser / behavioural interview coach.
-Convert this candidate story/bullet point into a compelling, high-scoring STAR response:
+Turn the candidate's own notes into a clear STAR response. Use ONLY facts stated in the notes or the resume bullet.
+Never invent numbers, outcomes, team sizes, tools or people. If a result has no number in the notes, describe it qualitatively and add a note in the critique asking the candidate to add the real figure.
 Theme: ${theme || 'General'}
 Resume bullet: ${resumeBullet || '(none)'}
 Raw notes / Story:
@@ -128,8 +128,8 @@ Requirements:
 - Situation: 1-2 concise sentences establishing context, company scale, and the core stakes.
 - Task: 1 crisp sentence clarifying the specific challenge and the candidate's personal ownership.
 - Action: 3-4 bullet sentences using strong active verbs. Emphasize "I" over "we". Describe technical decision-making, trade-offs, and conflict navigation.
-- Result: 1-2 punchy sentences with concrete, quantifiable outcomes (% improvements, latency reductions, revenue, uptime).
-- Score: 1-100 rating based on FAANG/top tech behavioral bar.
+- Result: 1-2 sentences on the outcome, using only figures that appear in the notes.
+- Score: 1-100 rating of how strong the story is as written (specificity, ownership, measurable result, structure).
 - Critique: 2 actionable bullet points on how to make the delivery even more memorable.
 
 Return ONLY JSON:
@@ -139,7 +139,7 @@ Return ONLY JSON:
   "task": "...",
   "action": "...",
   "result": "...",
-  "metrics": "e.g. 45% latency drop, $150K saved",
+  "metrics": "figures copied from the notes, or an empty string if there are none",
   "score": 85,
   "feedback": "Critique and delivery tips"
 }`;
@@ -175,7 +175,9 @@ export async function DELETE(request: Request) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Story id required' }, { status: 400 });
 
-  const { error } = await supabase.from('star_stories').delete().eq('id', id);
+  const { data: dbUser } = await supabase.from('users').select('id').eq('supabase_uid', user.id).single();
+  if (!dbUser) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+  const { error } = await supabase.from('star_stories').delete().eq('id', id).eq('user_id', dbUser.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ success: true });
 }

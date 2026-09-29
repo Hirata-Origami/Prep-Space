@@ -1,34 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import useSWR from 'swr';
 import { toast } from 'sonner';
-import {
-  Award,
-  Braces,
-  CheckCircle2,
-  Database,
-  FileText,
-  Network,
-  Scale,
-  Shapes,
-  Sparkles,
-  TrendingUp,
-  XCircle,
-  AlertCircle,
-  Clock,
-  ArrowUpRight,
-} from 'lucide-react';
-import { Badge, Button, Card, EmptyState, ErrorState, PageHeader, Skeleton } from '@/components/ui';
+import { Braces, Database, FileText, Network, Shapes } from 'lucide-react';
+import { Badge, Button, Card, EmptyState, ErrorState, PageHeader, Select, Skeleton, Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui';
 import { LANGUAGES, type LanguageId } from '@/lib/workspace/types';
-import {
-  PRACTICE_TRACKS,
-  DIFFICULTY_CONFIG,
-  type DifficultyLevel,
-  type PracticeTrack,
-} from '@/lib/workspace/practice';
+import { DIFFICULTY_CONFIG, PRACTICE_TRACKS, type DifficultyLevel, type PracticeTrack } from '@/lib/workspace/practice';
 import { cn } from '@/lib/cn';
 
 interface DocRow {
@@ -42,25 +22,23 @@ interface DocRow {
 
 interface SubmissionRow {
   id: string;
-  workspace_doc_id?: string;
+  workspace_doc_id?: string | null;
   title: string;
   language: string;
   track: string;
   difficulty: DifficultyLevel;
   status: 'passed' | 'failed' | 'partial';
   score: number;
-  time_complexity?: string;
-  space_complexity?: string;
+  time_complexity?: string | null;
+  space_complexity?: string | null;
   created_at: string;
 }
 
-interface PracticeStats {
-  total: number;
-  passed: number;
-  easy: number;
-  medium: number;
-  hard: number;
-  userXp: number;
+interface PracticeData {
+  submissions: SubmissionRow[];
+  solvedTracks?: Record<string, number>;
+  stats: { total: number; solved?: number; passed: number; easy: number; medium: number; hard: number; userXp?: number };
+  setupNeeded?: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
@@ -79,17 +57,17 @@ const TEMPLATES: { id: string; title: string; description: string; icon: typeof 
   },
   {
     id: 'sql',
-    title: 'SQL practice',
+    title: 'SQL scratchpad',
     description: 'Write queries and get them reviewed, optimised or explained.',
     icon: Database,
-    body: { title: 'SQL practice', language: 'sql', content: '-- Top 3 customers by revenue in the last 30 days\nSELECT c.name, SUM(o.total) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nWHERE o.created_at >= now() - interval \'30 days\'\nGROUP BY c.name\nORDER BY revenue DESC\nLIMIT 3;\n' },
+    body: { title: 'SQL scratchpad', language: 'sql', content: '-- Top 3 customers by revenue in the last 30 days\nSELECT c.name, SUM(o.total) AS revenue\nFROM customers c\nJOIN orders o ON o.customer_id = c.id\nWHERE o.created_at >= now() - interval \'30 days\'\nGROUP BY c.name\nORDER BY revenue DESC\nLIMIT 3;\n' },
   },
   {
     id: 'code',
-    title: 'Coding problem',
-    description: 'Paste a problem, solve it, and have the coach check it.',
+    title: 'Code scratchpad',
+    description: 'Try an idea in any language and have the coach check it.',
     icon: Braces,
-    body: { title: 'Coding problem', language: 'python', content: '# Problem: given a list of intervals, merge all overlapping ones.\n\ndef merge(intervals):\n    pass\n' },
+    body: { title: 'Code scratchpad', language: 'python', content: '# Merge overlapping intervals\n\ndef merge(intervals):\n    pass\n' },
   },
   {
     id: 'blank',
@@ -100,19 +78,36 @@ const TEMPLATES: { id: string; title: string; description: string; icon: typeof 
   },
 ];
 
+const DSA_LANGUAGES = LANGUAGES.filter(l => l.id !== 'markdown' && l.id !== 'sql');
 const langLabel = (id: string) => LANGUAGES.find(l => l.id === id)?.label ?? id;
+const LEVEL_TONE: Record<DifficultyLevel, 'good' | 'live' | 'bad'> = { easy: 'good', medium: 'live', hard: 'bad' };
+const STATUS: Record<SubmissionRow['status'], { label: string; tone: 'good' | 'live' | 'bad' }> = {
+  passed: { label: 'Passed', tone: 'good' },
+  partial: { label: 'Partial', tone: 'live' },
+  failed: { label: 'Failed', tone: 'bad' },
+};
 
 export default function WorkspacePage() {
   const router = useRouter();
-  const [tab, setTab] = useState<'docs' | 'practice'>('docs');
-  const [trackCategory, setTrackCategory] = useState<'all' | 'dsa' | 'sql'>('all');
-  const [historyFilter, setHistoryFilter] = useState<'all' | 'passed' | 'failed'>('all');
-  const [startingProblem, setStartingProblem] = useState<string | null>(null);
-
-  const { data: docsData, error: docsError, isLoading: docsLoading } = useSWR<{ docs: DocRow[]; setupNeeded?: boolean; error?: string }>('/api/workspace', fetcher);
-  const { data: practiceData, isLoading: practiceLoading } = useSWR<{ submissions: SubmissionRow[]; stats: PracticeStats }>('/api/workspace/practice', fetcher);
+  const docs = useSWR<{ docs: DocRow[]; setupNeeded?: boolean; error?: string }>('/api/workspace', fetcher);
+  const practice = useSWR<PracticeData>('/api/workspace/practice', fetcher);
 
   const [creating, setCreating] = useState<string | null>(null);
+  const [starting, setStarting] = useState<string | null>(null);
+  const [dsaLang, setDsaLang] = useState<LanguageId>('python');
+  const [history, setHistory] = useState<'all' | 'passed' | 'open'>('all');
+
+  const setupNeeded = docs.data?.setupNeeded || practice.data?.setupNeeded;
+  const stats = practice.data?.stats;
+  const solvedTracks = practice.data?.solvedTracks ?? {};
+  const solved = stats?.solved ?? stats?.passed ?? 0;
+  const recent = useMemo(() => practice.data?.submissions ?? [], [practice.data]);
+  const passRate = recent.length ? Math.round((recent.filter(s => s.status === 'passed').length / recent.length) * 100) : 0;
+
+  const submissions = useMemo(
+    () => recent.filter(s => (history === 'passed' ? s.status === 'passed' : history === 'open' ? s.status !== 'passed' : true)),
+    [recent, history]
+  );
 
   const create = async (t: (typeof TEMPLATES)[number]) => {
     setCreating(t.id);
@@ -127,106 +122,174 @@ export default function WorkspacePage() {
     }
   };
 
-  const startTrackProblem = async (track: PracticeTrack, difficulty: DifficultyLevel) => {
+  const startProblem = async (track: PracticeTrack, difficulty: DifficultyLevel) => {
     const key = `${track.id}-${difficulty}`;
-    setStartingProblem(key);
+    setStarting(key);
     try {
+      const language: LanguageId = track.category === 'sql' ? 'sql' : dsaLang;
       const res = await fetch('/api/workspace/practice', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          trackId: track.id,
-          difficulty,
-          language: track.recommendedLanguages[0],
-        }),
+        body: JSON.stringify({ trackId: track.id, difficulty, language }),
       });
       const json = await res.json();
-      if (!res.ok) throw new Error(json.error || 'Failed to generate problem');
-      toast.success(`Generated ${track.name} (${difficulty})!`);
+      if (!res.ok) throw new Error(json.error || 'Could not create a problem');
       router.push(`/workspace/${json.id}`);
     } catch (e: unknown) {
-      toast.error(e instanceof Error ? e.message : 'Could not generate problem');
-      setStartingProblem(null);
+      toast.error(e instanceof Error ? e.message : 'Could not create a problem');
+      setStarting(null);
     }
   };
 
-  const filteredTracks = PRACTICE_TRACKS.filter(t => trackCategory === 'all' || t.category === trackCategory);
-  const submissions = practiceData?.submissions ?? [];
-  const filteredSubmissions = submissions.filter(s => {
-    if (historyFilter === 'passed') return s.status === 'passed';
-    if (historyFilter === 'failed') return s.status === 'failed' || s.status === 'partial';
-    return true;
-  });
-
-  const stats = practiceData?.stats;
-  const passRate = stats && stats.total > 0 ? Math.round((stats.passed / stats.total) * 100) : 0;
+  const sections: { title: string; tracks: PracticeTrack[] }[] = [
+    { title: 'Algorithms', tracks: PRACTICE_TRACKS.filter(t => t.category === 'dsa') },
+    { title: 'SQL', tracks: PRACTICE_TRACKS.filter(t => t.category === 'sql') },
+  ];
 
   return (
     <div className="page-container">
-      <PageHeader
-        title="Workspace & Practice"
-        description="Solve interview problems with an AI judge, draft algorithms and SQL queries, and sketch architectures."
-      />
+      <PageHeader title="Workspace" description="Practise coding and SQL with an AI reviewer, and sketch system designs the AI can draw and critique." />
 
-      {docsData?.setupNeeded && (
+      {setupNeeded && (
         <Card className="mb-6 border-live/40 bg-live/5 text-sm text-fg-2">
-          The workspace table does not exist yet. Open the Supabase SQL editor and run <code className="font-mono text-fg">supabase/migrations/003_workspace.sql</code> and <code className="font-mono text-fg">004_coding_practice.sql</code>, then reload this page.
+          Some tables are missing. Open the Supabase SQL editor and run <code className="font-mono text-fg">supabase/migrations/004_practice_features.sql</code>, then reload this page.
         </Card>
       )}
 
-      {/* Tabs */}
-      <div className="mb-6 flex border-b border-line">
-        <button
-          type="button"
-          onClick={() => setTab('docs')}
-          className={cn(
-            'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors',
-            tab === 'docs' ? 'border-signal text-fg' : 'border-transparent text-fg-3 hover:text-fg'
-          )}
-        >
-          <FileText size={16} />
-          Documents & Canvases
-          {docsData?.docs && <span className="rounded-full bg-raised px-2 py-0.5 text-xs text-fg-3">{docsData.docs.length}</span>}
-        </button>
-        <button
-          type="button"
-          onClick={() => setTab('practice')}
-          className={cn(
-            'flex items-center gap-2 border-b-2 px-4 py-2.5 text-sm font-semibold transition-colors',
-            tab === 'practice' ? 'border-signal text-fg' : 'border-transparent text-fg-3 hover:text-fg'
-          )}
-        >
-          <Scale size={16} />
-          Coding Tracks & AI Judge
-          {stats && stats.passed > 0 && (
-            <span className="rounded-full bg-signal/15 px-2 py-0.5 text-xs font-semibold text-signal">
-              {stats.passed} solved
-            </span>
-          )}
-        </button>
-      </div>
+      <Tabs defaultValue="practice">
+        <TabsList className="mb-6">
+          <TabsTrigger value="practice">Practice{solved > 0 && <span className="ml-2 rounded-full bg-signal/15 px-2 py-0.5 text-xs text-signal">{solved} solved</span>}</TabsTrigger>
+          <TabsTrigger value="docs">Documents{docs.data?.docs && docs.data.docs.length > 0 && <span className="ml-2 rounded-full bg-raised px-2 py-0.5 text-xs text-fg-3">{docs.data.docs.length}</span>}</TabsTrigger>
+        </TabsList>
 
-      {tab === 'docs' ? (
-        <>
+        {/* practice */}
+        <TabsContent value="practice" className="space-y-10 outline-none">
+          <Card className="grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-4 sm:divide-x sm:divide-line">
+            <Metric label="Problems solved" value={solved} />
+            <div className="sm:pl-6">
+              <div className="text-[13px] text-fg-3">By level</div>
+              <div className="mt-1 flex items-baseline gap-3 font-mono text-lg font-semibold">
+                <span className="text-good">{stats?.easy ?? 0}<span className="ml-0.5 text-xs font-normal text-fg-3">easy</span></span>
+                <span className="text-live">{stats?.medium ?? 0}<span className="ml-0.5 text-xs font-normal text-fg-3">med</span></span>
+                <span className="text-bad">{stats?.hard ?? 0}<span className="ml-0.5 text-xs font-normal text-fg-3">hard</span></span>
+              </div>
+            </div>
+            <Metric label="Recent pass rate" value={`${passRate}%`} />
+            <Metric label="XP" value={stats?.userXp ?? 0} />
+          </Card>
+
+          <section aria-label="Problem tracks">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div>
+                <h2 className="text-base font-semibold text-fg">Pick a track</h2>
+                <p className="mt-0.5 text-sm text-fg-3">Each click creates a fresh problem in a new document. Passing a problem for the first time earns XP by level.</p>
+              </div>
+              <label className="flex items-center gap-2 text-[13px] text-fg-2">
+                Language for algorithms
+                <Select value={dsaLang} onChange={e => setDsaLang(e.target.value as LanguageId)} className="h-9 w-auto">
+                  {DSA_LANGUAGES.map(l => <option key={l.id} value={l.id}>{l.label}</option>)}
+                </Select>
+              </label>
+            </div>
+
+            <div className="space-y-8">
+              {sections.map(sec => (
+                <div key={sec.title}>
+                  <h3 className="mb-3 text-sm font-semibold text-fg-2">{sec.title}</h3>
+                  <ul className="divide-y divide-line overflow-hidden rounded-panel border border-line bg-panel">
+                    {sec.tracks.map(track => {
+                      const done = solvedTracks[track.name] ?? 0;
+                      return (
+                        <li key={track.id} className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:items-center sm:gap-6">
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2">
+                              <h4 className="text-sm font-semibold text-fg">{track.name}</h4>
+                              {done > 0 && <Badge tone="good">{done} solved</Badge>}
+                            </div>
+                            <p className="mt-0.5 text-[13px] text-fg-3">{track.description}</p>
+                            <p className="mt-1.5 text-xs text-fg-3">{track.topics.join(', ')}</p>
+                          </div>
+                          <div className="flex shrink-0 gap-1.5" role="group" aria-label={`Start a ${track.name} problem`}>
+                            {(['easy', 'medium', 'hard'] as const).map(level => {
+                              const key = `${track.id}-${level}`;
+                              return (
+                                <Button key={level} size="sm" variant="secondary" disabled={!!starting || setupNeeded} loading={starting === key} onClick={() => startProblem(track, level)} className="min-w-[68px]">
+                                  {DIFFICULTY_CONFIG[level].label}
+                                </Button>
+                              );
+                            })}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section aria-label="History">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-base font-semibold text-fg">Recent attempts</h2>
+              <div role="group" aria-label="Filter attempts" className="flex rounded-control border border-line p-0.5">
+                {([['all', 'All'], ['passed', 'Passed'], ['open', 'Needs work']] as const).map(([id, label]) => (
+                  <button key={id} type="button" aria-pressed={history === id} onClick={() => setHistory(id)} className={cn('rounded-[6px] px-3 py-1 text-[13px] transition-colors', history === id ? 'bg-signal text-[var(--text-on-accent)]' : 'text-fg-2 hover:text-fg')}>
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {practice.isLoading && <Skeleton className="h-40" />}
+            {!practice.isLoading && submissions.length === 0 && (
+              <EmptyState title="No attempts yet" description="Start a problem above, write your solution, then press Judge in the coach panel. The verdict is recorded here." />
+            )}
+            {submissions.length > 0 && (
+              <div className="overflow-x-auto rounded-panel border border-line bg-panel">
+                <table className="w-full min-w-[640px] text-left text-[13px]">
+                  <thead className="border-b border-line text-fg-3">
+                    <tr>
+                      <th scope="col" className="px-4 py-2.5 font-medium">Problem</th>
+                      <th scope="col" className="px-3 py-2.5 font-medium">Level</th>
+                      <th scope="col" className="px-3 py-2.5 font-medium">Verdict</th>
+                      <th scope="col" className="px-3 py-2.5 font-medium">Time / space</th>
+                      <th scope="col" className="px-3 py-2.5 font-medium">When</th>
+                      <th scope="col" className="px-4 py-2.5"><span className="sr-only">Open</span></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {submissions.map(s => (
+                      <tr key={s.id}>
+                        <td className="px-4 py-3">
+                          <div className="font-medium text-fg">{s.title}</div>
+                          <div className="text-xs text-fg-3">{s.track}, {langLabel(s.language)}</div>
+                        </td>
+                        <td className="px-3 py-3"><Badge tone={LEVEL_TONE[s.difficulty] ?? 'neutral'}>{DIFFICULTY_CONFIG[s.difficulty]?.label ?? s.difficulty}</Badge></td>
+                        <td className="px-3 py-3"><Badge tone={STATUS[s.status].tone}>{STATUS[s.status].label} {s.score}</Badge></td>
+                        <td className="px-3 py-3 font-mono text-xs text-fg-2">{s.time_complexity || '–'} / {s.space_complexity || '–'}</td>
+                        <td className="px-3 py-3 text-fg-3">{new Date(s.created_at).toLocaleDateString()}</td>
+                        <td className="px-4 py-3 text-right">
+                          {s.workspace_doc_id ? <Link href={`/workspace/${s.workspace_doc_id}`} className="rounded-control px-2 py-1 text-signal hover:bg-signal/10">Open</Link> : null}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </section>
+        </TabsContent>
+
+        {/* documents */}
+        <TabsContent value="docs" className="outline-none">
           <h2 className="mb-3 text-sm font-semibold text-fg">Start with</h2>
           <div className="mb-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {TEMPLATES.map(t => {
               const Icon = t.icon;
               return (
-                <button
-                  key={t.id}
-                  type="button"
-                  disabled={!!creating || docsData?.setupNeeded}
-                  onClick={() => create(t)}
-                  className="group rounded-panel border border-line bg-panel p-4 text-left transition-colors hover:border-line-strong disabled:opacity-60"
-                >
-                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-signal/12 text-signal">
-                    <Icon size={17} aria-hidden />
-                  </div>
-                  <div className="flex items-center gap-2 text-sm font-semibold text-fg">
-                    {t.title}
-                    {creating === t.id && <span className="live-dot" aria-hidden />}
-                  </div>
+                <button key={t.id} type="button" disabled={!!creating || setupNeeded} onClick={() => create(t)} className="rounded-panel border border-line bg-panel p-4 text-left transition-colors hover:border-line-strong disabled:opacity-60">
+                  <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-control bg-signal/12 text-signal"><Icon size={17} aria-hidden /></div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-fg">{t.title}{creating === t.id && <span className="live-dot" aria-hidden />}</div>
                   <p className="mt-1 text-[13px] leading-snug text-fg-3">{t.description}</p>
                 </button>
               );
@@ -234,14 +297,14 @@ export default function WorkspacePage() {
           </div>
 
           <h2 className="mb-3 text-sm font-semibold text-fg">Your documents</h2>
-          {docsLoading && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-28" />)}</div>}
-          {docsError && <ErrorState title="Could not load your documents" description="Check your connection and try again." />}
-          {docsData && !docsData.setupNeeded && docsData.docs.length === 0 && (
-            <EmptyState icon={<FileText size={20} aria-hidden />} title="Nothing here yet" description="Pick a starting point above, or explore Coding Tracks to practice." />
+          {docs.isLoading && <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">{[0, 1, 2].map(i => <Skeleton key={i} className="h-28" />)}</div>}
+          {docs.error && <ErrorState title="Could not load your documents" description="Check your connection and try again." onRetry={() => docs.mutate()} />}
+          {docs.data && !docs.data.setupNeeded && docs.data.docs.length === 0 && (
+            <EmptyState icon={<FileText size={20} aria-hidden />} title="Nothing here yet" description="Pick a starting point above. Everything saves automatically." />
           )}
-          {docsData && docsData.docs.length > 0 && (
+          {docs.data && docs.data.docs.length > 0 && (
             <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {docsData.docs.map(d => (
+              {docs.data.docs.map(d => (
                 <li key={d.id}>
                   <Link href={`/workspace/${d.id}`} className="block h-full rounded-panel focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-signal/50">
                     <Card className="h-full transition-colors hover:border-line-strong">
@@ -260,247 +323,17 @@ export default function WorkspacePage() {
               ))}
             </ul>
           )}
-        </>
-      ) : (
-        <div className="space-y-8">
-          {/* Practice Stats Overview */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <Card className="flex items-center gap-3.5 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-emerald-500/10 text-emerald-400">
-                <CheckCircle2 size={20} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-fg">{stats?.passed ?? 0}</div>
-                <div className="text-xs text-fg-3">Problems Solved</div>
-              </div>
-            </Card>
-
-            <Card className="flex items-center gap-3.5 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-signal/10 text-signal">
-                <TrendingUp size={20} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-fg">{passRate}%</div>
-                <div className="text-xs text-fg-3">Judge Pass Rate</div>
-              </div>
-            </Card>
-
-            <Card className="flex items-center gap-3.5 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-amber-500/10 text-amber-400">
-                <Award size={20} />
-              </div>
-              <div>
-                <div className="flex items-center gap-1.5 text-xs text-fg-2">
-                  <span className="font-semibold text-emerald-400">{stats?.easy ?? 0}E</span> •
-                  <span className="font-semibold text-amber-400">{stats?.medium ?? 0}M</span> •
-                  <span className="font-semibold text-rose-400">{stats?.hard ?? 0}H</span>
-                </div>
-                <div className="mt-1 text-xs text-fg-3">Difficulty Breakdown</div>
-              </div>
-            </Card>
-
-            <Card className="flex items-center gap-3.5 p-4">
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-control bg-purple-500/10 text-purple-400">
-                <Sparkles size={20} />
-              </div>
-              <div>
-                <div className="text-2xl font-bold text-fg">{stats?.userXp ?? 0} XP</div>
-                <div className="text-xs text-fg-3">Total Earned XP</div>
-              </div>
-            </Card>
-          </div>
-
-          {/* Difficulty Tracks Section */}
-          <div>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-fg">Interview Difficulty Tracks</h2>
-                <p className="text-xs text-fg-3">Pick a track and launch a fresh problem directly into the workspace.</p>
-              </div>
-
-              <div role="group" aria-label="Track category" className="flex rounded-control border border-line p-0.5">
-                {(['all', 'dsa', 'sql'] as const).map(cat => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setTrackCategory(cat)}
-                    className={cn(
-                      'rounded-[6px] px-3 py-1 text-xs font-medium transition-colors',
-                      trackCategory === cat ? 'bg-signal text-[var(--text-on-accent)]' : 'text-fg-2 hover:text-fg'
-                    )}
-                  >
-                    {cat === 'all' ? 'All Tracks' : cat === 'dsa' ? 'Algorithms (DSA)' : 'SQL Analytics'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {filteredTracks.map(track => {
-                const Icon = track.category === 'sql' ? Database : Braces;
-                return (
-                  <Card key={track.id} className="flex flex-col justify-between p-4 transition-colors hover:border-line-strong">
-                    <div>
-                      <div className="mb-2 flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-2">
-                          <div className="flex h-7 w-7 items-center justify-center rounded-control bg-raised text-signal">
-                            <Icon size={14} />
-                          </div>
-                          <h3 className="text-sm font-semibold text-fg">{track.name}</h3>
-                        </div>
-                        <Badge>{track.category.toUpperCase()}</Badge>
-                      </div>
-
-                      <p className="text-xs leading-relaxed text-fg-3">{track.description}</p>
-
-                      <div className="mt-3 flex flex-wrap gap-1">
-                        {track.topics.slice(0, 3).map(topic => (
-                          <span key={topic} className="rounded bg-raised px-1.5 py-0.5 text-[10px] text-fg-2">
-                            {topic}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="mt-4 border-t border-line/60 pt-3">
-                      <div className="mb-1.5 text-[11px] font-medium text-fg-3">Practice level:</div>
-                      <div className="grid grid-cols-3 gap-1.5">
-                        {(['easy', 'medium', 'hard'] as const).map(diff => {
-                          const conf = DIFFICULTY_CONFIG[diff];
-                          const key = `${track.id}-${diff}`;
-                          const isSpinning = startingProblem === key;
-                          return (
-                            <button
-                              key={diff}
-                              type="button"
-                              disabled={!!startingProblem}
-                              onClick={() => startTrackProblem(track, diff)}
-                              className={cn(
-                                'rounded-control border px-2 py-1 text-center text-xs font-medium transition-all hover:scale-[1.02] disabled:opacity-50',
-                                conf.badgeColor
-                              )}
-                            >
-                              {isSpinning ? '...' : conf.label}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Solved Problems History */}
-          <div>
-            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h2 className="text-base font-semibold text-fg">Solved Problems & History</h2>
-                <p className="text-xs text-fg-3">Review past solutions, judge feedback, and time complexity evaluations.</p>
-              </div>
-
-              <div role="group" aria-label="History filter" className="flex rounded-control border border-line p-0.5">
-                {(['all', 'passed', 'failed'] as const).map(f => (
-                  <button
-                    key={f}
-                    type="button"
-                    onClick={() => setHistoryFilter(f)}
-                    className={cn(
-                      'rounded-[6px] px-2.5 py-1 text-xs font-medium transition-colors',
-                      historyFilter === f ? 'bg-signal text-[var(--text-on-accent)]' : 'text-fg-2 hover:text-fg'
-                    )}
-                  >
-                    {f === 'all' ? 'All' : f === 'passed' ? 'Passed' : 'Needs Work'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {practiceLoading && <Skeleton className="h-40" />}
-
-            {!practiceLoading && filteredSubmissions.length === 0 && (
-              <EmptyState
-                icon={<Award size={20} aria-hidden />}
-                title="No submission history yet"
-                description="Pick a track above, write your solution in the workspace, and run AI Judge to test and record your solution!"
-              />
-            )}
-
-            {!practiceLoading && filteredSubmissions.length > 0 && (
-              <div className="overflow-hidden rounded-panel border border-line bg-panel">
-                <table className="w-full text-left text-xs">
-                  <thead className="border-b border-line bg-raised/40 text-fg-3">
-                    <tr>
-                      <th className="px-4 py-2.5 font-medium">Problem / Track</th>
-                      <th className="px-3 py-2.5 font-medium">Difficulty</th>
-                      <th className="px-3 py-2.5 font-medium">Verdict</th>
-                      <th className="px-3 py-2.5 font-medium">Complexity</th>
-                      <th className="px-3 py-2.5 font-medium">Date</th>
-                      <th className="px-4 py-2.5 text-right font-medium">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-line/60">
-                    {filteredSubmissions.map(sub => {
-                      const diffConf = DIFFICULTY_CONFIG[sub.difficulty] ?? DIFFICULTY_CONFIG.medium;
-                      const isPassed = sub.status === 'passed';
-                      const isPartial = sub.status === 'partial';
-
-                      return (
-                        <tr key={sub.id} className="transition-colors hover:bg-raised/30">
-                          <td className="px-4 py-3">
-                            <div className="font-semibold text-fg">{sub.title}</div>
-                            <div className="text-[11px] text-fg-3">{sub.track} • {langLabel(sub.language)}</div>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span className={cn('rounded px-1.5 py-0.5 text-[10px] font-semibold border', diffConf.badgeColor)}>
-                              {diffConf.label}
-                            </span>
-                          </td>
-                          <td className="px-3 py-3">
-                            <span
-                              className={cn(
-                                'inline-flex items-center gap-1 rounded px-2 py-0.5 text-[11px] font-medium border',
-                                isPassed
-                                  ? 'border-emerald-500/20 bg-emerald-500/10 text-emerald-400'
-                                  : isPartial
-                                  ? 'border-amber-500/20 bg-amber-500/10 text-amber-400'
-                                  : 'border-rose-500/20 bg-rose-500/10 text-rose-400'
-                              )}
-                            >
-                              {isPassed ? <CheckCircle2 size={12} /> : isPartial ? <AlertCircle size={12} /> : <XCircle size={12} />}
-                              {isPassed ? 'Passed' : isPartial ? 'Partial' : 'Failed'} ({sub.score}/100)
-                            </span>
-                          </td>
-                          <td className="px-3 py-3 font-mono text-[11px] text-fg-2">
-                            {sub.time_complexity || '—'} / {sub.space_complexity || '—'}
-                          </td>
-                          <td className="px-3 py-3 text-fg-3">
-                            {new Date(sub.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-3 text-right">
-                            {sub.workspace_doc_id ? (
-                              <Link
-                                href={`/workspace/${sub.workspace_doc_id}`}
-                                className="inline-flex items-center gap-1 rounded-control bg-raised px-2.5 py-1 text-xs font-medium text-fg hover:bg-raised/80"
-                              >
-                                Review <ArrowUpRight size={12} />
-                              </Link>
-                            ) : (
-                              <span className="text-fg-3">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
 
+function Metric({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="min-w-0 sm:pl-6 sm:first:pl-0">
+      <div className="text-[13px] text-fg-3">{label}</div>
+      <div className="font-mono text-[28px] font-semibold leading-tight text-fg">{value}</div>
+    </div>
+  );
+}
